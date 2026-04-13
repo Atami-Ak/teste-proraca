@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>SIGA — Ordem de Serviço</title>
+    <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/formulario.css" />
+    <style>
+      /* ── Header ─────────────────────────────────────────────── */
+      .main-header {
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--primary, #004a99); color: white;
+        padding: 14px 20px; box-shadow: 0 4px 6px rgba(0,0,0,.1);
+      }
+      .header-left { display: flex; align-items: center; gap: 14px; }
+      .btn-back-header {
+        color: white; text-decoration: none; font-size: 1.5rem;
+        font-weight: bold; line-height: 1;
+      }
+      .logo-container h1 { margin: 0; font-size: 1.4rem; letter-spacing: 1px; }
+      .logo-container span { font-size: .78rem; color: #cbd5e1; }
+      .user-info { display: flex; align-items: center; gap: 10px; }
+      .avatar {
+        background: white; color: var(--primary, #004a99);
+        width: 34px; height: 34px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 900; font-size: 1rem;
+      }
+      /* ── Nav ─────────────────────────────────────────────────── */
+      .main-nav {
+        display: flex; gap: 10px; padding: 12px 20px;
+        background: white; overflow-x: auto; white-space: nowrap;
+        border-bottom: 1px solid #e2e8f0; margin-bottom: 0;
+      }
+      .main-nav::-webkit-scrollbar { height: 3px; }
+      .main-nav::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+      .nav-item {
+        padding: 9px 16px; text-decoration: none; color: #475569;
+        font-weight: 600; font-size: .9rem; border-radius: 8px;
+        background: #f1f5f9; border: 1px solid #e2e8f0; transition: .2s;
+      }
+      .nav-item:hover { background: #e2e8f0; }
+      .nav-item.active { background: var(--primary,#004a99); color: white; border-color: var(--primary,#004a99); }
+
+      /* ── Container ───────────────────────────────────────────── */
+      .container {
+        max-width: 680px; margin: 0 auto;
+        padding: 16px 16px 120px; /* bottom pad for sticky nav */
+      }
+
+      /* ── Wizard Header ───────────────────────────────────────── */
+      .wz-machine-header {
+        display: flex; align-items: flex-start; justify-content: space-between;
+        gap: 12px; margin-bottom: 14px;
+      }
+      .wz-machine-id {
+        background: #1e293b; color: white;
+        padding: 3px 10px; border-radius: 6px;
+        font-size: .8rem; font-weight: 700; display: inline-block;
+        margin-bottom: 5px;
+      }
+      .wz-machine-nome {
+        font-size: 1.25rem; font-weight: 700; color: #0f172a; margin: 0;
+      }
+      .wz-save-pill {
+        display: flex; align-items: center; gap: 5px;
+        font-size: .72rem; font-weight: 600; color: #64748b;
+        background: #f1f5f9; border: 1px solid #e2e8f0;
+        padding: 4px 10px; border-radius: 20px; white-space: nowrap;
+        flex-shrink: 0; margin-top: 4px;
+      }
+      .wz-save-pill.saved { color: #16a34a; border-color: #86efac; background: #f0fdf4; }
+      .wz-save-pill.saving { color: #d97706; border-color: #fde68a; background: #fefce8; }
+
+      /* ── Draft Banner ────────────────────────────────────────── */
+      .draft-banner {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 12px; padding: 12px 16px; border-radius: 10px;
+        background: #fffbeb; border: 1.5px solid #fde68a;
+        margin-bottom: 14px;
+      }
+      .draft-banner-info strong { display: block; font-size: .88rem; color: #92400e; }
+      .draft-banner-info span { font-size: .78rem; color: #78350f; }
+      .draft-banner-actions { display: flex; gap: 8px; flex-shrink: 0; }
+      .btn-draft-restore {
+        background: #0f4c75; color: white; border: none;
+        padding: 8px 14px; border-radius: 8px; font-size: .82rem;
+        font-weight: 700; cursor: pointer;
+      }
+      .btn-draft-discard {
+        background: white; color: #dc2626; border: 1.5px solid #fecaca;
+        padding: 8px 14px; border-radius: 8px; font-size: .82rem;
+        font-weight: 700; cursor: pointer;
+      }
+
+      /* ── Progress Bar ────────────────────────────────────────── */
+      .wz-progress { margin-bottom: 20px; }
+      .wz-progress-track {
+        height: 6px; background: #e2e8f0; border-radius: 3px;
+        margin-bottom: 10px; overflow: hidden;
+      }
+      .wz-progress-fill {
+        height: 100%; background: var(--primary, #004a99);
+        border-radius: 3px; transition: width .35s ease;
+      }
+      .wz-dots {
+        display: flex; justify-content: space-between;
+        align-items: center; position: relative;
+      }
+      .wz-dots::before {
+        content: ""; position: absolute; top: 50%; left: 0; right: 0;
+        height: 2px; background: #e2e8f0; transform: translateY(-50%);
+        z-index: 0;
+      }
+      .wz-dot {
+        width: 32px; height: 32px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .8rem; font-weight: 700; position: relative; z-index: 1;
+        background: white; border: 2px solid #e2e8f0; color: #94a3b8;
+        cursor: pointer; transition: all .25s;
+        flex-shrink: 0;
+      }
+      .wz-dot.done { background: var(--primary,#004a99); border-color: var(--primary,#004a99); color: white; }
+      .wz-dot.active { background: white; border-color: var(--primary,#004a99); color: var(--primary,#004a99); box-shadow: 0 0 0 4px rgba(0,74,153,.15); }
+      .wz-step-label {
+        text-align: center; font-size: .78rem; font-weight: 600;
+        color: var(--primary,#004a99); margin-top: 8px;
+      }
+
+      /* ── Step Panels ─────────────────────────────────────────── */
+      .wz-panel { display: none; }
+      .wz-panel.active { display: block; animation: fadeIn .2s ease; }
+      @keyframes fadeIn { from { opacity: .4; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+      /* ── Current State Banner ────────────────────────────────── */
+      .state-banner {
+        display: flex; align-items: center; gap: 12px;
+        padding: 12px 16px; border-radius: 10px; margin-bottom: 16px;
+        border: 1.5px solid #e2e8f0; background: #f8fafc;
+      }
+      .state-banner-icon { font-size: 1.5rem; }
+      .state-banner-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .5px; opacity: .7; }
+      .state-banner-value { font-size: 1rem; font-weight: 700; }
+
+      /* ── Machine Info Card ───────────────────────────────────── */
+      .machine-info-card {
+        display: flex; gap: 14px; align-items: center;
+        background: white; border: 1px solid #e2e8f0;
+        border-radius: 10px; padding: 14px 16px; margin-bottom: 20px;
+      }
+      .machine-info-icon { font-size: 2.2rem; line-height: 1; }
+      .machine-info-details { flex: 1; }
+      .machine-info-setor { font-size: .72rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+      .machine-info-patrimonio { font-size: .82rem; color: #475569; margin-top: 2px; }
+      .machine-info-extra { font-size: .78rem; color: #94a3b8; margin-top: 2px; }
+
+      /* ── Context Buttons ─────────────────────────────────────── */
+      .ctx-btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .ctx-btn {
+        padding: 12px 6px; border: 2px solid #e2e8f0; border-radius: 8px;
+        background: white; cursor: pointer; font-size: .82rem; font-weight: 600;
+        color: #475569; transition: all .18s; text-align: center; min-height: 48px;
+      }
+      .ctx-btn:hover { background: #f1f5f9; }
+      .ctx-btn.selected { border-color: var(--primary,#004a99); background: #ebf4ff; color: var(--primary,#004a99); }
+
+      /* ── Type Buttons ────────────────────────────────────────── */
+      .type-btn-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 4px; }
+      .type-btn {
+        padding: 16px 20px; border: 2px solid #e2e8f0; border-radius: 10px;
+        background: white; cursor: pointer; font-size: .95rem; font-weight: 600;
+        color: #475569; text-align: left; transition: all .18s; min-height: 56px;
+      }
+      .type-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
+      .type-btn.selected { border-color: var(--primary,#004a99); background: #ebf4ff; color: var(--primary,#004a99); }
+
+      /* ── Status Buttons (color coded) ───────────────────────── */
+      .status-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .btn-status {
+        padding: 14px 8px; border: 2px solid #e2e8f0; border-radius: 10px;
+        background: white; cursor: pointer; font-size: .88rem; font-weight: 700;
+        transition: all .18s; min-height: 56px;
+      }
+      .btn-status.selected.btn-op  { border-color: #16a34a; background: #f0fdf4; color: #15803d; }
+      .btn-status.selected.btn-at  { border-color: #d97706; background: #fffbeb; color: #b45309; }
+      .btn-status.selected.btn-pa  { border-color: #dc2626; background: #fef2f2; color: #b91c1c; }
+      .btn-status.selected.btn-ma  { border-color: #7c3aed; background: #f5f3ff; color: #6d28d9; }
+
+      /* ── Priority Buttons ────────────────────────────────────── */
+      .priority-btn-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+      .priority-btn {
+        padding: 12px 4px; border: 2px solid #e2e8f0; border-radius: 8px;
+        background: white; cursor: pointer; font-size: .78rem; font-weight: 700;
+        color: #475569; transition: all .18s; text-align: center; min-height: 48px;
+      }
+      .priority-btn[data-val="low"].selected    { border-color: #16a34a; background: #f0fdf4; color: #15803d; }
+      .priority-btn[data-val="medium"].selected { border-color: #d97706; background: #fffbeb; color: #b45309; }
+      .priority-btn[data-val="high"].selected   { border-color: #dc2626; background: #fef2f2; color: #b91c1c; }
+      .priority-btn[data-val="critical"].selected { border-color: #991b1b; background: #fff1f2; color: #991b1b; }
+
+      /* ── LOTO Box ────────────────────────────────────────────── */
+      .loto-box {
+        background: #fef2f2; border: 2px solid #fecaca;
+        border-radius: 10px; padding: 14px 16px; margin: 12px 0;
+      }
+      .loto-label {
+        display: flex; align-items: flex-start; gap: 10px;
+        font-weight: 700; color: #7f1d1d; cursor: pointer; line-height: 1.4;
+      }
+      .loto-label input[type="checkbox"] {
+        width: 22px; height: 22px; flex-shrink: 0;
+        accent-color: #dc2626; margin-top: 1px;
+      }
+
+      /* ── Section helpers ─────────────────────────────────────── */
+      .section-hint {
+        font-size: .8rem; color: #64748b; margin: -10px 0 12px;
+      }
+      .form-section { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px dashed #e2e8f0; }
+      .form-section:last-child { border-bottom: none; }
+      .section-title {
+        font-size: .98rem; color: var(--primary,#004a99);
+        margin-bottom: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px;
+      }
+      .form-group { margin-bottom: 16px; }
+      label { display: block; margin-bottom: 7px; font-weight: 600; font-size: .9rem; color: #444; }
+
+      /* ── Materials Row ───────────────────────────────────────── */
+      .mat-input-row { display: flex; gap: 8px; align-items: stretch; margin-bottom: 12px; }
+      .mat-input-row .input-padrao { margin: 0; }
+      .mat-input-row .mat-qty { width: 72px; flex-shrink: 0; }
+      .mat-input-row .mat-unit { width: 70px; flex-shrink: 0; }
+      .po-notice {
+        background: #f0fdf4; border: 1.5px solid #86efac;
+        border-radius: 8px; padding: 10px 14px; font-size: .83rem;
+        color: #15803d; margin-top: 10px; font-weight: 600;
+      }
+      .downtime-display {
+        background: #f8fafc; border: 1px solid #e2e8f0;
+        border-radius: 8px; padding: 10px 14px; font-size: .88rem;
+        color: #475569; margin-top: -8px; margin-bottom: 8px;
+      }
+
+      /* ── Photo buttons ───────────────────────────────────────── */
+      .photo-btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+      .btn-photo {
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        padding: 16px; border-radius: 10px; cursor: pointer;
+        font-weight: 700; font-size: .9rem; transition: .18s; min-height: 56px;
+      }
+      .btn-camera { background: #1e293b; color: white; }
+      .btn-camera:hover { background: #0f172a; }
+      .btn-gallery { background: #475569; color: white; }
+      .btn-gallery:hover { background: #334155; }
+      .photo-count-badge {
+        font-size: .78rem; color: var(--primary,#004a99);
+        background: #ebf4ff; padding: 3px 10px; border-radius: 12px;
+        font-weight: 700; display: inline-block; margin-bottom: 10px;
+      }
+
+      /* ── Sticky Bottom Nav ───────────────────────────────────── */
+      .wz-nav {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        background: white; border-top: 1px solid #e2e8f0;
+        padding: 12px 16px; z-index: 100;
+        box-shadow: 0 -4px 16px rgba(0,0,0,.08);
+      }
+      .wz-nav-step { font-size: .78rem; font-weight: 700; color: #64748b; white-space: nowrap; }
+      .wz-btn {
+        padding: 14px 22px; border-radius: 10px; font-size: .92rem;
+        font-weight: 700; cursor: pointer; border: none; min-height: 50px;
+        transition: all .18s; flex-shrink: 0;
+      }
+      .wz-btn-prev { background: #f1f5f9; color: #475569; border: 1.5px solid #e2e8f0; }
+      .wz-btn-prev:hover { background: #e2e8f0; }
+      .wz-btn-next { background: var(--primary,#004a99); color: white; }
+      .wz-btn-next:hover { background: #003875; }
+      .wz-btn-submit { background: #16a34a; color: white; }
+      .wz-btn-submit:hover { background: #15803d; }
+      .wz-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+      /* ── Overlay ─────────────────────────────────────────────── */
+      .overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,.5);
+        display: flex; align-items: center; justify-content: center; z-index: 999;
+      }
+      .overlay.hidden { display: none; }
+      .overlay-content {
+        background: white; padding: 32px; border-radius: 16px;
+        text-align: center; min-width: 220px; box-shadow: 0 20px 40px rgba(0,0,0,.2);
+      }
+      .spinner {
+        width: 40px; height: 40px; border: 4px solid #e2e8f0;
+        border-top-color: var(--primary,#004a99);
+        border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 14px;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .overlay-content p { font-weight: 600; color: #475569; margin: 0; }
+
+      /* ── Toast ───────────────────────────────────────────────── */
+      #toast {
+        position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+        padding: 13px 22px; border-radius: 8px; z-index: 9999;
+        font-weight: 700; max-width: 90%; text-align: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,.15); display: none;
+        font-size: .9rem;
+      }
+      #toast.show { display: block; }
+      #toast.sucesso { background: #059669; color: white; }
+      #toast.erro    { background: #dc2626; color: white; }
+      #toast.aviso   { background: #d97706; color: white; }
+
+      /* ── Box alerta for analysis step ───────────────────────── */
+      .box-alerta {
+        padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0;
+        background: #fef2f2; border-left: 5px solid #fecaca;
+      }
+
+      /* ── Grid ────────────────────────────────────────────────── */
+      .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      @media (max-width: 420px) { .grid-2col { grid-template-columns: 1fr; } }
+
+      /* ── Utils ───────────────────────────────────────────────── */
+      .hidden { display: none !important; }
+      .input-padrao {
+        width: 100%; padding: 12px 14px; border: 2px solid #e2e8f0;
+        border-radius: 8px; font-size: .95rem; background: white;
+        transition: border-color .18s; box-sizing: border-box;
+      }
+      .input-padrao:focus { border-color: var(--primary,#004a99); outline: none; }
+      textarea.input-padrao { resize: vertical; }
+      select.input-padrao { cursor: pointer; }
+      .lista-dinamica { list-style: none; padding: 0; margin: 0; }
+      .lista-dinamica li {
+        display: flex; align-items: center; gap: 10px;
+        background: white; padding: 11px 14px;
+        border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px;
+        font-size: .9rem;
+      }
+      .lista-dinamica li .mat-info { flex: 1; }
+      .lista-dinamica li .mat-qty-badge {
+        font-weight: 700; color: var(--primary,#004a99);
+        background: #ebf4ff; padding: 2px 8px; border-radius: 6px; font-size: .8rem;
+      }
+      .btn-remove-peca {
+        background: none; border: none; color: #dc2626;
+        font-size: 1.3rem; cursor: pointer; line-height: 1; padding: 0 4px;
+      }
+      .btn-add {
+        background: var(--primary,#004a99); color: white;
+        border: none; padding: 0 18px; border-radius: 8px;
+        font-size: 1.5rem; cursor: pointer; transition: .18s;
+        display: flex; align-items: center; justify-content: center;
+        min-height: 48px; flex-shrink: 0;
+      }
+      .btn-add:hover { background: #003875; }
+      .preview-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 8px; margin-top: 12px;
+      }
+      .preview-grid img {
+        width: 100%; aspect-ratio: 1; object-fit: cover;
+        border-radius: 8px; border: 1px solid #e2e8f0;
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- ── HEADER ────────────────────────────────────────────── -->
+    <header class="main-header">
+      <div class="header-left">
+        <a href="maquinario.html" class="btn-back-header" title="Voltar">←</a>
+        <div class="logo-container">
+          <h1>SIGA</h1>
+          <span id="header-subtitle">Ordem de Serviço</span>
+        </div>
+      </div>
+      <div class="user-info">
+        <span style="font-size:.85rem;font-weight:700;" id="header-user">Operador</span>
+        <div class="avatar" id="header-avatar">O</div>
+      </div>
+    </header>
+
+    <!-- ── NAV ───────────────────────────────────────────────── -->
+    <nav class="main-nav">
+      <a href="../index.html" class="nav-item">🏠 Início</a>
+      <a href="maquinario.html" class="nav-item active">⚙️ Maquinário</a>
+      <a href="../frota/painel-frota.html" class="nav-item">🚛 Frota</a>
+      <a href="../limpeza/limpeza.html" class="nav-item">🧹 Limpeza 5S</a>
+      <a href="../os/os.html" class="nav-item">📋 O.S</a>
+      <a href="../compras/compras.html" class="nav-item">🛒 Compras</a>
+    </nav>
+
+    <!-- ── MAIN ──────────────────────────────────────────────── -->
+    <main class="container">
+
+      <!-- Machine title + save pill -->
+      <div class="wz-machine-header">
+        <div>
+          <span class="wz-machine-id" id="display-id">---</span>
+          <h2 class="wz-machine-nome" id="display-nome">Carregando...</h2>
+        </div>
+        <div class="wz-save-pill" id="save-pill">💾 Rascunho</div>
+      </div>
+
+      <!-- Draft Recovery Banner -->
+      <div id="draft-banner" class="draft-banner hidden">
+        <div class="draft-banner-info">
+          <strong>📋 Rascunho encontrado</strong>
+          <span id="draft-banner-time">—</span>
+        </div>
+        <div class="draft-banner-actions">
+          <button class="btn-draft-restore" id="btn-restore-draft">↩ Restaurar</button>
+          <button class="btn-draft-discard" id="btn-discard-draft">✕</button>
+        </div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="wz-progress">
+        <div class="wz-progress-track">
+          <div class="wz-progress-fill" id="progress-fill" style="width:20%"></div>
+        </div>
+        <div class="wz-dots">
+          <div class="wz-dot active" data-step="1" title="Contexto">1</div>
+          <div class="wz-dot" data-step="2" title="Tipo">2</div>
+          <div class="wz-dot" data-step="3" title="Análise">3</div>
+          <div class="wz-dot" data-step="4" title="Execução">4</div>
+          <div class="wz-dot" data-step="5" title="Relatório">5</div>
+        </div>
+        <div class="wz-step-label" id="wz-step-label">Passo 1 / 5 — Contexto da Máquina</div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════════ -->
+      <!-- STEP 1 — MACHINE CONTEXT                            -->
+      <!-- ════════════════════════════════════════════════════ -->
+      <div class="wz-panel active" id="panel-1">
+
+        <!-- Current machine state banner (loaded async) -->
+        <div class="state-banner" id="state-banner" style="display:none;">
+          <div class="state-banner-icon" id="state-icon">⚙️</div>
+          <div>
+            <div class="state-banner-label">Status atual do ativo</div>
+            <div class="state-banner-value" id="state-label">—</div>
+          </div>
+        </div>
+
+        <!-- Machine info card -->
+        <div class="machine-info-card" id="machine-info-card">
+          <div class="machine-info-icon" id="machine-info-icon">⚙️</div>
+          <div class="machine-info-details">
+            <div class="machine-info-setor" id="machine-info-setor">—</div>
+            <div class="machine-info-patrimonio" id="machine-info-patrimonio">—</div>
+            <div class="machine-info-extra" id="machine-info-extra">—</div>
+          </div>
+        </div>
+
+        <!-- Operational Context -->
+        <div class="form-section">
+          <h4 class="section-title">📊 Contexto Operacional Observado</h4>
+          <p class="section-hint">Avalie a condição da máquina no momento desta intervenção (substitui horímetro).</p>
+
+          <div class="form-group">
+            <label>Condição Observada</label>
+            <div class="ctx-btn-group" id="ctx-condition-group">
+              <button type="button" class="ctx-btn selected" data-val="normal">🟢 Normal</button>
+              <button type="button" class="ctx-btn" data-val="degraded">🟡 Degradada</button>
+              <button type="button" class="ctx-btn" data-val="critical">🔴 Crítica</button>
+            </div>
+            <input type="hidden" id="ctx-condition" value="normal" />
+          </div>
+
+          <div class="form-group">
+            <label>Estado de Operação</label>
+            <div class="ctx-btn-group" id="ctx-state-group">
+              <button type="button" class="ctx-btn selected" data-val="running">▶ Em Operação</button>
+              <button type="button" class="ctx-btn" data-val="idle">⏸ Em Standby</button>
+              <button type="button" class="ctx-btn" data-val="stopped">⏹ Parada</button>
+            </div>
+            <input type="hidden" id="ctx-state" value="running" />
+          </div>
+
+          <div class="form-group">
+            <label>Carga de Trabalho</label>
+            <div class="ctx-btn-group" id="ctx-load-group">
+              <button type="button" class="ctx-btn" data-val="low">🔵 Baixa</button>
+              <button type="button" class="ctx-btn selected" data-val="normal">⚪ Normal</button>
+              <button type="button" class="ctx-btn" data-val="high">🔴 Alta</button>
+            </div>
+            <input type="hidden" id="ctx-load" value="normal" />
+          </div>
+        </div>
+
+      </div><!-- /panel-1 -->
+
+      <!-- ════════════════════════════════════════════════════ -->
+      <!-- STEP 2 — WO CLASSIFICATION                          -->
+      <!-- ════════════════════════════════════════════════════ -->
+      <div class="wz-panel" id="panel-2">
+
+        <div class="form-section">
+          <h4 class="section-title">🔖 Tipo de Intervenção</h4>
+          <div class="type-btn-group" id="type-group">
+            <button type="button" class="type-btn" data-val="Inspecao">
+              👁 Inspeção Preditiva / Diária
+            </button>
+            <button type="button" class="type-btn" data-val="Preventiva">
+              🛡 Manutenção Preventiva (Agendada)
+            </button>
+            <button type="button" class="type-btn" data-val="Corretiva">
+              🔧 Manutenção Corretiva (Falha / Quebra)
+            </button>
+          </div>
+          <input type="hidden" id="tipo-manutencao" />
+        </div>
+
+        <div class="form-section">
+          <h4 class="section-title">🚦 Status da Máquina Após Intervenção</h4>
+          <div class="status-selector" id="status-group">
+            <button type="button" class="btn-status btn-op" data-status="Operacional">🟢 Operacional</button>
+            <button type="button" class="btn-status btn-at" data-status="Atencao">🟡 Atenção / Restrição</button>
+            <button type="button" class="btn-status btn-pa" data-status="Parada">🔴 Parada / Falha</button>
+            <button type="button" class="btn-status btn-ma" data-status="Manutencao">🔧 Em Manutenção</button>
+          </div>
+          <input type="hidden" id="status-maquina" />
+          <!-- Smart mode indicator: shows inspection vs WO mode -->
+          <div id="wo-mode-banner" style="display:none;"></div>
+        </div>
+
+        <!-- LOTO — shown when Parada or Manutencao -->
+        <div class="loto-box hidden" id="loto-box">
+          <label class="loto-label">
+            <input type="checkbox" id="check-loto" />
+            ⚡ Confirmo que a máquina está bloqueada e desenergizada conforme LOTO / NR-12.
+          </label>
+        </div>
+
+        <div class="form-section">
+          <h4 class="section-title">⚡ Prioridade da O.S.</h4>
+          <div class="priority-btn-group" id="priority-group">
+            <button type="button" class="priority-btn" data-val="low">🟢 Baixa</button>
+            <button type="button" class="priority-btn" data-val="medium">🟡 Média</button>
+            <button type="button" class="priority-btn" data-val="high">🔴 Alta</button>
+            <button type="button" class="priority-btn" data-val="critical">⛔ Crítica</button>
+          </div>
+          <input type="hidden" id="priority" />
+        </div>
+
+        <div class="form-section">
+          <h4 class="section-title">📅 Datas</h4>
+          <div class="grid-2col">
+            <div class="form-group">
+              <label for="planned-date">Data Prevista</label>
+              <input type="date" id="planned-date" class="input-padrao" />
+            </div>
+            <div class="form-group">
+              <label for="expected-completion">Previsão de Conclusão</label>
+              <input type="date" id="expected-completion" class="input-padrao" />
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /panel-2 -->
+
+      <!-- ════════════════════════════════════════════════════ -->
+      <!-- STEP 3 — FAILURE ANALYSIS                           -->
+      <!-- ════════════════════════════════════════════════════ -->
+      <div class="wz-panel" id="panel-3">
+
+        <div class="box-alerta" style="margin-bottom:20px;">
+          <h4 class="section-title" id="analysis-title" style="margin-bottom:4px;">🔍 Análise de Falha / Diagnóstico</h4>
+          <p class="section-hint" style="margin:0;">Preencha conforme o observado. Pode ser completado após a execução.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="affected-component">Subconjunto Afetado</label>
+          <select id="affected-component" class="input-padrao">
+            <option value="">Geral / Equipamento Completo</option>
+            <option value="Motor/Acionamento">⚙️ Motor / Acionamento</option>
+            <option value="Painel Elétrico">⚡ Painel Elétrico / Sensores</option>
+            <option value="Transmissão/Rolamentos">🔩 Transmissão / Rolamentos</option>
+            <option value="Estrutura Mecânica">🏗️ Estrutura Mecânica / Chassi</option>
+            <option value="Lubrificação/Fluidos">💧 Lubrificação / Hidráulica</option>
+            <option value="Sistema de Controle">🖥 Sistema de Controle / CLP</option>
+            <option value="Sistema de Alimentação">📥 Sistema de Alimentação</option>
+          </select>
+        </div>
+
+        <div class="grid-2col">
+          <div class="form-group">
+            <label for="symptom">Sintoma Observado</label>
+            <select id="symptom" class="input-padrao">
+              <option value="Nenhum">Nenhum / Rotina</option>
+              <option value="Ruído Anormal">Ruído Anormal</option>
+              <option value="Vibração Excessiva">Vibração Excessiva</option>
+              <option value="Vazamento">Vazamento (Óleo / Fluido)</option>
+              <option value="Superaquecimento">Superaquecimento</option>
+              <option value="Parada Súbita">Parada Súbita / Desarme</option>
+              <option value="Desgaste Acelerado">Desgaste Acelerado</option>
+              <option value="Falha Elétrica">Falha Elétrica / Curto</option>
+              <option value="Perda de Desempenho">Perda de Desempenho</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="root-cause">Causa Raiz Suspeita</label>
+            <select id="root-cause" class="input-padrao">
+              <option value="Não Aplicável">Não Aplicável / Rotina</option>
+              <option value="Desgaste Natural">Desgaste Natural</option>
+              <option value="Falha Operacional">Falha Operacional / Uso Indevido</option>
+              <option value="Falta de Manutenção">Falta de Manutenção Preventiva</option>
+              <option value="Sobrecarga">Sobrecarga / Falta de Fase</option>
+              <option value="Falta de Lubrificação">Falta de Lubrificação</option>
+              <option value="Falha de Componente">Falha de Componente</option>
+              <option value="Desconhecida">Desconhecida / Em Investigação</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="problem-description">Descrição do Problema <span style="color:#94a3b8;font-weight:400;">(opcional)</span></label>
+          <textarea id="problem-description" class="input-padrao"
+            placeholder="Descreva o problema encontrado, condições observadas, sequência dos eventos..."
+            rows="3"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="action-taken">Ação Tomada</label>
+          <select id="action-taken" class="input-padrao">
+            <option value="Inspecionado">Apenas Inspecionado</option>
+            <option value="Ajustado">Ajustado / Calibrado</option>
+            <option value="Substituído">Componente Substituído</option>
+            <option value="Lubrificado">Limpeza / Lubrificação</option>
+            <option value="Pendente — Aguardando Peças">Pendente — Aguardando Peças</option>
+            <option value="Encaminhado para Terceiros">Encaminhado para Terceiros</option>
+          </select>
+        </div>
+
+      </div><!-- /panel-3 -->
+
+      <!-- ════════════════════════════════════════════════════ -->
+      <!-- STEP 4 — EXECUTION & RESOURCES                      -->
+      <!-- ════════════════════════════════════════════════════ -->
+      <div class="wz-panel" id="panel-4">
+
+        <div class="form-section">
+          <h4 class="section-title">⏱ Controle de Tempo</h4>
+          <div class="grid-2col">
+            <div class="form-group">
+              <label for="start-dt">Início da Intervenção</label>
+              <input type="datetime-local" id="start-dt" class="input-padrao" />
+            </div>
+            <div class="form-group">
+              <label for="end-dt">Término da Intervenção</label>
+              <input type="datetime-local" id="end-dt" class="input-padrao" />
+            </div>
+          </div>
+          <div class="downtime-display hidden" id="downtime-display">
+            ⏱ Tempo de intervenção calculado: <strong id="downtime-value">—</strong>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4 class="section-title">🔩 Materiais e Peças (BOM)</h4>
+          <p class="section-hint">
+            Materiais adicionados aqui gerarão automaticamente um
+            <strong>Pedido de Compra</strong> ao concluir a O.S.
+          </p>
+
+          <div class="mat-input-row">
+            <input type="text" id="mat-desc" class="input-padrao"
+              placeholder="Descrição da peça / material" />
+            <input type="number" id="mat-qty" class="input-padrao mat-qty"
+              placeholder="Qtd" min="1" value="1" />
+            <select id="mat-unit" class="input-padrao mat-unit">
+              <option value="un">un</option>
+              <option value="L">L</option>
+              <option value="kg">kg</option>
+              <option value="m">m</option>
+              <option value="cx">cx</option>
+            </select>
+            <button type="button" id="btn-add-mat" class="btn-add">+</button>
+          </div>
+
+          <ul id="mat-list" class="lista-dinamica"></ul>
+
+          <div class="po-notice hidden" id="po-notice">
+            🛒 Pedido de Compra será gerado automaticamente na conclusão.
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4 class="section-title">👷 Responsáveis pela Execução</h4>
+          <div class="grid-2col">
+            <div class="form-group">
+              <label for="executed-by">Técnico Responsável</label>
+              <input type="text" id="executed-by" class="input-padrao"
+                placeholder="Nome do técnico" />
+            </div>
+            <div class="form-group">
+              <label for="approved-by">Aprovado por <span style="font-weight:400;color:#94a3b8;">(opcional)</span></label>
+              <input type="text" id="approved-by" class="input-padrao"
+                placeholder="Supervisor / Gestor" />
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /panel-4 -->
+
+      <!-- ════════════════════════════════════════════════════ -->
+      <!-- STEP 5 — REPORT & EVIDENCE                          -->
+      <!-- ════════════════════════════════════════════════════ -->
+      <div class="wz-panel" id="panel-5">
+
+        <div class="form-section">
+          <h4 class="section-title">📝 Relatório Técnico</h4>
+          <div class="form-group">
+            <label for="report">
+              Relatório de Serviço
+              <span style="color:#dc2626;"> *</span>
+            </label>
+            <textarea id="report" class="input-padrao" rows="6"
+              placeholder="Descreva o serviço realizado, condições encontradas, ações tomadas, recomendações para próximas manutenções..."></textarea>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4 class="section-title">📸 Evidências Visuais</h4>
+          <div class="photo-count-badge">
+            <span id="photo-count">0</span> / 20 fotos
+          </div>
+
+          <div class="photo-btn-group">
+            <label for="foto-camera" class="btn-photo btn-camera">
+              📷 Câmera
+            </label>
+            <input type="file" id="foto-camera" accept="image/*"
+              capture="environment" multiple hidden />
+
+            <label for="foto-gallery" class="btn-photo btn-gallery">
+              🖼 Galeria
+            </label>
+            <input type="file" id="foto-gallery" accept="image/*"
+              multiple hidden />
+          </div>
+
+          <div id="photo-grid" class="preview-grid"></div>
+        </div>
+
+      </div><!-- /panel-5 -->
+
+    </main>
+
+    <!-- ── STICKY BOTTOM NAV ──────────────────────────────── -->
+    <div class="wz-nav">
+      <button type="button" id="btn-prev" class="wz-btn wz-btn-prev"
+        style="visibility:hidden;">← Anterior</button>
+
+      <span class="wz-nav-step" id="nav-step-text">1 / 5</span>
+
+      <button type="button" id="btn-next" class="wz-btn wz-btn-next">
+        Próximo →
+      </button>
+      <button type="button" id="btn-submit" class="wz-btn wz-btn-submit hidden">
+        ✅ Concluir O.S.
+      </button>
+    </div>
+
+    <!-- ── OVERLAY ────────────────────────────────────────── -->
+    <div id="overlay" class="overlay hidden">
+      <div class="overlay-content">
+        <div class="spinner"></div>
+        <p id="overlay-text">Processando...</p>
+      </div>
+    </div>
+
+    <!-- ── TOAST ─────────────────────────────────────────── -->
+    <div id="toast"></div>
+
+    <script type="module" src="../js/modules/app-formulario.js"></script>
+  </body>
+</html>

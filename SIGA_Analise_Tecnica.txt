@@ -1,0 +1,973 @@
+================================================================================
+SIGA — Sistema Integrado de Gestão de Ativos
+Análise Técnica Completa do Sistema
+Versão 2.2 — Atualizada em 2026-04-07
+================================================================================
+
+
+================================================================================
+A) SYSTEM OVERVIEW
+================================================================================
+
+O que é:
+  SIGA (Sistema Integrado de Gestão de Ativos) é uma aplicação web industrial
+  mobile-first construída para a empresa "Pro Raça". É inteiramente client-side
+  (sem backend próprio) e usa Firebase como único serviço de nuvem.
+
+Propósito principal:
+  Digitalizar e centralizar cinco áreas operacionais de uma fábrica:
+    1. Rastreamento de manutenção de maquinário industrial
+    2. Inspeção de veículos da frota (caminhões, carros, motos)
+    3. Auditorias de limpeza de facilities (metodologia 5S)
+    4. Ordens de serviço, pedidos de compra e geração de documentos
+    5. Gestão de fornecedores, autenticação por papel e dashboard de KPIs
+
+Tipo de sistema:
+  Plataforma de Operações Industriais / Sistema de Coleta de Dados em Campo +
+  Dashboard de Gestão com controlo de acesso por papel (admin, maintenance,
+  operations, purchasing). Evoluiu de MVP para plataforma de produção estruturada.
+
+Estado de evolução:
+  v1.0: Módulos operacionais (maquinário, frota, limpeza) com autenticação simulada.
+  v2.0: Módulos de OS e Compras separados, geração de documentos, lista dinâmica
+        de materiais, sistema unificado work_orders.
+  v2.1: Firebase Auth real, RBAC, dashboard de KPIs, fornecedores,
+        workflow de aprovação de compras, regras de segurança Firestore,
+        bridge de migração de dados, Cloud Functions readiness completo.
+  v2.2 (atual): Estabilização de todos os módulos operacionais.
+        Correção de 5 race conditions DOMContentLoaded, checkAuth em app-painel-frota.js,
+        remoção do window.onclick global, event delegation em todos os modais e
+        formulários dinâmicos, substituição de alert() por toast flutuante.
+
+
+================================================================================
+B) ARCHITECTURE
+================================================================================
+
+Padrão Geral de Arquitetura:
+
+  Static HTML Pages (UI)
+          ↓
+  ES Module JS — app-*.js (Business Logic / Page Controllers)
+          ↓
+  Core DB Layer — db-*.js (Firebase abstraction + domain logic)
+          ↓
+  Firebase Auth | Firestore (8 coleções) | Storage (fotos)
+
+Decisões arquiteturais chave:
+
+  - SEM build system. HTML puro + ES Modules carregados diretamente pelo
+    navegador via <script type="module">. Zero bundlers, zero transpiladores.
+
+  - Firebase SDK via CDN (gstatic.com/firebasejs/10.7.1). Sem npm em runtime.
+
+  - firebase-config.js exporta db, storage e auth. Todos os módulos importam daqui.
+
+  - Camada DB modular e separada por domínio:
+      js/core/db.js             — módulo legado (maquinário, frota, limpeza)
+      js/core/db-os.js          — work orders (manutenção + serviço), docs SRV
+      js/core/db-compras.js     — pedidos de compra, docs PO, query unificado,
+                                  workflow de aprovação completo
+      js/core/db-unified.js     — sistema unificado de work_orders v2: KPIs,
+                                  automações, numeração por timestamp
+      js/core/db-auth.js        — Firebase Auth + RBAC (4 papéis), checkAuth()
+      js/core/db-bridge.js      — bridge para leitura dupla (legacy + work_orders)
+                                  + utilitário de migração
+      js/core/db-dashboard.js   — agregações de KPIs para o painel de gestão
+      js/core/db-fornecedores.js — CRUD de fornecedores + estatísticas
+
+  - Dados mestres estáticos (js/data/) — máquinas, veículos, zonas de limpeza
+    armazenados como arrays JS. Atuam como catálogo local (substituto de ERP).
+
+  - Firebase Auth implementado com papéis lidos do Firestore (users/{uid}.role).
+    Sem custom claims — papel na subcoleção users para simplicidade client-side.
+
+  - Numeração de documentos por timestamp: SRV-YYYYMMDD-XXXX (db-unified.js)
+    elimina risco de condição de corrida dos contadores sequenciais anteriores.
+    (Nota: db-compras.js ainda usa contador sequencial — refatoração pendente.)
+
+Estrutura de pastas:
+  index.html                  → Hub de módulos + barra de sessão
+  auth/                       → Página de login
+  dashboard/                  → Painel de gestão
+  maquinario/                 → Módulo de maquinário (4 páginas)
+  frota/                      → Módulo de frota (3 páginas)
+  limpeza/                    → Módulo de limpeza (3 páginas)
+  os/                         → Ordens de Serviço + Documentos (3 páginas)
+  compras/                    → Pedidos de Compra (2 páginas)
+  js/core/                    → Camada de acesso ao Firebase (8 ficheiros)
+  js/data/                    → Catálogos mestres estáticos
+  js/modules/                 → Um app-*.js por página
+  css/                        → global.css + stylesheets por módulo
+  firestore.rules             → Regras de segurança por papel
+
+
+================================================================================
+C) MODULES IDENTIFICATION
+================================================================================
+
+------------------------------------------------------------------------
+Módulo 1 — Maquinário
+------------------------------------------------------------------------
+Propósito:
+  Monitorar a saúde das máquinas. Criar, executar e fechar ordens de serviço
+  de manutenção.
+
+HTML Pages:
+  maquinario/maquinario.html
+  maquinario/formulario-maquinario.html
+  maquinario/historico-maquina.html
+  maquinario/detalhes-relatorio.html
+
+JS Files:
+  app-maquinario.js, app-formulario.js, app-historico.js, app-detalhes.js
+
+DB Collections:
+  historico_manutencao (legado), work_orders (novo via db-unified.js)
+
+Static Data:
+  dados-maquinas.js — 8 máquinas (MIS-001 a CAL-001)
+
+Responsabilidades:
+  Dashboard com status ao vivo, formulário dual-mode para novos registros e
+  fecho de OS pendente, histórico completo com filtros e KPIs, visualização
+  detalhada de documento OS.
+
+------------------------------------------------------------------------
+Módulo 2 — Frota
+------------------------------------------------------------------------
+Propósito:
+  Checklists de inspeção pré/pós-viagem com upload de fotos de avarias.
+
+HTML Pages:
+  frota/painel-frota.html
+  frota/frota.html
+  frota/historico-frota.html
+
+JS Files:
+  app-painel-frota.js, app-frota.js, app-historico-frota.js
+
+DB Collection:
+  checklists_frota
+
+Static Data:
+  dados-frota.js — 20 veículos + 2 checklists distintos (padrão e moto)
+
+Responsabilidades:
+  Listagem por categoria, formulário adaptativo (caminhão vs moto),
+  histórico filtrado por veículo, relatórios de avaria.
+
+------------------------------------------------------------------------
+Módulo 3 — Limpeza / Facilities (5S)
+------------------------------------------------------------------------
+Propósito:
+  Auditorias de limpeza por zona com pontuação ponderada e evidências
+  fotográficas por pergunta.
+
+HTML Pages:
+  limpeza/limpeza.html
+  limpeza/formulario-limpeza.html
+  limpeza/historico-limpeza.html
+
+JS Files:
+  app-limpeza.js, app-formulario-limpeza.js, app-historico-limpeza.js
+
+DB Collection:
+  auditorias_limpeza
+
+Static Data:
+  dados-limpeza.js — 4 zonas, 4 membros da equipe, 10 perguntas com pesos
+
+Responsabilidades:
+  Painel de zonas ao vivo, pontuação ponderada (0-10), ranking de desempenho
+  de funcionários, histórico de auditorias com evidências fotográficas.
+
+------------------------------------------------------------------------
+Módulo 4 — Ordens de Serviço
+------------------------------------------------------------------------
+Propósito:
+  Criar e acompanhar ordens de serviço de manutenção ou serviço com
+  log de timeline e geração de documento formal.
+
+HTML Pages:
+  os/os.html
+  os/os-detalhe.html
+
+JS Files:
+  app-os.js, app-os-detalhe.js
+
+DB Collections:
+  work_orders, documents (SRV-XXXX)
+
+Responsabilidades:
+  Listagem com filtros de tipo/status, formulário dual-mode (criação/visualização),
+  lista dinâmica de materiais com cálculo automático de custos, controle de
+  fluxo de status, geração de documento SRV, disparo de criação de PO.
+
+------------------------------------------------------------------------
+Módulo 5 — Compras
+------------------------------------------------------------------------
+Propósito:
+  Gerenciar pedidos de compra com workflow de aprovação completo.
+  Pedidos podem ser criados manualmente ou gerados automaticamente a partir
+  de materiais de OS de serviço.
+
+HTML Pages:
+  compras/compras.html
+  compras/compra-detalhe.html
+
+JS Files:
+  app-compras.js, app-compra-detalhe.js
+
+DB Collections:
+  purchase_orders, documents (PO-XXXX)
+
+Workflow de aprovação (db-compras.js):
+  pending → approved → ordered → received → cancelled
+  Funções: aprovarPedido, rejeitarPedido, marcarPedidoEnviado,
+           marcarPedidoRecebido, vincularFornecedor, adicionarComentarioPO,
+           obterPedidosPendentes
+
+Responsabilidades:
+  Listagem com filtros, criação/visualização de pedido, lista de itens com
+  cálculo de total, geração de documento PO, fluxo de aprovação com timeline,
+  vinculação a fornecedores.
+
+------------------------------------------------------------------------
+Módulo 6 — Documentos
+------------------------------------------------------------------------
+Propósito:
+  Visão unificada de todos os documentos gerados (SRV + PO).
+
+HTML Pages:
+  os/documentos.html
+
+JS Files:
+  app-documentos.js
+
+DB Collection:
+  documents (compartilhada com OS e Compras)
+
+Responsabilidades:
+  Listar todos os documentos com filtro por tipo, modal de preview completo,
+  funcionalidade de impressão.
+
+------------------------------------------------------------------------
+Módulo 7 — Autenticação e Controlo de Acesso (NOVO — v2.1)
+------------------------------------------------------------------------
+Propósito:
+  Autenticação real via Firebase Auth com gestão de sessão e controlo de
+  acesso baseado em papel (RBAC).
+
+HTML Pages:
+  auth/login.html
+
+JS Files:
+  js/modules/app-auth.js
+  js/core/db-auth.js
+
+DB Collection:
+  users/{uid} → { nome, email, role, ativo, criadoEm, lastLogin }
+
+Papéis e permissões:
+  admin        — acesso total a todas as páginas
+  maintenance  — maquinário, frota, OS, formulários, dashboard
+  operations   — frota, limpeza, OS (leitura), dashboard
+  purchasing   — compras, fornecedores, documentos, dashboard
+
+Funções chave (db-auth.js):
+  checkAuth(paginaId)       — guard de página com redirect automático
+  login(email, senha)       — autenticação com perfil completo
+  logout()                  — encerra sessão, redireciona para login
+  getCurrentUser()          — retorna perfil cacheado (Promise)
+  isAdmin/isMaintenance/isOperations/isPurchasing() — helpers assíncronos
+  hasRole(perfil, ...roles) — helper síncrono
+  criarPerfilUsuario()      — cria documento users (admin)
+  atualizarRoleUsuario()    — muda papel de utilizador (admin)
+  listarUsuarios()          — lista todos os perfis (admin)
+  alterarSenha()            — troca senha com re-autenticação
+
+------------------------------------------------------------------------
+Módulo 8 — Fornecedores (NOVO — v2.1)
+------------------------------------------------------------------------
+Propósito:
+  Base de dados de fornecedores com histórico de pedidos e avaliações.
+
+HTML Pages:
+  (a criar: fornecedores/fornecedores.html)
+
+JS Files:
+  js/core/db-fornecedores.js
+
+DB Collection:
+  fornecedores → { nome, cnpj, contato, telefone, email, categoria,
+                   avaliacao, ativo, historicoPedidos, criadoEm }
+
+Funções chave:
+  criarFornecedor, obterFornecedores, buscarFornecedores (client-side filter),
+  atualizarFornecedor, avaliarFornecedor (1-5), registrarPedidoNoFornecedor,
+  desativarFornecedor (soft delete), estatisticasFornecedor, topFornecedores
+
+------------------------------------------------------------------------
+Módulo 9 — Dashboard de Gestão (NOVO — v2.1)
+------------------------------------------------------------------------
+Propósito:
+  Painel consolidado de KPIs industriais em tempo real para gestores.
+
+HTML Pages:
+  dashboard/dashboard.html
+
+JS Files:
+  js/modules/app-dashboard.js
+  js/core/db-dashboard.js
+
+KPIs calculados:
+  Work Orders: abertas, em andamento, concluídas, críticas, MTTR, disponibilidade
+  Compras: pendentes, aprovados, em pedido, urgentes, tempo médio de aprovação
+  Custos: manutenção e compras (mês e trimestre), top custo por máquina
+  Limpeza: média geral, zonas críticas, tendência mês-a-mês
+  Frota: taxa de não conformidade (%), veículos com mais NC
+  Top 5 máquinas com mais falhas (corrective WOs)
+  Feed de actividade recente (últimas 15 entradas cross-módulo)
+  Migração (admin only): estado e execução de migração historico_manutencao → work_orders
+
+------------------------------------------------------------------------
+Módulo 10 — Sistema Unificado de Work Orders (NOVO — v2.1)
+------------------------------------------------------------------------
+Propósito:
+  Camada unificada para todos os tipos de ordens de serviço, com KPIs
+  integrados, automações e estrutura [CF-ready].
+
+JS Files:
+  js/core/db-unified.js
+
+Tipos de WO:
+  maintenance | service | inspection | cleaning_issue
+
+Automações [CF-ready]:
+  autoWorkOrderLimpeza(auditoriaData, nota, criadoPor)
+    → Cria WO automaticamente se nota de auditoria < 5.0
+  autoWorkOrderFrota(checklistData, itensNC, criadoPor)
+    → Cria WO para cada item NC em checklist de frota
+  autoWorkOrderMaquina(maquinaData, legacyId, criadoPor)
+    → Cria WO a partir de restrição ou parada de máquina
+
+KPIs por máquina (calcularKPIsMaquina):
+  mtbf, mttr, downtimeTotal, custoTotal, disponibilidade
+  rankingFalhasMaquinas(), desempenhoSetores()
+
+Numeração por timestamp:
+  gerarNumeroDocumento(tipo) → SRV-20260407-A3F7
+  Evita condição de corrida sem precisar de Cloud Functions ou transações.
+
+------------------------------------------------------------------------
+Módulo 11 — Bridge de Migração (NOVO — v2.1)
+------------------------------------------------------------------------
+Propósito:
+  Transparência de leitura entre historico_manutencao (legado) e
+  work_orders (novo) durante a transição.
+
+JS Files:
+  js/core/db-bridge.js
+
+Funções principais:
+  normalizarLegacy(doc, id)          — normaliza doc legado para schema WO
+  obterTodasOSBridge(filtros)        — lê AMBAS as coleções e mescla
+  obterOSPorIdBridge(id)             — fallback automático: WO → legacy
+  obterOSPorMaquinaBridge(maquinaId)
+  migrarHistoricoParaWorkOrders({dryRun, onProgress})  — migração 1-shot
+  statusMigracao()                   — total/migrado/pendentes
+
+Fases de migração planeadas:
+  Fase 1 (atual): bridge lê das duas coleções
+  Fase 2: executar migrarHistoricoParaWorkOrders() (Cloud Function ou manual)
+  Fase 3: remover bridge, ler apenas work_orders
+
+
+================================================================================
+D) DATA FLOW
+================================================================================
+
+Firestore Collections Map (v2.1):
+  historico_manutencao  → Registros de OS de maquinário (formato legado)
+  auditorias_limpeza    → Registros de auditoria 5S com checklist + fotos
+  checklists_frota      → Registros de inspeção de veículos
+  work_orders           → Sistema unificado de OS (manutenção|serviço|inspeção|limpeza)
+  purchase_orders       → Pedidos de compra com workflow de aprovação
+  documents             → Documentos gerados (SRV-XXXX | PO-XXXX)
+  users                 → Perfis de utilizadores + papéis (RBAC)
+  fornecedores          → Base de dados de fornecedores
+  (kpi_cache)           → Cache de KPIs pré-calculados [reservado para CF Fase 2]
+
+Fluxo de dados genérico (todos os módulos):
+  1. checkAuth(paginaId) — guard de autenticação e papel; redirect se não autorizado
+  2. Página abre, URL params analisados
+  3. Dados mestres estáticos carregados de js/data/ (sem chamada de rede)
+  4. Leitura Firebase: getDocs / getDoc na coleção relevante
+  5. Registros ordenados client-side por timestampEnvio (DESC)
+  6. HTML renderizado dinamicamente via innerHTML / createElement
+  7. Interação do utilizador (submit, clique)
+  8. Validação client-side → se falhar: toast ou alert
+  9. Escrita Firebase: addDoc / updateDoc
+  10. Upload de foto para Storage (se aplicável) → URL no Firestore
+  11. Sucesso: redirect ou toast + atualização do DOM
+
+Estratégia de Timestamp (dupla — mantida de v2.0):
+  - serverTimestamp() (Firestore) — para auditoria e confiabilidade
+  - Date.now() como timestampEnvio — para ordenação client-side eficiente
+  Necessário porque serverTimestamp() não é comparável antes da resolução async.
+
+
+================================================================================
+E) KEY FUNCTIONALITIES
+================================================================================
+
+--- Autenticação e RBAC (NOVO v2.1) ---
+
+  checkAuth(paginaId):
+    Chamado no topo de cada página protegida. Se não autenticado, redireciona
+    para auth/login.html calculando o path relativo automaticamente.
+    Se papel não tem permissão para a página, redireciona para index.html com alert.
+
+  Perfil de utilizador:
+    { uid, email, nome, role, ativo } — lido de users/{uid} no Firestore.
+    Cacheado em memória (_currentProfile) para evitar leituras redundantes.
+
+  Login flow:
+    signInWithEmailAndPassword → _carregarPerfil() → verificar ativo → updateDoc lastLogin
+    Se conta desativada: signOut() automático + erro.
+
+  Redirect inteligente:
+    _resolverCaminhoLogin() calcula "../" prefix baseado na profundidade da URL
+    para funcionar de qualquer subpasta (os/, compras/, dashboard/, etc.)
+
+--- Workflow de Aprovação de Compras (NOVO v2.1) ---
+
+  Timeline auditada:
+    Cada ação (aprovar, rejeitar, enviar, receber, comentar) adiciona entrada
+    ao array timeline do purchase_order com { acao, usuario, uid, timestamp, nota }.
+
+  Guardrails por status:
+    aprovarPedido — apenas se status === "pending"
+    rejeitarPedido — motivo obrigatório (mín. 5 chars), não aceita received/cancelled
+    marcarPedidoEnviado — apenas se status === "approved"
+    marcarPedidoRecebido — apenas se status === "ordered"
+
+  Regras Firestore complementares:
+    Apenas roles purchasing | admin podem mudar campos de status e aprovadoPor.
+    Outros papéis podem atualizar campos não-críticos.
+
+--- Cálculo de KPIs (NOVO v2.1) ---
+
+  MTTR (Mean Time To Repair):
+    Média das durações de WOs corretivas concluídas: (dataFimOS - dataInicioOS)
+    Apenas WOs com tipo maintenance + tipoManutencao Corretiva.
+
+  MTBF (Mean Time Between Failures):
+    Por máquina: gaps de tempo entre WOs corretivas concluídas, em horas.
+    Retorna null se menos de 2 falhas registadas.
+
+  Disponibilidade:
+    (720h - downtimeMes) / 720h × 100%
+    Baseado em downtime declarado nos WOs do mês corrente.
+
+  Taxa NC Frota:
+    totalItensNC / totalItens × 100% calculado nos checklists recentes.
+
+  Top 5 Falhas por Máquina:
+    Contagem de WOs corretivas concluídas agrupadas por maquinaId.
+
+--- Bridge de migração (NOVO v2.1) ---
+
+  Leitura transparente:
+    obterTodasOSBridge() executa queries em paralelo (Promise.all) em ambas
+    as coleções, detecta documentos já migrados por _legacyId, mescla e
+    ordena por timestamp. Evita duplicados automaticamente.
+
+  Normalização legacy:
+    normalizarLegacy() mapeia campos: statusFinal → status (statusMap),
+    tipoManutencao → tipo (tipoMap), estoque.itens → materiais[],
+    anexos.urlsLinks → fotos[]. Campo _source: "historico_manutencao" identifica
+    a origem.
+
+--- Sistema de Fornecedores (NOVO v2.1) ---
+
+  Pesquisa client-side:
+    buscarFornecedores(termo) faz fetch de todos os activos e filtra por
+    nome, contato ou CNPJ (case-insensitive). Solução pragmática sem Algolia.
+
+  Histórico de pedidos:
+    registrarPedidoNoFornecedor() appends { poId, numero, data, valor, avaliacao }
+    ao array historicoPedidos. estatisticasFornecedor() agrega: total de pedidos,
+    valor total, avaliação média histórica.
+
+  Soft delete:
+    desativarFornecedor() define ativo: false. IDs de fornecedor em POs históricos
+    continuam válidos. Hard delete desaconselhado.
+
+--- Módulo Maquinário (mantido de v2.0) ---
+
+  Gate de segurança LOTO, campos condicionais por status, formulário dual-mode
+  (novo registro vs. fechar OS pendente), KPIs no histórico. Ver v2.0.
+
+--- Lista Dinâmica de Materiais (mantido de v2.0) ---
+
+  qty × unitPrice = totalPrice por linha (cálculo em tempo real).
+  materialsCost = soma de todas as linhas. totalCost = mão de obra + materiais.
+  Padrão partilhado entre os-detalhe.html e compra-detalhe.html.
+
+--- Geração de Documentos (mantido de v2.0) ---
+
+  SRV (db-os.js): contador sequencial por tipo service_report.
+  PO (db-compras.js): contador sequencial por tipo purchase_document.
+  WO novo (db-unified.js): timestamp-based SRV-YYYYMMDD-XXXX (sem condição de corrida).
+  sourceData embutido no momento da geração — preview sem segunda query.
+
+
+================================================================================
+F) INTEGRATIONS
+================================================================================
+
+Serviços Firebase usados:
+  Serviço              | Utilização
+  ---------------------|--------------------------------------------------
+  Firestore            | Base de dados principal (8 coleções)
+  Firebase Storage     | Upload de fotos (maquinário, frota, limpeza por pergunta)
+  Firebase Auth        | Autenticação email/password com gestão de sessão (NOVO v2.1)
+  Cloud Functions      | NÃO ATIVO. Todas as funções candidatas marcadas [CF-ready]
+                       | com sintaxe equivalente em comentários
+
+Comunicação inter-módulo via Firestore:
+  work_orders
+    ← auto-gerado por → autoWorkOrderLimpeza() quando nota < 5.0
+    ← auto-gerado por → autoWorkOrderFrota() quando NC detectado
+    ← auto-gerado por → autoWorkOrderMaquina() quando máquina parada
+    ← gera → documents (SRV-XXXX)
+    ← dispara → purchase_orders
+
+  purchase_orders
+    ← aprovado por → aprovarPedido() (papel purchasing/admin)
+    ← vinculado a → fornecedores via vincularFornecedor()
+    ← regista em → fornecedores.historicoPedidos via registrarPedidoNoFornecedor()
+    ← gera → documents (PO-XXXX)
+
+  historico_manutencao + work_orders
+    ← lidos juntos por → db-bridge.js (transparente para as páginas)
+
+  users
+    ← consultado por → db-auth.js em cada checkAuth() para leitura de papel
+
+Comunicação cross-module via URL params (mantida de v2.0):
+  maquinario.html      → os-detalhe.html?modo=criar&origin=machine&originId=MIS-001
+  painel-frota.html    → os-detalhe.html?modo=criar&origin=fleet
+  compras.html         → compra-detalhe.html?id=FIREBASE_ID
+  os-detalhe.html      → compra-detalhe.html (via osOrigemId no purchase_order)
+
+
+================================================================================
+G) EVENT FLOW
+================================================================================
+
+------------------------------------------------------------------------
+Flow 1: Acesso a Página Protegida
+------------------------------------------------------------------------
+  1. Browser carrega página (ex: dashboard/dashboard.html)
+  2. app-dashboard.js executa import { checkAuth } from db-auth.js
+  3. checkAuth("dashboard") chama getCurrentUser()
+  4. getCurrentUser() dispara onAuthStateChanged uma vez (ou retorna cache)
+     a. Não autenticado → redirect para auth/login.html (path relativo)
+     b. Autenticado → _carregarPerfil(uid) lê users/{uid} do Firestore
+  5. Papel do utilizador verificado contra ROLE_PERMISSIONS["dashboard"]
+     a. Não autorizado → alert + redirect para index.html
+     b. Autorizado → retorna perfil, página carrega normalmente
+  6. UI adapta-se ao papel (ex: secção admin só para role === "admin")
+
+------------------------------------------------------------------------
+Flow 2: Login
+------------------------------------------------------------------------
+  1. Utilizador abre auth/login.html
+  2. app-auth.js verifica getCurrentUser() → se já logado, redirect para index.html
+  3. Submit do formulário → login(email, senha)
+  4. signInWithEmailAndPassword(auth, email, senha)
+  5. _carregarPerfil(user) → getDoc("users/{uid}")
+  6. perfil.ativo === false → signOut() + erro "Conta desactivada"
+  7. updateDoc("users/{uid}", { lastLogin: serverTimestamp() })
+  8. _currentProfile = perfil (cache)
+  9. Redirect para index.html
+
+------------------------------------------------------------------------
+Flow 3: Aprovação de Pedido de Compra
+------------------------------------------------------------------------
+  1. Utilizador (papel purchasing/admin) abre compra-detalhe.html?id=PO_ID
+  2. app-compra-detalhe.js chama checkAuth("compra-detalhe")
+  3. Botão "Aprovar" aparece apenas se hasRole(perfil, "purchasing", "admin")
+  4. Utilizador clica "Aprovar" → modal de confirmação com campo de nota
+  5. aprovarPedido(poId, { uid, nome }, nota) chamado
+  6. Validação: status === "pending" (senão throw Error)
+  7. Entrada adicionada ao array timeline
+  8. updateDoc("purchase_orders", { status: "approved", aprovadoPor, aprovadoEm,
+     aprovadoTimestamp, notaAprovacao, timeline, updatedAt })
+  9. UI actualiza badge de status e timeline
+
+------------------------------------------------------------------------
+Flow 4: Auto-Criação de WO a partir de Auditoria de Limpeza
+------------------------------------------------------------------------
+  [CF-ready — actualmente chamado manualmente após salvarAuditoriaLimpeza]
+  1. formulario-limpeza.js calcula notaFinal após submissão
+  2. Se nota < 5.0: autoWorkOrderLimpeza(auditoriaData, nota, criadoPor) chamado
+  3. Payload construído: tipo="cleaning_issue", prioridade calculada por nota,
+     titulo "Limpeza Crítica: {zona}", maquinaId=zonaId, origem="auto_limpeza"
+  4. criarWorkOrder(payload) → addDoc("work_orders", ...)
+  5. WO aparece automaticamente na listagem de OS e no dashboard
+
+------------------------------------------------------------------------
+Flow 5: Geração de Documento SRV (mantido de v2.0)
+------------------------------------------------------------------------
+  1. Utilizador em os-detalhe.html?id=FIREBASE_ID (modo visualização)
+  2. Clica "Gerar Documento SRV"
+  3. checkAuth verifica papel (maintenance ou admin)
+  4. gerarDocumentoWO(woId, woData, emissor) chamado
+  5. gerarNumeroDocumento("service_report") → "SRV-20260407-A3F7" (timestamp-based)
+  6. addDoc("documents", { tipo, numero, sourceId, sourceData, emissor, emitidoEm })
+  7. updateDoc("work_orders", woId, { documentoId, documentoNumero })
+  8. adicionarLogWO(woId, "Documento SRV-... gerado", emissor, "📄")
+  9. UI: botão muda para "📄 SRV-..." desabilitado; secção documento aparece
+
+------------------------------------------------------------------------
+Flow 6: Migração de Dados Legacy
+------------------------------------------------------------------------
+  1. Admin abre dashboard/dashboard.html
+  2. Secção "Administração do Sistema" exibe statusMigracao():
+     { totalLegacy: N, totalMigrado: M, pendentes: N-M }
+  3. Admin clica "Migrar Histórico para Work Orders"
+  4. Confirmação → migrarHistoricoParaWorkOrders({ onProgress })
+  5. Para cada doc em historico_manutencao não migrado:
+     a. normalizarLegacy(data, id) → WO-shaped object
+     b. writeBatch: set("work_orders", legacyId, payload)
+     c. onProgress(current, total) atualiza barra de progresso
+  6. Retorna { migrated, skipped, errors }
+  7. Em Fase 2: mover para Cloud Function HTTP para desempenho e quotas
+
+------------------------------------------------------------------------
+Flow 7: Dashboard de KPIs
+------------------------------------------------------------------------
+  1. app-dashboard.js monta página após checkAuth
+  2. carregarDashboard() executa 4 queries em paralelo (Promise.all):
+     _fetchWorkOrders (limit 500), _fetchPurchaseOrders (300),
+     _fetchAuditoriasLimpeza (200), _fetchChecklistsFrota (200)
+  3. Dados processados client-side:
+     _kpiWorkOrders → MTTR, MTBF, disponibilidade, topFalhas
+     _kpiCompras    → pendentes, aprovados, avgAprovacao
+     _kpiCustos     → custos mês/trimestre por categoria, topCustoMaquinas
+     _kpiLimpeza    → mediaGeral, zonasCriticas, tendência
+     _kpiFrota      → taxaNC, veiculosCriticos
+     _atividadeRecente → feed de 15 entradas ordenado por timestamp
+  4. renderizar*() funções actualizam o DOM
+  5. Botão "Actualizar" re-executa carregarTudo() sem reload de página
+
+------------------------------------------------------------------------
+Padrão de Error Handling (mantido + reforçado)
+------------------------------------------------------------------------
+  - checkAuth() com redirect automático substitui guards manuais
+  - try/catch envolve toda chamada Firebase assíncrona
+  - Saída de falha: toast flutuante (todos os módulos v2.2)
+  - Bloco finally remove overlay sempre
+  - Guard de URL: redirect se param obrigatório ausente (sem alert)
+  - Workflow functions: lança Error com mensagem localizada se pré-condição falha
+
+
+================================================================================
+G-2) BUG FIXES — v2.2 (2026-04-07)
+================================================================================
+
+Todos os erros abaixo foram identificados durante revisão de código (Abril 2026)
+e corrigidos na v2.2. Os módulos afetados são maquinário, frota e limpeza.
+
+------------------------------------------------------------------------
+Bug #1 — DOMContentLoaded race condition (5 arquivos)
+------------------------------------------------------------------------
+Causa:
+  ES Modules com top-level await (await checkAuth()) suspendem a execução
+  do módulo. Quando o módulo retoma, o evento DOMContentLoaded já disparou.
+  Qualquer document.addEventListener("DOMContentLoaded", fn) registado após
+  o await nunca executa, pois o evento já passou.
+
+Arquivos afetados:
+  app-limpeza.js            → iniciarPainelLimpeza() nunca corria
+  app-frota.js              → preencherDataHoraAtual() e verificarVeiculoNaURL() nunca corriam
+  app-painel-frota.js       → render completo da frota nunca corria
+  app-historico-frota.js    → carregarHistorico() nunca corria
+  app-historico-limpeza.js  → carregarRevisoes() nunca corria
+
+Correção:
+  Removidos todos os wrappers DOMContentLoaded. Funções chamadas diretamente
+  após as declarações de variáveis (o DOM já está disponível quando o módulo
+  retoma — ES modules são deferred por especificação).
+  Em app-frota.js: preencherDataHoraAtual() e verificarVeiculoNaURL() movidas
+  para depois das declarações de constantes DOM que elas precisam.
+
+------------------------------------------------------------------------
+Bug #2 — Missing checkAuth() em app-painel-frota.js
+------------------------------------------------------------------------
+Causa:
+  app-painel-frota.js não tinha import de db-auth.js nem chamada checkAuth().
+  Qualquer utilizador não autenticado podia ver o painel de frota.
+
+Correção:
+  Adicionado import { checkAuth } e await checkAuth("painel-frota") no topo.
+  Ficheiro reescrito para remover também o DOMContentLoaded (Bug #1) e o
+  inline onclick (Bug #3).
+
+------------------------------------------------------------------------
+Bug #3 — window.onclick override global (2 arquivos)
+------------------------------------------------------------------------
+Causa:
+  app-historico-frota.js e app-historico-limpeza.js usavam window.onclick = function(event) {...}
+  para fechar modais ao clicar no backdrop. Isto substituía o handler global
+  de clique, podendo quebrar qualquer outro listener de clique da página.
+
+Correção:
+  Substituído por modal.addEventListener("click", (e) => { if (e.target === modal) fecharModal(); }).
+  Event listener específico no elemento do modal, sem substituir o handler global.
+
+------------------------------------------------------------------------
+Bug #4 — window.abrirModalDetalhes via inline onclick em innerHTML (2 arquivos)
+------------------------------------------------------------------------
+Causa:
+  app-historico-frota.js e app-historico-limpeza.js geravam botões com
+  onclick="abrirModalDetalhes('ID')" em strings de HTML dinâmico, poluindo
+  o escopo global e exigindo window.abrirModalDetalhes.
+
+Correção:
+  Botões passaram a usar data-id="${id}" sem inline handler.
+  Adicionado event delegation em listaEl:
+    listaEl.addEventListener("click", (e) => {
+        const btn = e.target.closest(".btn-ver-detalhes");
+        if (btn) abrirModalDetalhes(btn.dataset.id);
+    });
+  abrirModalDetalhes permanece função de módulo, não global.
+
+------------------------------------------------------------------------
+Bug #5 — window.removerPeca inline onclick em innerHTML (app-formulario.js)
+------------------------------------------------------------------------
+Causa:
+  renderizarListaPecas() gerava <button onclick="removerPeca(${peca.id})">,
+  exigindo window.removerPeca no escopo global.
+
+Correção:
+  Botão usa data-id="${peca.id}" sem handler inline.
+  Event delegation em listaPecasUI substitui window.removerPeca.
+
+------------------------------------------------------------------------
+Bug #6 — window.* pollution em app-formulario-limpeza.js (5 símbolos)
+------------------------------------------------------------------------
+Causa:
+  Os seguintes eram expostos no escopo global:
+    window.fotosPorPergunta  — dicionário de File objects por pergunta
+    window.respostasAuditoria — array de respostas para o submit handler
+    window.calcularNotaFinal  — chamado por onchange inline em radio inputs
+    window.anexarFotoLocal    — chamado por onchange inline em file inputs
+    window.removerFotoLocal   — chamado por onclick inline em botões de remoção
+
+Correção:
+  - fotosPorPergunta e respostasAuditoria: variáveis de módulo (let).
+  - calcularNotaFinal, anexarFotoLocal, removerFotoLocal: funções de módulo.
+  - Inline handlers removidos do HTML gerado por renderizarChecklist().
+  - Event delegation no container do checklist:
+      container.addEventListener("change", ...) — radios e file inputs
+      container.addEventListener("click", ...)  — botões de remoção de foto
+  - Botão de remover foto usa data-remover-foto="${idPergunta}" em vez de onclick.
+  - File input usa data-pergunta-id="${item.id}" para identificação no handler.
+
+------------------------------------------------------------------------
+Bug #7 — alert() em módulos operacionais (todos substituídos)
+------------------------------------------------------------------------
+Causa:
+  Todas as validações e confirmações de formulário usavam alert() nativo,
+  que bloqueia o event loop, tem UI inconsistente e não tem customização visual.
+
+Arquivos afetados:
+  app-frota.js, app-formulario.js, app-formulario-limpeza.js, app-historico.js
+
+Correção:
+  Cada arquivo recebeu uma função mostrarAviso(msg, tipo) local que:
+  - Cria um <div> posicionado fixo no topo da página se não existir
+  - Aplica cor por tipo ("erro" = vermelho, "sucesso" = verde)
+  - Auto-remove após 4s com transição de opacidade
+  - Não bloqueia o event loop
+  Redirects que eram precedidos de alert() de erro passaram a ser
+  redirects directos (sem mensagem) ou a mostrar o aviso antes de redirect.
+  Sucesso após submit agora mostra aviso verde e faz redirect após 1.2s.
+
+
+================================================================================
+H) STRENGTHS AND WEAKNESSES
+================================================================================
+
+PONTOS FORTES (v2.2):
+
+  + Autenticação real implementada: Firebase Auth com email/password,
+    gestão de sessão e perfil de papel lido do Firestore.
+
+  + RBAC completo: 4 papéis com whitelist de páginas, checkAuth() guard
+    reutilizável em qualquer página, helpers hasRole() / isAdmin() etc.
+
+  + Workflow de aprovação auditado: timeline de cada purchase_order regista
+    quem fez o quê e quando, com notas opcionais.
+
+  + Numeração de documentos sem condição de corrida: SRV-YYYYMMDD-XXXX
+    em db-unified.js. (Pendente: migrar db-os.js e db-compras.js para o mesmo padrão.)
+
+  + Bridge de migração: queries transparentes entre legacy e novo sistema.
+
+  + Módulos operacionais estabilizados (v2.2): todos os race conditions
+    DOMContentLoaded corrigidos, handlers globais removidos, formulários
+    dinâmicos usam event delegation, feedback visual sem alert() nativo.
+    Migração controlada em fases sem downtime.
+
+  + Automações modulares [CF-ready]: autoWorkOrderLimpeza/Frota/Maquina
+    são funções independentes que podem ser chamadas de qualquer lugar
+    e migradas para Cloud Functions Triggers sem refatoração de lógica.
+
+  + KPIs industriais reais: MTBF, MTTR, disponibilidade, compliance
+    preventiva — calculados a partir dos dados reais do Firestore.
+
+  + Regras de segurança Firestore completas: RBAC enforçado server-side,
+    leitura limitada ao papel, escrita e delete controlados, catch-all nega tudo.
+
+  + Separação clara de responsabilidades: 8 ficheiros db-*.js com domínios
+    bem definidos, zero chamadas Firebase em HTML.
+
+  + Design mobile-first mantido: containers responsivos, câmera direta
+    via capture="environment", UX otimizada para touch.
+
+  + Independência de módulos: adicionar novo módulo não toca no código existente.
+
+PONTOS FRACOS REMANESCENTES:
+
+  - Dados mestres estáticos não editáveis via UI: adicionar máquina, veículo
+    ou zona requer editar ficheiros de código fonte. Sem painel admin CRUD.
+
+  - Numeração sequencial em db-os.js e db-compras.js ainda vulnerável a
+    condição de corrida. db-unified.js já usa timestamp; os outros precisam
+    de migração.
+
+  - Sem suporte offline: todas as operações requerem internet. Sem cache
+    local, sem PWA/service worker.
+
+  - alert() em módulos legados: app-maquinario.js e similares ainda usam
+    alert() que bloqueia a thread. Módulos novos usam toast.
+
+  - window.abrirModalDetalhes / window.removerPeca — handlers inline em HTML
+    poluem o escopo global. Más práticas em ES Modules.
+
+  - Dashboard carrega dados a cada visita: sem cache de KPIs (kpi_cache
+    reservado para Fase 2 com Cloud Functions). Queries pesadas client-side.
+
+  - Sem painel de gestão de utilizadores: criar/desativar utilizadores requer
+    acesso direto ao Firestore. Falta UI admin para gestão de contas.
+
+  - Módulo de fornecedores sem página HTML: db-fornecedores.js está completo
+    mas falta fornecedores/fornecedores.html e app-fornecedores.js.
+
+  - Sem validação de email único em utilizadores: dois perfis podem ter
+    o mesmo email (Firebase Auth garante unicidade por UID, mas não há
+    verificação cruzada no Firestore).
+
+  - Limite de fotos apenas client-side: verificação JS não reforçada no
+    Storage com regras de tamanho/quantidade.
+
+
+================================================================================
+I) SCALABILITY ANALYSIS
+================================================================================
+
+O sistema é modular?
+  SIM — por estrutura de pastas, separação de DB e separação de Auth.
+  Cada domínio operacional tem: pasta HTML, ficheiros JS, coleção Firestore,
+  ficheiro DB. Novos módulos podem ser adicionados sem tocar no código existente.
+
+O que pode crescer facilmente:
+  - Adicionar novas máquinas → dados-maquinas.js (1 linha)
+  - Adicionar novos veículos → dados-frota.js (1 linha)
+  - Adicionar novo papel → ROLES + ROLE_PERMISSIONS em db-auth.js
+  - Adicionar nova coleção → seguir padrão db-*.js existente
+  - Ativar automações de WO → chamar autoWorkOrder*() após submissões existentes
+  - Migrar para Cloud Functions → funções [CF-ready] já estruturadas corretamente
+  - Adicionar fornecedores UI → criar HTML usando db-fornecedores.js pronto
+
+O que requereria trabalho significativo:
+  - Migrar dados mestres para Firestore: painel admin CRUD, migrar js/data/
+    para coleção "catalogo" com edição via UI
+  - Cache de KPIs com Cloud Functions: kpi_cache atualizado a cada 30 min;
+    dashboard leria de kpi_cache em vez de calcular em tempo real
+  - Numeração atómica universal: migrar db-os.js e db-compras.js para
+    esquema timestamp de db-unified.js, ou usar transações Firestore
+  - Capacidade offline: PWA (service worker, IndexedDB, sync em background)
+  - Multi-tenancy: caminhos por empresa ou projetos Firebase separados
+  - Painel admin de utilizadores: UI para criar/desativar/mudar papel
+  - Integração com ERP: API layer entre dados-maquinas.js e sistema externo
+
+O que precisaria de refatoração:
+  Área                     | Problema                          | Refatoração
+  -------------------------|-----------------------------------|----------------------------------------
+  Handlers inline          | window.removerPeca etc.           | Substituir onclick por delegação de eventos
+  Numeração docs           | Condição de corrida em os/compras | Migrar para schema timestamp db-unified
+  alert() em módulos legad | Bloqueia UI                       | Sistema de toast unificado
+  db.js monolítico         | Mistura 3 módulos                 | Separar em db-maquinas, db-frota, db-limpeza
+  formatarData() duplicado | Em os.js, compras.js, unified.js  | Extrair para js/core/utils.js
+
+
+================================================================================
+J) FINAL SUMMARY
+================================================================================
+
+SIGA é uma plataforma de operações industriais mobile-first, inteiramente
+client-side, construída sobre Firebase Firestore, Storage e Auth, usando
+ES Modules vanilla sem build system.
+
+Arquitetura em 3 camadas: HTML (UI), app-*.js (page controllers), db-*.js
+(Firebase abstraction). 8 ficheiros de camada DB cobrem domínios distintos:
+auth, OS unificado, OS legado, compras, fornecedores, dashboard, bridge de
+migração e módulos operacionais (maquinário/frota/limpeza).
+
+Módulos operacionais: Maquinário, Frota, Limpeza, Ordens de Serviço, Compras,
+Documentos — cada um com HTML, JS, CSS e coleção Firestore próprios.
+Módulos de sistema: Auth/RBAC, Fornecedores, Dashboard de KPIs, Unified WO.
+
+Fluxo de dados: catálogo estático em js/data/ (sem rede), dados operacionais
+em Firestore com timestamp duplo (serverTimestamp + Date.now()), fotos no Storage.
+Auth real via Firebase com papéis (admin, maintenance, operations, purchasing)
+lidos do Firestore, guardando cada página com checkAuth().
+
+Funcionalidade mais sofisticada: integração OS + Compras + Documentos com
+workflow de aprovação auditado, fornecedores vinculados, automações [CF-ready]
+de criação de WO a partir de eventos de outros módulos, KPIs industriais
+(MTBF, MTTR, disponibilidade) calculados client-side a partir de dados reais.
+
+Bridge de migração: leitura transparente de historico_manutencao e work_orders
+simultaneamente, com utilitário de migração em fases sem downtime.
+
+Regras de segurança: firestore.rules com RBAC por coleção enforçado server-side,
+catch-all nega tudo o que não está explicitamente permitido.
+
+Limitações para produção:
+  - Dados mestres não editáveis via UI
+  - Numeração sequencial em módulos legados (risco de corrida)
+  - Sem suporte offline
+  - Sem painel admin de utilizadores
+  - Dashboard calcula KPIs em tempo real (sem cache)
+  - alert() em módulos legados (UX)
+
+Roadmap imediato:
+  Fase 2: Cloud Functions (automações como triggers, cache de KPIs agendado)
+  Fase 2: Migração de dados legacy via migrarHistoricoParaWorkOrders()
+  Fase 3: Painel admin de utilizadores, fornecedores.html, migração de dados mestres
+
+================================================================================
+Gerado originalmente em: 2026-04-06
+Atualizado em: 2026-04-07
+Versão do sistema analisado: SIGA v2.1
+Analisado por: Claude Sonnet 4.6 (Claude Code)
+Projeto: SIGA — Pro Raça - Sistema proraca v2.0
+================================================================================

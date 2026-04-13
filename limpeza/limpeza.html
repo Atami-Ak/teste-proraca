@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>SIGA — Auditoria de Limpeza 5S</title>
+  <link rel="stylesheet" href="../css/global.css" />
+  <style>
+    /* ── Nav / Header (shared) ─────────────────────────────────── */
+    .main-header { display:flex;align-items:center;justify-content:space-between;background:var(--primary,#004a99);color:white;padding:15px 20px;box-shadow:0 4px 6px rgba(0,0,0,.1); }
+    .header-left { display:flex;align-items:center;gap:15px; }
+    .logo-container h1 { margin:0;font-size:1.5rem;letter-spacing:1px; }
+    .logo-container span { font-size:.8rem;color:#cbd5e1; }
+    .user-info { display:flex;align-items:center;gap:10px; }
+    .avatar { background:white;color:var(--primary,#004a99);width:35px;height:35px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.1rem; }
+    .main-nav { display:flex;gap:12px;padding:15px 20px;background:white;overflow-x:auto;white-space:nowrap;margin-bottom:20px;border-bottom:1px solid #e2e8f0; }
+    .main-nav::-webkit-scrollbar { height:4px; }
+    .main-nav::-webkit-scrollbar-thumb { background:#cbd5e1;border-radius:4px; }
+    .nav-item { padding:10px 18px;text-decoration:none;color:#475569;font-weight:600;font-size:.95rem;border-radius:8px;background:#f1f5f9;border:1px solid #e2e8f0;transition:.3s;display:flex;align-items:center;gap:8px; }
+    .nav-item:hover { background:#e2e8f0;color:var(--primary,#004a99); }
+    .nav-item.active { background:var(--primary,#004a99);color:white;border-color:var(--primary,#004a99);box-shadow:0 4px 8px rgba(0,74,153,.25); }
+
+    /* ── KPI Bar ────────────────────────────────────────────────── */
+    .kpi-bar { display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px; }
+    @media (max-width:640px) { .kpi-bar { grid-template-columns:repeat(3,1fr); } }
+    @media (max-width:400px) { .kpi-bar { grid-template-columns:repeat(2,1fr); } }
+    .kpi-card { background:white;border:1px solid #e2e8f0;border-radius:10px;padding:12px 8px;text-align:center;transition:.15s; }
+    .kpi-card:hover { box-shadow:0 4px 12px rgba(0,0,0,.07); }
+    .kpi-val { display:block;font-size:1.5rem;font-weight:900;margin-bottom:2px;line-height:1; }
+    .kpi-lbl { font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#64748b; }
+
+    /* ── Alert Banner ───────────────────────────────────────────── */
+    .alert-banner { margin-bottom:16px;border-radius:8px;padding:12px 16px;display:flex;align-items:flex-start;gap:10px; }
+    .alert-critical { background:#fef2f2;border:1.5px solid #fecaca;color:#7f1d1d; }
+    .alert-warning  { background:#fffbeb;border:1.5px solid #fde68a;color:#78350f; }
+    .alert-ok       { background:#f0fdf4;border:1.5px solid #86efac;color:#14532d; }
+
+    /* ── Section title ──────────────────────────────────────────── */
+    .section-title-row { display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px; }
+    .section-title-row h3 { margin:0;font-size:1.05rem;font-weight:800;color:var(--primary,#004a99); }
+
+    /* ── Zone Grid ──────────────────────────────────────────────── */
+    .grid-zonas { display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:30px; }
+
+    /* ── Zone Card ──────────────────────────────────────────────── */
+    .card-zona { background:white;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.05);transition:box-shadow .2s,transform .2s;cursor:pointer; }
+    .card-zona:hover { box-shadow:0 6px 20px rgba(0,0,0,.1);transform:translateY(-2px); }
+    .card-zona-topbar { height:4px;width:100%; }
+    .card-zona-body { padding:14px 16px; }
+    .card-zona-header { display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px; }
+    .zona-icon { font-size:1.8rem;line-height:1; }
+    .zona-nome { font-size:.98rem;font-weight:800;color:#0f172a;margin:0 0 2px; }
+    .zona-setor { font-size:.7rem;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.4px; }
+    .score-ring { width:52px;height:52px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:3px solid;flex-shrink:0; }
+    .score-ring .score-num { font-size:1rem;font-weight:900;line-height:1; }
+    .score-ring .score-pct { font-size:.55rem;font-weight:700;opacity:.75; }
+    .zona-meta { font-size:.75rem;color:#64748b;margin-bottom:10px;line-height:1.4; }
+    .zona-last-insp { font-size:.72rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:7px 10px;margin-bottom:10px;min-height:32px; }
+    .card-zona-actions { display:grid;grid-template-columns:1fr 1fr;gap:6px; }
+    .btn-zona-action { display:block;text-align:center;padding:9px 4px;border-radius:8px;font-size:.72rem;font-weight:700;border:1.5px solid;text-decoration:none;transition:.15s; }
+    .btn-audit  { background:#eff6ff;color:#1e40af;border-color:#bfdbfe; }
+    .btn-audit:hover { background:#dbeafe; }
+    .btn-hist   { background:#f8fafc;color:#475569;border-color:#cbd5e1; }
+    .btn-hist:hover { background:#e2e8f0; }
+
+    /* ── Champion Cards ─────────────────────────────────────────── */
+    .champions-row { display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px; }
+    @media (max-width:520px) { .champions-row { grid-template-columns:1fr; } }
+    .champion-card { border-radius:16px;padding:18px 16px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.10);transition:transform .2s,box-shadow .2s; }
+    .champion-card:hover { transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.14); }
+    .champion-card.weekly  { background:linear-gradient(135deg,#fffbeb 0%,#fef3c7 100%);border:1.5px solid #fde68a; }
+    .champion-card.monthly { background:linear-gradient(135deg,#f0f9ff 0%,#dbeafe 100%);border:1.5px solid #bfdbfe; }
+    .champion-badge { font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;display:inline-block;padding:3px 10px;border-radius:20px; }
+    .champion-card.weekly  .champion-badge { background:#fde68a;color:#92400e; }
+    .champion-card.monthly .champion-badge { background:#bfdbfe;color:#1e40af; }
+    .champion-name { font-size:1.2rem;font-weight:900;color:#0f172a;margin:0 0 5px;line-height:1.2; }
+    .champion-score { font-size:1.6rem;font-weight:900;line-height:1; }
+    .champion-card.weekly  .champion-score { color:#d97706; }
+    .champion-card.monthly .champion-score { color:#1e40af; }
+    .champion-meta { font-size:.75rem;color:#64748b;margin-top:5px; }
+    .champion-medal { position:absolute;top:14px;right:16px;font-size:2rem;opacity:.4; }
+    .champion-empty { font-size:.85rem;color:#94a3b8;padding:8px 0; }
+
+    /* ── Ranking Panels ─────────────────────────────────────────── */
+    .ranking-grid { display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:30px; }
+    @media (max-width:680px) { .ranking-grid { grid-template-columns:1fr; } }
+    .ranking-panel { background:white;border-radius:12px;border:1px solid #e2e8f0;padding:16px;box-shadow:0 2px 6px rgba(0,0,0,.04); }
+    .ranking-item { display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;margin-bottom:6px;transition:.15s; }
+    .ranking-item:hover { background:#f8fafc; }
+    .rank-pos { width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:900;flex-shrink:0; }
+    .rank-pos.gold   { background:#fef3c7;color:#92400e; }
+    .rank-pos.silver { background:#f1f5f9;color:#475569; }
+    .rank-pos.bronze { background:#fff7ed;color:#9a3412; }
+    .rank-pos.other  { background:#f8fafc;color:#64748b; }
+    .rank-name { flex:1;font-size:.85rem;font-weight:700;color:#0f172a;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+    .rank-score { font-size:.85rem;font-weight:900;min-width:42px;text-align:right; }
+    .rank-badge { padding:2px 7px;border-radius:4px;font-size:.65rem;font-weight:700;white-space:nowrap; }
+    .rank-badge.top  { background:#f0fdf4;color:#16a34a;border:1px solid #86efac; }
+    .rank-badge.mid  { background:#fffbeb;color:#d97706;border:1px solid #fde68a; }
+    .rank-badge.low  { background:#fef2f2;color:#dc2626;border:1px solid #fecaca; }
+
+    /* ── Spinner ────────────────────────────────────────────────── */
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .spinner { width:28px;height:28px;border:3px solid #e2e8f0;border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto; }
+  </style>
+</head>
+<body>
+
+<header class="main-header">
+  <div class="header-left">
+    <div class="logo-container">
+      <h1>SIGA</h1>
+      <span>Qualidade & Limpeza 5S</span>
+    </div>
+  </div>
+  <div class="user-info">
+    <span id="header-user" style="font-size:.9rem;font-weight:bold;">—</span>
+    <div class="avatar" id="header-avatar">?</div>
+  </div>
+</header>
+
+<nav class="main-nav">
+  <a href="../index.html"                    class="nav-item">🏠 Início</a>
+  <a href="../maquinario/maquinario.html"    class="nav-item">⚙️ Maquinário</a>
+  <a href="../frota/painel-frota.html"       class="nav-item">🚛 Frota</a>
+  <a href="limpeza.html"                     class="nav-item active">🧹 Limpeza 5S</a>
+  <a href="../os/os.html"                    class="nav-item">📋 O.S</a>
+  <a href="../compras/compras.html"          class="nav-item">🛒 Compras</a>
+  <a href="../os/documentos.html"            class="nav-item">📄 Documentos</a>
+</nav>
+
+<main class="container" style="padding:0 20px 30px;">
+
+  <!-- Page title + actions -->
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+    <h2 style="margin:0;color:var(--primary);font-size:1.3rem;border-bottom:2px solid #e2e8f0;padding-bottom:8px;flex:1;">
+      🧹 Painel de Qualidade e Limpeza 5S
+    </h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a href="limpeza-ranking.html"
+         style="display:inline-flex;align-items:center;gap:6px;background:#f59e0b;color:#fff;padding:10px 16px;border-radius:8px;font-weight:700;font-size:.85rem;text-decoration:none;">
+        🏆 Ranking Completo
+      </a>
+      <a href="historico-limpeza.html"
+         style="display:inline-flex;align-items:center;gap:6px;background:#475569;color:#fff;padding:10px 16px;border-radius:8px;font-weight:700;font-size:.85rem;text-decoration:none;">
+        📊 Histórico & Análises
+      </a>
+    </div>
+  </div>
+
+  <!-- Champion highlights -->
+  <div class="champions-row">
+    <!-- Weekly -->
+    <div class="champion-card weekly" id="champion-weekly">
+      <span class="champion-badge">🔥 Destaque Semanal</span>
+      <div class="champion-medal">🥇</div>
+      <div class="champion-empty">Carregando...</div>
+    </div>
+    <!-- Monthly -->
+    <div class="champion-card monthly" id="champion-monthly">
+      <span class="champion-badge">⭐ Destaque Mensal</span>
+      <div class="champion-medal">🏆</div>
+      <div class="champion-empty">Carregando...</div>
+    </div>
+  </div>
+
+  <!-- KPI Summary Bar -->
+  <div class="kpi-bar">
+    <div class="kpi-card" style="border-color:#86efac;">
+      <span class="kpi-val" id="kpi-avg-score" style="color:#16a34a;">—</span>
+      <span class="kpi-lbl">Score Médio</span>
+    </div>
+    <div class="kpi-card" style="border-color:#bfdbfe;">
+      <span class="kpi-val" id="kpi-total-insp" style="color:#1e40af;">—</span>
+      <span class="kpi-lbl">Inspeções (30d)</span>
+    </div>
+    <div class="kpi-card" style="border-color:#fde68a;">
+      <span class="kpi-val" id="kpi-open-actions" style="color:#d97706;">—</span>
+      <span class="kpi-lbl">Ações Abertas</span>
+    </div>
+    <div class="kpi-card" style="border-color:#fecaca;">
+      <span class="kpi-val" id="kpi-critical-zones" style="color:#dc2626;">—</span>
+      <span class="kpi-lbl">Zonas Críticas</span>
+    </div>
+    <div class="kpi-card" style="border-color:#ddd6fe;">
+      <span class="kpi-val" id="kpi-compliance" style="color:#7c3aed;">—</span>
+      <span class="kpi-lbl">Conformidade</span>
+    </div>
+  </div>
+
+  <!-- Alert banner -->
+  <div id="alert-banner" style="display:none;margin-bottom:16px;"></div>
+
+  <!-- Zone Grid -->
+  <div class="section-title-row" style="margin-bottom:12px;">
+    <h3>📍 Zonas de Inspeção</h3>
+    <span id="zones-loading" style="font-size:.78rem;color:#94a3b8;">Carregando...</span>
+  </div>
+  <div class="grid-zonas" id="grid-zonas"></div>
+
+  <!-- Rankings -->
+  <div class="ranking-grid">
+
+    <!-- Employee Ranking -->
+    <div class="ranking-panel">
+      <div class="section-title-row" style="margin-bottom:12px;">
+        <h3>👷 Ranking de Funcionários</h3>
+        <a href="historico-limpeza.html" style="font-size:.78rem;color:var(--primary);font-weight:600;text-decoration:none;">Ver todos →</a>
+      </div>
+      <div id="ranking-funcionarios">
+        <div style="text-align:center;padding:16px;"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Zone Ranking (worst first) -->
+    <div class="ranking-panel">
+      <div class="section-title-row" style="margin-bottom:12px;">
+        <h3>📍 Zonas por Score</h3>
+        <span style="font-size:.72rem;color:#94a3b8;">↑ Pior → Melhor</span>
+      </div>
+      <div id="ranking-zonas">
+        <div style="text-align:center;padding:16px;"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<script type="module" src="../js/modules/app-limpeza.js"></script>
+</body>
+</html>

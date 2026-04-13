@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.\\(js|html|css\\)$\")",
+      "Bash(xargs grep:*)",
+      "Bash(echo \"\")"
+    ]
+  }
+}

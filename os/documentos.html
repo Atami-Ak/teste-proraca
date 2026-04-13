@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>SIGA - Documentos</title>
+    <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/os.css" />
+    <link rel="stylesheet" href="../css/documentos.css" />
+  </head>
+  <body>
+
+    <!-- CABEÇALHO -->
+    <header class="main-header">
+      <div class="header-left">
+        <a id="btn-back" href="os.html" class="btn-back-header" title="Voltar">←</a>
+        <div class="logo-container">
+          <h1>SIGA</h1>
+          <span id="header-subtitulo">Documentos</span>
+        </div>
+      </div>
+      <div class="user-info">
+        <span style="font-size:0.9rem;font-weight:bold">Operador</span>
+        <div class="avatar">O</div>
+      </div>
+    </header>
+
+    <!-- NAVEGAÇÃO GLOBAL -->
+    <nav class="main-nav no-print">
+      <a href="../index.html" class="nav-item">🏠 Início</a>
+      <a href="../maquinario/maquinario.html" class="nav-item">⚙️ Maquinário</a>
+      <a href="../frota/painel-frota.html" class="nav-item">🚛 Frota</a>
+      <a href="../limpeza/limpeza.html" class="nav-item">🧹 Limpeza 5S</a>
+      <a href="os.html" class="nav-item">📋 O.S</a>
+      <a href="../compras/compras.html" class="nav-item">🛒 Compras</a>
+      <a href="documentos.html" class="nav-item active">📄 Documentos</a>
+    </nav>
+
+    <main class="container">
+
+      <!-- ================================================
+           MODO LISTA (padrão — sem ?id na URL)
+      ================================================ -->
+      <div id="secao-lista" class="hidden">
+
+        <div class="page-header no-print">
+          <h2>Documentos Emitidos</h2>
+          <a href="os.html" class="btn-secundario">📋 Ver O.S</a>
+        </div>
+
+        <!-- STATS -->
+        <div class="stats-bar no-print" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 20px;">
+          <div class="stat-card">
+            <span class="stat-valor" id="stat-total">—</span>
+            <span class="stat-label">Total</span>
+          </div>
+          <div class="stat-card andamento">
+            <span class="stat-valor" id="stat-srv">—</span>
+            <span class="stat-label">SRV — Serviço</span>
+          </div>
+          <div class="stat-card concluida">
+            <span class="stat-valor" id="stat-po">—</span>
+            <span class="stat-label">PO — Compra</span>
+          </div>
+        </div>
+
+        <!-- FILTROS -->
+        <div class="filtros-container no-print">
+          <span class="filtro-label">Tipo:</span>
+          <div class="filtro-grupo">
+            <button class="btn-filtro ativo" data-filtro-tipo="todos">Todos</button>
+            <button class="btn-filtro" data-filtro-tipo="service_report">📄 SRV — Serviço</button>
+            <button class="btn-filtro" data-filtro-tipo="purchase_document">🛒 PO — Compra</button>
+          </div>
+        </div>
+
+        <!-- LISTA DE DOCUMENTOS -->
+        <div id="docs-lista" class="docs-lista" style="margin-top:16px;">
+          <!-- Preenchido via JS -->
+        </div>
+
+      </div>
+
+      <!-- ================================================
+           MODO VISUALIZAÇÃO (?id=DOC_ID na URL)
+      ================================================ -->
+      <div id="secao-visualizacao" class="hidden">
+
+        <!-- Ações do viewer (ocultas na impressão) -->
+        <div class="viewer-actions no-print">
+          <button class="btn-secundario" id="btn-voltar-lista">← Voltar à Lista</button>
+          <button class="btn-primario" id="btn-imprimir">🖨️ Imprimir Documento</button>
+        </div>
+
+        <!-- Documento completo renderizado pelo JS -->
+        <div id="documento-completo" class="documento-completo">
+          <!-- Preenchido via JS -->
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- LOADING OVERLAY -->
+    <div id="overlay" class="overlay hidden">
+      <div class="overlay-content">
+        <div class="spinner"></div>
+        <p id="overlay-msg">Carregando...</p>
+      </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="toast"></div>
+
+    <script type="module" src="../js/modules/app-documentos.js"></script>
+  </body>
+</html>

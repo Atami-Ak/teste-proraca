@@ -1,0 +1,322 @@
+/* Container Principal do Formulário */
+.form-siga {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+  margin-top: 10px;
+}
+.form-header {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #f0f2f5;
+}
+.tag-id {
+  background: var(--dark, #343a40);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+.form-header h3 {
+  font-size: 1.3rem;
+  color: var(--text, #333);
+}
+
+/* Seções de Agrupamento (Novo) */
+.form-section {
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px dashed #e2e8f0;
+}
+.section-title {
+  font-size: 1.05rem;
+  color: var(--primary);
+  margin-bottom: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Inputs Genéricos */
+.form-group {
+  margin-bottom: 18px;
+}
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #444;
+}
+.input-padrao {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: #fff;
+  transition: border-color 0.2s;
+}
+.input-padrao:focus {
+  border-color: var(--primary, #004a99);
+  outline: none;
+}
+textarea.input-padrao {
+  height: 100px;
+  resize: none;
+}
+.grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+/* Identificação e Segurança (Novo) */
+.box-sessao {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.box-sessao label {
+  margin-bottom: 4px;
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+#nome-tecnico-display {
+  font-weight: bold;
+  color: var(--primary, #004a99);
+  font-size: 1.1rem;
+}
+.box-seguranca {
+  background: #fdf1f2;
+  border: 2px solid var(--danger);
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+.checkbox-seguranca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  color: #721c24;
+  cursor: pointer;
+}
+.checkbox-seguranca input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--danger);
+}
+
+/* Semáforo de Status */
+.status-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.btn-status {
+  padding: 12px 5px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  color: #555;
+}
+.btn-status.selected {
+  border-color: var(--primary, #004a99);
+  background: #ebf4ff;
+  color: var(--primary, #004a99);
+  box-shadow: 0 2px 4px rgba(0, 74, 153, 0.15);
+}
+
+/* Bloco de Diagnóstico Dinâmico */
+.box-alerta {
+  padding: 18px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  border-left: 6px solid transparent;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+.box-alerta h4 {
+  margin-bottom: 12px;
+  font-size: 1.05rem;
+  color: var(--primary);
+}
+.box-alerta.alerta-revisao {
+  background: #fff8e6;
+  border-left-color: var(--warning, #ffc107);
+  border: none;
+}
+.box-alerta.alerta-revisao h4 {
+  color: #856404;
+}
+.box-alerta.alerta-parada {
+  background: #fdf1f2;
+  border-left-color: var(--danger, #dc3545);
+  border: none;
+}
+.box-alerta.alerta-parada h4 {
+  color: #721c24;
+}
+
+/* Gestão de Peças */
+.box-destaque {
+  background: #f8f9fa;
+  padding: 18px;
+  border-radius: 8px;
+  border: 2px dashed #cbd5e1;
+}
+.input-group {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.btn-add {
+  background: var(--primary, #004a99);
+  color: white;
+  border: none;
+  width: 55px;
+  border-radius: 8px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.btn-add:hover {
+  background: #003875;
+}
+.lista-dinamica {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.lista-dinamica li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 12px 15px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.btn-remove-peca {
+  color: var(--danger, #dc3545);
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  font-weight: bold;
+  line-height: 1;
+  padding: 0 5px;
+}
+.sugestoes-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+.chip-sugestao {
+  background: #e2e8f0;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: 0.2s;
+  font-weight: 600;
+}
+.chip-sugestao:hover {
+  background: var(--primary, #004a99);
+  color: white;
+  border-color: var(--primary, #004a99);
+}
+
+/* Gestão de Fotos */
+.header-fotos {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 8px;
+}
+.contador-badge {
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: var(--primary, #004a99);
+  background: #ebf4ff;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+.btn-camera {
+  display: block;
+  width: 100%;
+  background: #475569;
+  color: white;
+  padding: 16px;
+  text-align: center;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s;
+}
+.btn-camera:hover {
+  background: #334155;
+}
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+  gap: 10px;
+  margin-top: 15px;
+}
+.preview-grid img {
+  width: 100%;
+  height: 75px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Botão de Envio */
+.btn-submit {
+  width: 100%;
+  background: var(--success, #28a745);
+  color: white;
+  border: none;
+  padding: 22px;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-top: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+  box-shadow: 0 4px 6px rgba(40, 167, 69, 0.2);
+}
+.btn-submit:hover {
+  background: #218838;
+}
+
+/* Utilitários */
+.hidden {
+  display: none !important;
+}
+.hidden-smart {
+  display: none !important;
+}

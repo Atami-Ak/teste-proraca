@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>SIGA - Painel de Maquinário</title>
+    <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/maquinario.css" />
+    <style>
+      /* ── Header / Nav (shared) ──────────────────────────── */
+      .main-header {
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--primary, #004a99); color: white;
+        padding: 15px 20px; box-shadow: 0 4px 6px rgba(0,0,0,.1);
+      }
+      .header-left { display: flex; align-items: center; gap: 15px; }
+      .logo-container h1 { margin: 0; font-size: 1.5rem; letter-spacing: 1px; }
+      .logo-container span { font-size: .8rem; color: #cbd5e1; }
+      .user-info { display: flex; align-items: center; gap: 10px; }
+      .avatar {
+        background: white; color: var(--primary, #004a99);
+        width: 35px; height: 35px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 900; font-size: 1.1rem;
+      }
+      .main-nav {
+        display: flex; gap: 12px; padding: 15px 20px;
+        background: white; overflow-x: auto; white-space: nowrap;
+        margin-bottom: 20px; border-bottom: 1px solid #e2e8f0;
+      }
+      .main-nav::-webkit-scrollbar { height: 4px; }
+      .main-nav::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+      .nav-item {
+        padding: 10px 18px; text-decoration: none; color: #475569;
+        font-weight: 600; font-size: .95rem; border-radius: 8px;
+        background: #f1f5f9; border: 1px solid #e2e8f0; transition: .3s;
+        display: flex; align-items: center; gap: 8px;
+      }
+      .nav-item:hover { background: #e2e8f0; color: var(--primary, #004a99); }
+      .nav-item.active {
+        background: var(--primary, #004a99); color: white;
+        border-color: var(--primary, #004a99);
+        box-shadow: 0 4px 8px rgba(0,74,153,.25);
+      }
+
+      /* ── Fleet Health Bar ───────────────────────────────── */
+      .fleet-health-bar {
+        display: grid; grid-template-columns: repeat(6, 1fr);
+        gap: 8px; margin-bottom: 16px;
+      }
+      @media (max-width: 700px) {
+        .fleet-health-bar { grid-template-columns: repeat(3, 1fr); }
+      }
+      .fhb-item {
+        background: white; border: 1px solid #e2e8f0; border-radius: 10px;
+        padding: 10px 6px; text-align: center; transition: .15s;
+      }
+      .fhb-count {
+        display: block; font-size: 1.6rem; font-weight: 900;
+        line-height: 1; margin-bottom: 3px;
+      }
+      .fhb-label { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: #64748b; }
+      .fhb-item.op   { border-color: #86efac; } .fhb-item.op   .fhb-count { color: #16a34a; }
+      .fhb-item.att  { border-color: #fde68a; } .fhb-item.att  .fhb-count { color: #d97706; }
+      .fhb-item.prev { border-color: #bfdbfe; } .fhb-item.prev .fhb-count { color: #2563eb; }
+      .fhb-item.maint{ border-color: #ddd6fe; } .fhb-item.maint .fhb-count { color: #7c3aed; }
+      .fhb-item.stop { border-color: #fecaca; } .fhb-item.stop .fhb-count { color: #dc2626; }
+      .fhb-item.crit { border-color: #fecdd3; } .fhb-item.crit .fhb-count { color: #991b1b; }
+
+      /* ── Machine Grid ───────────────────────────────────── */
+      .grid-ativos {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+        gap: 16px;
+      }
+      @media (max-width: 340px) { .grid-ativos { grid-template-columns: 1fr; } }
+
+      /* ── Machine Card ───────────────────────────────────── */
+      .card-ativo-grid {
+        background: white; border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,.07);
+        overflow: hidden; display: flex; flex-direction: column;
+        border: 1px solid #e2e8f0;
+        transition: box-shadow .2s, transform .2s;
+      }
+      .card-ativo-grid:hover { box-shadow: 0 6px 20px rgba(0,0,0,.12); transform: translateY(-2px); }
+
+      /* Bold colored top bar */
+      .card-top-bar { height: 5px; width: 100%; }
+
+      .card-grid-body { padding: 14px 16px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+
+      .card-grid-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+      .card-machine-name { margin: 0; font-size: 1rem; font-weight: 800; color: #0f172a; line-height: 1.2; }
+      .card-machine-id   { font-size: .7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 2px; }
+      .card-machine-sub  { font-size: .73rem; color: #64748b; margin-top: 2px; }
+
+      .card-status-badge {
+        padding: 3px 10px; border-radius: 99px; font-size: .7rem;
+        font-weight: 700; white-space: nowrap; border: 1px solid;
+        flex-shrink: 0;
+      }
+
+      .card-kpi-row { display: flex; flex-wrap: wrap; gap: 5px; min-height: 22px; }
+      .kpi-chip {
+        padding: 2px 8px; border-radius: 6px; font-size: .68rem;
+        font-weight: 700; border: 1px solid #e2e8f0; background: #f8fafc;
+      }
+
+      .card-last-event {
+        font-size: .75rem; color: #64748b;
+        background: #f8fafc; border: 1px solid #e2e8f0;
+        border-radius: 6px; padding: 7px 10px; min-height: 34px;
+      }
+      .card-last-event strong { color: #475569; }
+
+      .card-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: auto; }
+      .btn-card-action {
+        display: block; text-align: center; text-decoration: none;
+        padding: 9px 4px; border-radius: 8px; font-size: .72rem;
+        font-weight: 700; border: 1.5px solid; transition: .15s; line-height: 1.3;
+      }
+      .btn-insp  { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+      .btn-insp:hover  { background: #dbeafe; }
+      .btn-maint { background: #f0fdf4; color: #166534; border-color: #86efac; }
+      .btn-maint:hover { background: #dcfce7; }
+      .btn-hist  { background: #f8fafc; color: #475569; border-color: #cbd5e1; }
+      .btn-hist:hover  { background: #e2e8f0; }
+
+      /* skeleton shimmer for KPIs */
+      @keyframes shimmer { 0%{opacity:.5} 50%{opacity:1} 100%{opacity:.5} }
+      .kpi-loading { animation: shimmer 1.4s infinite; color: #cbd5e1; font-size:.72rem; }
+    </style>
+  </head>
+  <body>
+    <header class="main-header">
+      <div class="header-left">
+        <div class="logo-container">
+          <h1>SIGA</h1>
+          <span>Gestão de Ativos</span>
+        </div>
+      </div>
+      <div class="user-info">
+        <span id="header-user-name" style="font-size:.9rem;font-weight:bold;">—</span>
+        <div class="avatar" id="header-avatar">?</div>
+      </div>
+    </header>
+
+    <nav class="main-nav">
+      <a href="../index.html" class="nav-item">🏠 Início</a>
+      <a href="maquinario.html" class="nav-item active">⚙️ Maquinário</a>
+      <a href="../frota/painel-frota.html" class="nav-item">🚛 Frota</a>
+      <a href="../limpeza/limpeza.html" class="nav-item">🧹 Limpeza 5S</a>
+      <a href="../os/os.html" class="nav-item">📋 O.S</a>
+      <a href="../compras/compras.html" class="nav-item">🛒 Compras</a>
+      <a href="../os/documentos.html" class="nav-item">📄 Documentos</a>
+    </nav>
+
+    <main class="container" style="padding:0 20px 30px 20px;">
+
+      <!-- Page title row -->
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+        <h2 style="margin:0;color:var(--primary);font-size:1.3rem;border-bottom:2px solid #e2e8f0;padding-bottom:8px;flex:1;">
+          ⚙️ Dashboard de Ativos Industriais
+        </h2>
+        <a href="inspecao-maquina.html" title="Abrir inspeção de maquinário"
+           style="display:inline-flex;align-items:center;gap:8px;
+                  background:#1e40af;color:#fff;
+                  padding:10px 18px;border-radius:8px;font-weight:700;
+                  font-size:.85rem;text-decoration:none;
+                  box-shadow:0 2px 8px rgba(30,64,175,.3);"
+           onmouseover="this.style.background='#1e3a8a'"
+           onmouseout="this.style.background='#1e40af'">
+          🔧 Nova Inspeção
+        </a>
+      </div>
+
+      <!-- Fleet Health Summary Bar -->
+      <div class="fleet-health-bar">
+        <div class="fhb-item op">
+          <span class="fhb-count" id="fhb-op">—</span>
+          <span class="fhb-label">🟢 Operacionais</span>
+        </div>
+        <div class="fhb-item att">
+          <span class="fhb-count" id="fhb-att">—</span>
+          <span class="fhb-label">🟡 Atenção</span>
+        </div>
+        <div class="fhb-item prev">
+          <span class="fhb-count" id="fhb-prev">—</span>
+          <span class="fhb-label">🔵 Preventiva</span>
+        </div>
+        <div class="fhb-item maint">
+          <span class="fhb-count" id="fhb-maint">—</span>
+          <span class="fhb-label">🔧 Manutenção</span>
+        </div>
+        <div class="fhb-item stop">
+          <span class="fhb-count" id="fhb-stop">—</span>
+          <span class="fhb-label">🔴 Paradas</span>
+        </div>
+        <div class="fhb-item crit">
+          <span class="fhb-count" id="fhb-crit">—</span>
+          <span class="fhb-label">⛔ Críticas</span>
+        </div>
+      </div>
+
+      <!-- Alert banner -->
+      <div id="alert-banner" style="display:none;margin-bottom:16px;"></div>
+
+      <!-- Machine grid -->
+      <div class="grid-ativos" id="grid-ativos"></div>
+
+    </main>
+
+    <!-- ── Machine Detail Modal ─────────────────────────────────────────── -->
+    <div id="machine-detail-modal" class="hidden"
+         style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;display:flex;align-items:flex-end;justify-content:center;"
+         onclick="if(event.target===this)fecharModalMaquina()">
+
+      <div style="background:white;border-radius:16px 16px 0 0;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;">
+
+        <!-- Modal header -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:18px 20px 12px;border-bottom:1px solid #e2e8f0;flex-shrink:0;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:.72rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">
+              <span id="modal-machine-id">—</span> · <span id="modal-machine-setor">—</span>
+            </div>
+            <h3 id="modal-machine-title" style="margin:0;font-size:1.15rem;font-weight:800;color:#0f172a;line-height:1.2;">—</h3>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;margin-left:12px;">
+            <span id="modal-machine-status-badge" style="font-size:.78rem;font-weight:700;padding:4px 12px;border-radius:99px;border:1.5px solid #e2e8f0;">—</span>
+            <button onclick="fecharModalMaquina()"
+                    style="background:none;border:none;font-size:1.5rem;line-height:1;color:#94a3b8;cursor:pointer;padding:2px 4px;">×</button>
+          </div>
+        </div>
+
+        <!-- Last record highlight -->
+        <div style="padding:14px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;flex-shrink:0;">
+          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:8px;">Último Registro</div>
+          <div id="modal-last-record">
+            <p style="color:#94a3b8;font-size:.85rem;margin:0;">Carregando...</p>
+          </div>
+        </div>
+
+        <!-- History list -->
+        <div style="padding:14px 20px;flex:1;">
+          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:10px;">Histórico Recente</div>
+          <div id="modal-history-list"></div>
+        </div>
+
+        <!-- Action buttons -->
+        <div style="padding:14px 20px;border-top:1px solid #e2e8f0;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;flex-shrink:0;background:white;">
+          <a id="modal-btn-insp" href="#"
+             style="display:block;text-align:center;padding:12px 6px;background:#eff6ff;color:#1e40af;border:1.5px solid #bfdbfe;border-radius:8px;font-size:.78rem;font-weight:700;text-decoration:none;">
+            🔍 Nova Inspeção
+          </a>
+          <a id="modal-btn-wo" href="#"
+             style="display:block;text-align:center;padding:12px 6px;background:#f0fdf4;color:#166534;border:1.5px solid #86efac;border-radius:8px;font-size:.78rem;font-weight:700;text-decoration:none;">
+            🔧 Nova O.S.
+          </a>
+          <a id="modal-btn-hist" href="#"
+             style="display:block;text-align:center;padding:12px 6px;background:#f8fafc;color:#475569;border:1.5px solid #cbd5e1;border-radius:8px;font-size:.78rem;font-weight:700;text-decoration:none;">
+            📊 Histórico Completo
+          </a>
+        </div>
+
+      </div>
+    </div><!-- /machine-detail-modal -->
+
+    <style>
+      @keyframes spin { to { transform: rotate(360deg); } }
+      #machine-detail-modal:not(.hidden) { display: flex !important; }
+    </style>
+
+    <script type="module" src="../js/modules/app-maquinario.js"></script>
+    <script>
+      function fecharModalMaquina() {
+        document.getElementById("machine-detail-modal").classList.add("hidden");
+        document.body.style.overflow = "";
+      }
+    </script>
+  </body>
+</html>

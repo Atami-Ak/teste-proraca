@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SIGA — Acesso</title>
+    <link rel="stylesheet" href="../css/global.css" />
+    <style>
+      body {
+        background: linear-gradient(135deg, #0f4c75, #1b6ca8);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .login-card {
+        background: white;
+        border-radius: 16px;
+        padding: 40px 36px;
+        max-width: 400px;
+        width: 100%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      }
+
+      .login-logo {
+        text-align: center;
+        margin-bottom: 32px;
+      }
+
+      .login-logo h1 {
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: var(--primary);
+        letter-spacing: 2px;
+      }
+
+      .login-logo p {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+
+      .login-form h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-main);
+        margin-bottom: 24px;
+        text-align: center;
+      }
+
+      .campo-grupo {
+        margin-bottom: 18px;
+      }
+
+      .campo-grupo label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+      }
+
+      .campo-grupo input {
+        width: 100%;
+        padding: 12px 14px;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        color: var(--text-main);
+        transition: border-color 0.2s;
+        outline: none;
+      }
+
+      .campo-grupo input:focus {
+        border-color: var(--primary-light);
+      }
+
+      .btn-entrar {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        margin-top: 8px;
+        transition: opacity 0.2s, transform 0.1s;
+        letter-spacing: 0.5px;
+      }
+
+      .btn-entrar:hover {
+        opacity: 0.92;
+      }
+
+      .btn-entrar:active {
+        transform: scale(0.98);
+      }
+
+      .btn-entrar:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      #msg-erro {
+        display: none;
+        background: #fef2f2;
+        border: 1.5px solid var(--danger);
+        color: #b91c1c;
+        border-radius: 8px;
+        padding: 12px 14px;
+        font-size: 0.88rem;
+        margin-top: 16px;
+        text-align: center;
+      }
+
+      .login-footer {
+        text-align: center;
+        margin-top: 28px;
+        font-size: 0.75rem;
+        color: #94a3b8;
+      }
+
+      .spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        vertical-align: middle;
+        margin-right: 8px;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-card">
+      <div class="login-logo">
+        <h1>SIGA</h1>
+        <p>Sistema Industrial de Gestão e Ativos</p>
+      </div>
+
+      <div class="login-form">
+        <h2>Aceder ao Sistema</h2>
+
+        <div class="campo-grupo">
+          <label for="email">Email</label>
+          <input
+            type="email"
+            id="email"
+            placeholder="utilizador@empresa.com"
+            autocomplete="email"
+            autofocus
+          />
+        </div>
+
+        <div class="campo-grupo">
+          <label for="senha">Senha</label>
+          <input
+            type="password"
+            id="senha"
+            placeholder="••••••••"
+            autocomplete="current-password"
+          />
+        </div>
+
+        <button class="btn-entrar" id="btn-entrar">Entrar</button>
+
+        <div id="msg-erro"></div>
+      </div>
+
+      <div class="login-footer">
+        Pro Raça &copy; 2025 &mdash; Acesso restrito a utilizadores autorizados
+      </div>
+    </div>
+
+    <script type="module" src="../js/modules/app-auth.js"></script>
+  </body>
+</html>

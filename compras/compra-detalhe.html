@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>SIGA - Pedido de Compra</title>
+    <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/os.css" />
+  </head>
+  <body>
+
+    <!-- CABEÇALHO -->
+    <header class="main-header">
+      <div class="header-left">
+        <a href="compras.html" class="btn-back-header" title="Voltar">←</a>
+        <div class="logo-container">
+          <h1>SIGA</h1>
+          <span id="header-subtitulo">Pedido de Compra</span>
+        </div>
+      </div>
+      <div class="user-info">
+        <span style="font-size:0.9rem;font-weight:bold">Operador</span>
+        <div class="avatar">O</div>
+      </div>
+    </header>
+
+    <!-- NAVEGAÇÃO GLOBAL -->
+    <nav class="main-nav">
+      <a href="../index.html" class="nav-item">🏠 Início</a>
+      <a href="../maquinario/maquinario.html" class="nav-item">⚙️ Maquinário</a>
+      <a href="../frota/painel-frota.html" class="nav-item">🚛 Frota</a>
+      <a href="../limpeza/limpeza.html" class="nav-item">🧹 Limpeza 5S</a>
+      <a href="../os/os.html" class="nav-item">📋 O.S</a>
+      <a href="compras.html" class="nav-item active">🛒 Compras</a>
+      <a href="../os/documentos.html" class="nav-item">📄 Documentos</a>
+    </nav>
+
+    <main class="container">
+
+      <!-- ================================================
+           MODO CRIAÇÃO (modo=criar)
+      ================================================ -->
+      <div id="secao-criar" class="hidden">
+
+        <div class="page-header">
+          <h2>Novo Pedido de Compra</h2>
+          <a href="compras.html" class="btn-secundario">← Cancelar</a>
+        </div>
+
+        <form id="form-compra" class="form-os" novalidate>
+
+          <!-- SEÇÃO: IDENTIFICAÇÃO -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <span>🛒</span>
+              <h3>Identificação do Pedido</h3>
+            </div>
+            <div class="form-section-body">
+
+              <div class="form-row cols-2">
+                <div class="form-group">
+                  <label for="categoria">Categoria *</label>
+                  <select id="categoria" required>
+                    <option value="">Selecione...</option>
+                    <option value="peca">🔩 Peça / Componente</option>
+                    <option value="equipamento">⚙️ Equipamento</option>
+                    <option value="servico">🛠️ Serviço</option>
+                    <option value="operacional">📦 Material Operacional</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="urgencia">Urgência</label>
+                  <select id="urgencia">
+                    <option value="normal">Normal</option>
+                    <option value="urgente">🔴 Urgente</option>
+                    <option value="critico">🚨 Crítico</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-row cols-2">
+                <div class="form-group">
+                  <label for="solicitante">Solicitante *</label>
+                  <input type="text" id="solicitante" placeholder="Quem está solicitando" required />
+                </div>
+                <div class="form-group">
+                  <label for="setor">Setor Solicitante *</label>
+                  <select id="setor" required>
+                    <option value="">Selecione...</option>
+                    <option value="Produção">Produção</option>
+                    <option value="Manutenção">Manutenção</option>
+                    <option value="Mistura">Mistura</option>
+                    <option value="Processamento">Processamento</option>
+                    <option value="Moagem">Moagem</option>
+                    <option value="Embalagem">Embalagem</option>
+                    <option value="Utilidades">Utilidades</option>
+                    <option value="Estoque">Estoque</option>
+                    <option value="Transporte">Transporte</option>
+                    <option value="Administrativo">Administrativo</option>
+                    <option value="Logística">Logística</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="fornecedor">Fornecedor Sugerido</label>
+                  <input type="text" id="fornecedor" placeholder="Nome do fornecedor (opcional)" />
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="justificativa">Justificativa *</label>
+                  <textarea id="justificativa" placeholder="Por que esta compra é necessária?" required></textarea>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- SEÇÃO: ITENS -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <span>📦</span>
+              <h3>Itens do Pedido</h3>
+            </div>
+            <div class="form-section-body">
+
+              <div class="materiais-header">
+                <span>Descrição do Item</span>
+                <span>Qtd.</span>
+                <span>Preço Unit. (R$)</span>
+                <span>Total (R$)</span>
+                <span></span>
+              </div>
+              <div id="itens-lista" class="materiais-lista"></div>
+              <button type="button" class="btn-add-peca" id="btn-add-item">
+                + Adicionar Item
+              </button>
+
+              <div class="form-row" style="margin-top:16px;">
+                <div class="form-group" style="max-width:200px; margin-left:auto;">
+                  <label>Total Estimado</label>
+                  <input type="text" id="totalEstimado" readonly style="background:#f8fafc;color:#0f4c75;font-weight:700;font-size:1rem;" placeholder="R$ 0,00" />
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- AÇÕES -->
+          <div class="form-actions">
+            <a href="compras.html" class="btn-secundario">Cancelar</a>
+            <button type="submit" class="btn-primario" id="btn-salvar">
+              💾 Salvar Pedido de Compra
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+      <!-- ================================================
+           MODO VISUALIZAÇÃO (id=XXXXX)
+      ================================================ -->
+      <div id="secao-visualizacao" class="hidden">
+
+        <!-- Cabeçalho do detalhe -->
+        <div class="detalhe-header" id="detalhe-header">
+          <div class="detalhe-numero" id="detalhe-numero"></div>
+          <div class="detalhe-titulo" id="detalhe-titulo"></div>
+          <div class="detalhe-badges" id="detalhe-badges"></div>
+          <div class="detalhe-meta" id="detalhe-meta"></div>
+        </div>
+
+        <!-- Controle de Status -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <span>🔄</span>
+            <h3>Controle de Status</h3>
+          </div>
+          <div class="form-section-body">
+            <div class="status-flow" id="status-flow">
+              <button class="btn-status" data-status="pending">⏳ Pendente</button>
+              <button class="btn-status" data-status="approved">✅ Aprovado</button>
+              <button class="btn-status" data-status="ordered">📦 Pedido Feito</button>
+              <button class="btn-status" data-status="received">🟢 Recebido</button>
+              <button class="btn-status" data-status="cancelled">❌ Cancelado</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ações Rápidas -->
+        <div class="acoes-rapidas">
+          <button class="btn-roxo" id="btn-gerar-documento">📄 Gerar Documento PO</button>
+          <a href="compras.html" class="btn-secundario">← Voltar</a>
+        </div>
+
+        <!-- Dados do Pedido -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <span>🛒</span>
+            <h3>Dados do Pedido</h3>
+          </div>
+          <div class="form-section-body">
+            <div id="dados-compra"></div>
+          </div>
+        </div>
+
+        <!-- Itens -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <span>📦</span>
+            <h3>Itens do Pedido</h3>
+          </div>
+          <div class="form-section-body">
+            <div id="itens-view"></div>
+            <div class="custos-resumo" id="total-view"></div>
+          </div>
+        </div>
+
+        <!-- O.S de Origem (se veio de uma O.S) -->
+        <div class="form-section hidden" id="secao-os-origem">
+          <div class="form-section-header">
+            <span>📋</span>
+            <h3>O.S de Origem</h3>
+          </div>
+          <div class="form-section-body">
+            <div id="info-os-origem"></div>
+          </div>
+        </div>
+
+        <!-- Documento Gerado -->
+        <div class="form-section hidden" id="secao-documento-vinculado">
+          <div class="form-section-header">
+            <span>📄</span>
+            <h3>Documento PO Gerado</h3>
+          </div>
+          <div class="form-section-body">
+            <div id="info-documento"></div>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- MODAL: VISUALIZAÇÃO DO DOCUMENTO PO -->
+    <div id="modal-documento" class="modal-os hidden">
+      <div class="modal-os-content">
+        <div class="modal-os-header">
+          <h3>📄 Documento de Compra</h3>
+          <button class="modal-os-fechar" id="fechar-modal-doc">✕</button>
+        </div>
+        <div class="modal-os-body">
+          <div id="doc-preview-content"></div>
+        </div>
+        <div class="modal-os-footer">
+          <button class="btn-secundario" id="fechar-modal-doc-btn">Fechar</button>
+          <button class="btn-primario" id="btn-imprimir-doc">🖨️ Imprimir</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOADING -->
+    <div id="overlay" class="overlay hidden">
+      <div class="overlay-content">
+        <div class="spinner"></div>
+        <p id="overlay-msg">Processando...</p>
+      </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="toast"></div>
+
+    <script type="module" src="../js/modules/app-compra-detalhe.js"></script>
+  </body>
+</html>

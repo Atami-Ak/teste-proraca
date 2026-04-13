@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>SIGA — Ranking de Limpeza 5S</title>
+  <link rel="stylesheet" href="../css/global.css" />
+  <style>
+    * { box-sizing:border-box; }
+    body { background:#f1f5f9; }
+
+    /* ── Header / Nav ──────────────────────────────────────────── */
+    .main-header { display:flex;align-items:center;justify-content:space-between;background:var(--primary,#004a99);color:white;padding:14px 20px;box-shadow:0 4px 6px rgba(0,0,0,.1); }
+    .header-left { display:flex;align-items:center;gap:14px; }
+    .btn-back-header { color:white;text-decoration:none;font-size:1.5rem;font-weight:bold;line-height:1; }
+    .logo-container h1 { margin:0;font-size:1.4rem;letter-spacing:1px; }
+    .logo-container span { font-size:.78rem;color:#cbd5e1; }
+    .user-info { display:flex;align-items:center;gap:8px; }
+    .avatar { background:white;color:var(--primary,#004a99);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1rem; }
+    .main-nav { display:flex;gap:10px;padding:12px 20px;background:white;overflow-x:auto;white-space:nowrap;border-bottom:1px solid #e2e8f0; }
+    .main-nav::-webkit-scrollbar { height:3px; }
+    .main-nav::-webkit-scrollbar-thumb { background:#cbd5e1;border-radius:3px; }
+    .nav-item { padding:9px 16px;text-decoration:none;color:#475569;font-weight:600;font-size:.9rem;border-radius:8px;background:#f1f5f9;border:1px solid #e2e8f0;transition:.2s; }
+    .nav-item:hover { background:#e2e8f0; }
+    .nav-item.active { background:var(--primary,#004a99);color:white;border-color:var(--primary,#004a99); }
+
+    .container { max-width:640px;margin:0 auto;padding:16px 16px 48px; }
+
+    /* ── Hero ───────────────────────────────────────────────────── */
+    .ranking-hero { background:linear-gradient(135deg,#004a99 0%,#1e40af 60%,#7c3aed 100%);border-radius:16px;padding:24px 20px;margin-bottom:20px;color:white;text-align:center;box-shadow:0 6px 24px rgba(0,74,153,.25); }
+    .ranking-hero h1 { margin:0 0 4px;font-size:1.5rem;font-weight:900; }
+    .ranking-hero p  { margin:0;font-size:.85rem;opacity:.8; }
+
+    /* ── Toggle ─────────────────────────────────────────────────── */
+    .toggle-wrap { background:white;border:1px solid #e2e8f0;border-radius:12px;padding:5px;display:flex;gap:4px;margin-bottom:20px; }
+    .toggle-btn { flex:1;padding:11px 10px;border:none;border-radius:9px;font-size:.9rem;font-weight:700;cursor:pointer;transition:.2s;color:#475569;background:transparent; }
+    .toggle-btn.active { background:var(--primary,#004a99);color:white;box-shadow:0 2px 8px rgba(0,74,153,.25); }
+    .toggle-btn:not(.active):hover { background:#f1f5f9; }
+
+    /* ── Podium (top 3) ─────────────────────────────────────────── */
+    .podium { display:flex;align-items:flex-end;justify-content:center;gap:10px;margin-bottom:20px; }
+    .podium-slot { display:flex;flex-direction:column;align-items:center;border-radius:12px;padding:14px 10px 0;text-align:center;min-width:96px;max-width:130px;flex:1;animation:fadeSlide .4s ease both; }
+    .podium-slot.first  { background:linear-gradient(180deg,#fefce8,#fef3c7);border:2px solid #fde68a;box-shadow:0 4px 16px rgba(234,179,8,.22); }
+    .podium-slot.second { background:linear-gradient(180deg,#f8fafc,#f1f5f9);border:2px solid #cbd5e1;box-shadow:0 4px 10px rgba(0,0,0,.07); }
+    .podium-slot.third  { background:linear-gradient(180deg,#fff7ed,#fed7aa33);border:2px solid #fed7aa;box-shadow:0 4px 10px rgba(194,65,12,.12); }
+    .podium-medal { font-size:2rem;margin-bottom:4px; }
+    .podium-name  { font-size:.82rem;font-weight:800;color:#0f172a;word-break:break-word;margin-bottom:4px;line-height:1.3; }
+    .podium-score { font-size:1.3rem;font-weight:900;line-height:1; }
+    .podium-slot.first  .podium-score { color:#d97706; }
+    .podium-slot.second .podium-score { color:#64748b; }
+    .podium-slot.third  .podium-score { color:#c2410c; }
+    .podium-pct   { font-size:.6rem;font-weight:700;opacity:.7; }
+    .podium-insp  { font-size:.68rem;color:#94a3b8;margin:3px 0 0; }
+    .podium-bar   { width:100%;border-radius:0 0 10px 10px;margin-top:10px; }
+    .podium-slot.first  .podium-bar { height:60px;background:linear-gradient(180deg,#fde68a,#fbbf24); }
+    .podium-slot.second .podium-bar { height:40px;background:linear-gradient(180deg,#e2e8f0,#cbd5e1); }
+    .podium-slot.third  .podium-bar { height:30px;background:linear-gradient(180deg,#fed7aa,#fb923c); }
+
+    /* ── Leaderboard list ───────────────────────────────────────── */
+    .leaderboard { background:white;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,.05); }
+    .leaderboard-header { padding:14px 18px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px; }
+    .leaderboard-header h3 { margin:0;font-size:.95rem;font-weight:800;color:var(--primary,#004a99); }
+    .leaderboard-item { display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid #f1f5f9;transition:.15s;animation:fadeSlide .35s ease both; }
+    .leaderboard-item:last-child { border-bottom:none; }
+    .leaderboard-item:hover { background:#f8fafc; }
+    .lb-pos { width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:900;flex-shrink:0; }
+    .lb-pos.gold   { background:#fef3c7;color:#92400e;border:2px solid #fde68a; }
+    .lb-pos.silver { background:#f1f5f9;color:#475569;border:2px solid #cbd5e1; }
+    .lb-pos.bronze { background:#fff7ed;color:#c2410c;border:2px solid #fed7aa; }
+    .lb-pos.other  { background:#f8fafc;color:#64748b;border:1.5px solid #e2e8f0; }
+    .lb-body { flex:1;min-width:0; }
+    .lb-name  { font-size:.9rem;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .lb-meta  { font-size:.72rem;color:#94a3b8;margin-top:1px; }
+    .lb-score { font-size:1rem;font-weight:900;min-width:46px;text-align:right; }
+    .lb-bar-wrap { width:60px;height:5px;background:#e2e8f0;border-radius:3px;margin-top:4px;overflow:hidden; }
+    .lb-bar { height:100%;border-radius:3px;transition:width .6s ease; }
+
+    /* ── Zone ranking ───────────────────────────────────────────── */
+    .zone-ranking-grid { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px; }
+    @media (max-width:420px) { .zone-ranking-grid { grid-template-columns:1fr; } }
+    .zone-rank-card { background:white;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.04);animation:fadeSlide .4s ease both; }
+    .zone-rank-card:hover { box-shadow:0 4px 12px rgba(0,0,0,.09);transform:translateY(-1px);transition:.15s; }
+    .zone-rank-num  { font-size:.68rem;font-weight:700;color:#94a3b8;margin-bottom:4px; }
+    .zone-rank-name { font-size:.88rem;font-weight:800;color:#0f172a;margin-bottom:5px; }
+    .zone-rank-score-row { display:flex;align-items:center;gap:8px; }
+    .zone-rank-score { font-size:1.2rem;font-weight:900; }
+    .zone-rank-bar-wrap { flex:1;height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden; }
+    .zone-rank-bar { height:100%;border-radius:3px;transition:width .6s ease; }
+    .zone-rank-insp { font-size:.68rem;color:#94a3b8;margin-top:3px; }
+
+    /* ── Empty / loading ─────────────────────────────────────────── */
+    .empty-msg { text-align:center;color:#94a3b8;padding:32px 20px;font-size:.88rem; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .spinner { width:28px;height:28px;border:3px solid #e2e8f0;border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px; }
+
+    /* ── Animations ─────────────────────────────────────────────── */
+    @keyframes fadeSlide {
+      from { opacity:0;transform:translateY(12px); }
+      to   { opacity:1;transform:translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<header class="main-header">
+  <div class="header-left">
+    <a href="limpeza.html" class="btn-back-header" title="Voltar">←</a>
+    <div class="logo-container">
+      <h1>SIGA</h1>
+      <span>Ranking de Limpeza 5S</span>
+    </div>
+  </div>
+  <div class="user-info">
+    <span id="header-user" style="font-size:.85rem;font-weight:700;">—</span>
+    <div class="avatar" id="header-avatar">?</div>
+  </div>
+</header>
+
+<nav class="main-nav">
+  <a href="../index.html"                 class="nav-item">🏠 Início</a>
+  <a href="../maquinario/maquinario.html" class="nav-item">⚙️ Maquinário</a>
+  <a href="../frota/painel-frota.html"    class="nav-item">🚛 Frota</a>
+  <a href="limpeza.html"                  class="nav-item active">🧹 Limpeza 5S</a>
+  <a href="../os/os.html"                 class="nav-item">📋 O.S</a>
+  <a href="../compras/compras.html"       class="nav-item">🛒 Compras</a>
+</nav>
+
+<main class="container">
+
+  <!-- Hero banner -->
+  <div class="ranking-hero">
+    <div style="font-size:2.5rem;margin-bottom:8px;">🏆</div>
+    <h1>Performance Ranking</h1>
+    <p>Limpeza & Qualidade 5S — Top Funcionários & Zonas</p>
+  </div>
+
+  <!-- Period toggle -->
+  <div class="toggle-wrap">
+    <button class="toggle-btn active" id="btn-weekly"  onclick="setMode('weekly')">🔥 Ranking Semanal</button>
+    <button class="toggle-btn"        id="btn-monthly" onclick="setMode('monthly')">📅 Ranking Mensal</button>
+  </div>
+
+  <!-- Podium (top 3) -->
+  <div id="podium-wrap">
+    <div class="empty-msg"><div class="spinner"></div><p>Carregando dados...</p></div>
+  </div>
+
+  <!-- Full leaderboard -->
+  <div class="leaderboard" id="leaderboard-wrap">
+    <div class="leaderboard-header"><h3>👷 Posição 4° em diante</h3></div>
+    <div id="leaderboard-list">
+      <div class="empty-msg"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- Zone ranking -->
+  <div style="margin-bottom:12px;">
+    <h3 style="margin:0 0 12px;font-size:1rem;font-weight:800;color:var(--primary,#004a99);">🏭 Ranking por Zona</h3>
+    <div class="zone-ranking-grid" id="zone-ranking-grid">
+      <div style="grid-column:1/-1;" class="empty-msg"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+</main>
+
+<script type="module" src="../js/modules/app-limpeza-ranking.js"></script>
+<!-- Inline handler bridge for onclick attributes -->
+<script>
+  function setMode(mode) { window._rankingSetMode && window._rankingSetMode(mode); }
+</script>
+</body>
+</html>

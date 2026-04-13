@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>SIGA — Histórico & Análises de Limpeza 5S</title>
+  <link rel="stylesheet" href="../css/global.css" />
+  <style>
+    * { box-sizing:border-box; }
+    body { background:#f1f5f9; }
+
+    .main-header { display:flex;align-items:center;justify-content:space-between;background:var(--primary,#004a99);color:white;padding:14px 20px;box-shadow:0 4px 6px rgba(0,0,0,.1); }
+    .header-left { display:flex;align-items:center;gap:14px; }
+    .btn-back-header { color:white;text-decoration:none;font-size:1.5rem;font-weight:bold;line-height:1; }
+    .logo-container h1 { margin:0;font-size:1.4rem;letter-spacing:1px; }
+    .logo-container span { font-size:.78rem;color:#cbd5e1; }
+    .user-info { display:flex;align-items:center;gap:8px; }
+    .avatar { background:white;color:var(--primary,#004a99);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1rem; }
+
+    .main-nav { display:flex;gap:10px;padding:12px 20px;background:white;overflow-x:auto;white-space:nowrap;border-bottom:1px solid #e2e8f0; }
+    .main-nav::-webkit-scrollbar { height:3px; }
+    .main-nav::-webkit-scrollbar-thumb { background:#cbd5e1;border-radius:3px; }
+    .nav-item { padding:9px 16px;text-decoration:none;color:#475569;font-weight:600;font-size:.9rem;border-radius:8px;background:#f1f5f9;border:1px solid #e2e8f0;transition:.2s; }
+    .nav-item:hover { background:#e2e8f0; }
+    .nav-item.active { background:var(--primary,#004a99);color:white;border-color:var(--primary,#004a99); }
+
+    .container { max-width:720px;margin:0 auto;padding:16px 16px 40px; }
+
+    /* ── Filter bar ─────────────────────────────────────────── */
+    .filter-bar { background:white;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end; }
+    .filter-group { display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px; }
+    .filter-group label { font-size:.72rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px; }
+    .filter-input { padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:.88rem;background:white;cursor:pointer; }
+    .filter-input:focus { border-color:var(--primary,#004a99);outline:none; }
+    .btn-filter { padding:9px 18px;background:var(--primary,#004a99);color:white;border:none;border-radius:7px;font-weight:700;font-size:.88rem;cursor:pointer;white-space:nowrap;align-self:flex-end; }
+    .btn-filter:hover { background:#003875; }
+    .btn-filter-clear { padding:9px 14px;background:#f1f5f9;color:#475569;border:1.5px solid #e2e8f0;border-radius:7px;font-weight:700;font-size:.88rem;cursor:pointer;align-self:flex-end; }
+
+    /* ── Section title ──────────────────────────────────────── */
+    .section-title-row { display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px; }
+    .section-title-row h3 { margin:0;font-size:1rem;font-weight:800;color:var(--primary,#004a99); }
+    .result-count { font-size:.78rem;color:#64748b;font-weight:600; }
+
+    /* ── Inspection card ────────────────────────────────────── */
+    .insp-card { background:white;border-radius:10px;border:1px solid #e2e8f0;padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:14px;box-shadow:0 1px 4px rgba(0,0,0,.04);cursor:pointer;transition:.15s; }
+    .insp-card:hover { box-shadow:0 4px 12px rgba(0,0,0,.09);transform:translateY(-1px); }
+    .insp-score-ring { width:54px;height:54px;border-radius:50%;border:3px solid;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0; }
+    .insp-score-ring .sr-num { font-size:1rem;font-weight:900;line-height:1; }
+    .insp-score-ring .sr-pct { font-size:.55rem;font-weight:700; }
+    .insp-body { flex:1;min-width:0; }
+    .insp-zone-name { font-size:.95rem;font-weight:800;color:#0f172a;margin-bottom:2px; }
+    .insp-meta { font-size:.75rem;color:#64748b;margin-bottom:6px; }
+    .insp-badge { display:inline-block;padding:2px 8px;border-radius:4px;font-size:.67rem;font-weight:700;margin-right:5px;border:1px solid; }
+    .insp-issues { font-size:.75rem;color:#dc2626;margin-top:4px; }
+
+    /* ── Empty / loading ────────────────────────────────────── */
+    .empty-msg { text-align:center;color:#94a3b8;padding:40px 20px;background:white;border-radius:10px;border:1px solid #e2e8f0; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .spinner { width:30px;height:30px;border:3px solid #e2e8f0;border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px; }
+
+    /* ── Detail Modal ───────────────────────────────────────── */
+    .modal { display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:flex-end;justify-content:center;padding:0; }
+    .modal.active { display:flex; }
+    @media (min-width:600px) { .modal { align-items:center;padding:20px; } }
+    .modal-content { background:white;border-radius:16px 16px 0 0;width:100%;max-width:680px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 -4px 24px rgba(0,0,0,.18); }
+    @media (min-width:600px) { .modal-content { border-radius:16px;max-height:88vh; } }
+    .modal-header { padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0; }
+    .modal-header h3 { margin:0;font-size:1rem;font-weight:800;color:var(--primary,#004a99); }
+    .close-modal { font-size:1.8rem;cursor:pointer;color:#64748b;line-height:1;background:none;border:none;padding:0 4px; }
+    .close-modal:hover { color:#dc2626; }
+    .modal-body { padding:16px 20px;overflow-y:auto;flex:1; }
+
+    .mod-info-grid { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px; }
+    @media (max-width:480px) { .mod-info-grid { grid-template-columns:1fr; } }
+    .mod-info-box { background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px; }
+    .mod-info-box strong { display:block;font-size:.7rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px; }
+    .mod-info-box span { font-size:.9rem;font-weight:700;color:#0f172a; }
+
+    .mod-section-title { font-size:.88rem;font-weight:800;color:var(--primary,#004a99);margin:14px 0 8px;border-bottom:1px solid #e2e8f0;padding-bottom:6px; }
+
+    .mod-item-row { display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:7px;margin-bottom:4px;font-size:.83rem; }
+    .mod-item-row.pass  { background:#f0fdf4; }
+    .mod-item-row.fail  { background:#fef2f2; }
+    .mod-item-row.na    { background:#f8fafc; }
+    .mod-item-score { font-weight:900;min-width:28px;text-align:center;flex-shrink:0; }
+    .mod-item-text { flex:1;line-height:1.4; }
+    .mod-item-photo img { width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer; }
+
+    .mod-issues-section { margin-top:14px; }
+    .mod-issue-item { padding:9px 12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:7px;margin-bottom:6px;font-size:.82rem;color:#92400e; }
+
+    .mod-notes { background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-top:12px;font-size:.85rem;color:#475569;line-height:1.5; }
+  </style>
+</head>
+<body>
+
+<header class="main-header">
+  <div class="header-left">
+    <a href="limpeza.html" class="btn-back-header" title="Voltar">←</a>
+    <div class="logo-container">
+      <h1>SIGA</h1>
+      <span>Histórico & Análises 5S</span>
+    </div>
+  </div>
+  <div class="user-info">
+    <span id="header-user" style="font-size:.85rem;font-weight:700;">—</span>
+    <div class="avatar" id="header-avatar">?</div>
+  </div>
+</header>
+
+<nav class="main-nav">
+  <a href="../index.html"                 class="nav-item">🏠 Início</a>
+  <a href="../maquinario/maquinario.html" class="nav-item">⚙️ Maquinário</a>
+  <a href="../frota/painel-frota.html"    class="nav-item">🚛 Frota</a>
+  <a href="limpeza.html"                  class="nav-item active">🧹 Limpeza 5S</a>
+  <a href="../os/os.html"                 class="nav-item">📋 O.S</a>
+  <a href="../compras/compras.html"       class="nav-item">🛒 Compras</a>
+  <a href="../os/documentos.html"         class="nav-item">📄 Documentos</a>
+</nav>
+
+<main class="container">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+    <h2 style="margin:0;color:var(--primary);font-size:1.25rem;font-weight:800;">📊 Histórico de Inspeções 5S</h2>
+    <a href="limpeza.html" style="font-size:.82rem;color:var(--primary);font-weight:600;text-decoration:none;">← Painel</a>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label for="filter-zone">Zona</label>
+      <select id="filter-zone" class="filter-input">
+        <option value="">Todas as zonas</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="filter-status">Status</label>
+      <select id="filter-status" class="filter-input">
+        <option value="">Todos</option>
+        <option value="excellent">🟢 Excelente</option>
+        <option value="acceptable">🟡 Aceitável</option>
+        <option value="attention">🟠 Atenção</option>
+        <option value="critical">🔴 Crítico</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="filter-employee">Funcionário</label>
+      <select id="filter-employee" class="filter-input">
+        <option value="">Todos</option>
+      </select>
+    </div>
+    <button class="btn-filter-clear" id="btn-clear-filters" title="Limpar filtros">✕ Limpar</button>
+  </div>
+
+  <!-- List -->
+  <div class="section-title-row">
+    <h3>🗓️ Inspeções Recentes</h3>
+    <span class="result-count" id="result-count">—</span>
+  </div>
+
+  <div id="lista-inspecoes">
+    <div class="empty-msg"><div class="spinner"></div><p>Carregando inspeções...</p></div>
+  </div>
+
+</main>
+
+<!-- Detail Modal -->
+<div id="modal-detalhes" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="mod-title">📋 Relatório de Inspeção</h3>
+      <button class="close-modal" id="btn-fechar-modal" aria-label="Fechar">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-body-content">
+      <!-- Filled by JS -->
+    </div>
+  </div>
+</div>
+
+<script type="module" src="../js/modules/app-historico-limpeza.js"></script>
+</body>
+</html>

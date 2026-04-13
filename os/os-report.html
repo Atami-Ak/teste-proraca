@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>SIGA - Relatório de O.S</title>
+    <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/os-report.css" />
+  </head>
+  <body>
+
+    <!-- Loading overlay (hidden once JS runs) -->
+    <div id="overlay" class="overlay">
+      <div class="overlay-content">
+        <div class="spinner"></div>
+        <p>Carregando relatório...</p>
+      </div>
+    </div>
+
+    <main>
+      <div class="report-wrapper">
+
+        <!-- AÇÕES (ocultas no print) -->
+        <div class="report-actions no-print">
+          <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+          <a id="btn-back-os" href="os.html" class="btn-back">← Voltar à O.S</a>
+        </div>
+
+        <!-- CONTEÚDO DO RELATÓRIO — preenchido via JS -->
+        <div id="report-content">
+          <div class="report-loading">Carregando dados da Ordem de Serviço...</div>
+        </div>
+
+      </div>
+    </main>
+
+    <script type="module" src="../js/modules/app-os-report.js"></script>
+  </body>
+</html>

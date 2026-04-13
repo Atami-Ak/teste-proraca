@@ -1,0 +1,237 @@
+/* =========================================
+   CABEÇALHO E NAVEGAÇÃO SUPERIOR
+   ========================================= */
+.main-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--primary, #004a99);
+  color: white;
+  padding: 15px 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.btn-back-header {
+  color: white;
+  text-decoration: none;
+  font-size: 1.6rem;
+  font-weight: bold;
+  transition: transform 0.2s;
+  line-height: 1;
+}
+
+.btn-back-header:hover {
+  transform: scale(1.1);
+}
+
+.logo-container h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  letter-spacing: 1px;
+}
+.logo-container span {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.avatar {
+  background: white;
+  color: var(--primary, #004a99);
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 1.1rem;
+}
+
+/* Navegação Principal (Tabs) com Scroll no Mobile */
+.main-nav {
+  display: flex;
+  gap: 12px;
+  padding: 15px 20px;
+  background: white;
+  overflow-x: auto;
+  white-space: nowrap;
+  margin-bottom: 25px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.main-nav::-webkit-scrollbar {
+  height: 4px;
+}
+.main-nav::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.nav-item {
+  padding: 10px 18px;
+  text-decoration: none;
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  transition: 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-item:hover {
+  background: #e2e8f0;
+  color: var(--primary, #004a99);
+}
+
+.nav-item.active {
+  background: var(--primary, #004a99);
+  color: white;
+  border-color: var(--primary, #004a99);
+  box-shadow: 0 4px 8px rgba(0, 74, 153, 0.25);
+}
+
+/* =========================================
+   PÓDIO DO FUNCIONÁRIO DESTAQUE
+   ========================================= */
+.podium-container {
+  background: linear-gradient(135deg, #004a99, #002855);
+  color: white;
+  padding: 25px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 8px 20px rgba(0, 74, 153, 0.2);
+}
+.podium-info h3 {
+  font-size: 1.2rem;
+  color: #fbbf24;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.podium-info h2 {
+  font-size: 1.8rem;
+  margin-bottom: 5px;
+}
+.podium-info p {
+  color: #cbd5e1;
+  font-size: 0.9rem;
+}
+.podium-score {
+  background: #fbbf24;
+  color: #856404;
+  font-weight: 900;
+  font-size: 1.5rem;
+  padding: 15px 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 4px solid white;
+}
+
+/* =========================================
+   GRID DAS ZONAS
+   ========================================= */
+.grid-zonas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+.card-zona {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border-top: 5px solid var(--primary);
+  transition: 0.3s;
+  display: flex;
+  flex-direction: column;
+}
+.card-zona:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+.zona-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+.zona-icone {
+  font-size: 2.5rem;
+  background: #f8fafc;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+}
+.zona-titulo {
+  flex: 1;
+}
+.zona-titulo h3 {
+  font-size: 1.3rem;
+  color: var(--primary);
+  margin-bottom: 3px;
+}
+.zona-titulo span {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: bold;
+}
+.zona-status {
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 15px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.btn-auditoria {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: bold;
+  width: 100%;
+  cursor: pointer;
+  transition: 0.2s;
+  text-decoration: none;
+  text-align: center;
+  display: block;
+  margin-top: auto;
+}
+.btn-auditoria:hover {
+  background: #003875;
+}
+
+/* Responsividade Básica */
+@media (max-width: 600px) {
+  .podium-container {
+    flex-direction: column;
+    text-align: center;
+    gap: 15px;
+  }
+}

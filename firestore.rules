@@ -1,0 +1,251 @@
+// firestore.rules — SIGA Security Rules
+//
+// Role-based access control using custom claims OR Firestore user profile.
+// Strategy: read role from users/{uid}.role in Firestore (no custom claims needed).
+//
+// Roles: admin | maintenance | operations | purchasing
+//
+// HOW TO DEPLOY:
+//   firebase deploy --only firestore:rules
+//
+// HOW TO TEST (Firebase Emulator):
+//   firebase emulators:start --only firestore
+//   npm run test:rules
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===================================================================
+    // HELPER FUNCTIONS
+    // ===================================================================
+
+    /** Returns true if the request is from an authenticated user. */
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    /** Fetches the caller's role from their users document. */
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    /** Returns true if the user's account is marked active. */
+    function isActive() {
+      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return userData.ativo == true;
+    }
+
+    /** Generic authenticated + active check. */
+    function isAuthAndActive() {
+      return isAuthenticated() && isActive();
+    }
+
+    function isAdmin() {
+      return isAuthAndActive() && getUserRole() == 'admin';
+    }
+
+    function isMaintenance() {
+      return isAuthAndActive() && getUserRole() in ['admin', 'maintenance'];
+    }
+
+    function isOperations() {
+      return isAuthAndActive() && getUserRole() in ['admin', 'operations'];
+    }
+
+    function isPurchasing() {
+      return isAuthAndActive() && getUserRole() in ['admin', 'purchasing'];
+    }
+
+    /** Any valid role can read shared data. */
+    function isAnyRole() {
+      return isAuthAndActive() && getUserRole() in ['admin', 'maintenance', 'operations', 'purchasing'];
+    }
+
+    // ===================================================================
+    // USERS COLLECTION
+    // ===================================================================
+    match /users/{userId} {
+      // Users can read their own profile; admins can read all.
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+
+      // Only admins can create/update user profiles (role, ativo, etc.).
+      // Exception: allow updating lastLogin for own account.
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        (request.auth.uid == userId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLogin']))
+      );
+
+      allow create: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ===================================================================
+    // HISTORICO_MANUTENCAO (legacy collection — read-only after migration)
+    // ===================================================================
+    match /historico_manutencao/{docId} {
+      // Everyone can read legacy records (needed by bridge queries).
+      allow read: if isAnyRole();
+
+      // Only maintenance and admin can create new legacy records.
+      // (New code should write to work_orders; this allows legacy forms.)
+      allow create: if isMaintenance();
+
+      // Updates allowed only by maintenance/admin (status changes).
+      allow update: if isMaintenance();
+
+      // Hard deletes: admin only.
+      allow delete: if isAdmin();
+    }
+
+    // ===================================================================
+    // WORK_ORDERS (unified WO system)
+    // ===================================================================
+    match /work_orders/{woId} {
+      // All authenticated users can read work orders.
+      allow read: if isAnyRole();
+
+      // Maintenance and operations can create WOs.
+      allow create: if isMaintenance() || isOperations();
+
+      // Status updates: maintenance + admin.
+      // Restrict field-level: operations can add notes but not change status.
+      allow update: if isMaintenance() ||
+        (isOperations() && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'prioridade']));
+
+      // Delete: admin only.
+      allow delete: if isAdmin();
+    }
+
+    // ===================================================================
+    // PURCHASE_ORDERS
+    // ===================================================================
+    match /purchase_orders/{poId} {
+      // All roles can read POs.
+      allow read: if isAnyRole();
+
+      // Any role can create a PO (maintenance creates from WO; operations can request).
+      allow create: if isAnyRole();
+
+      // Approval workflow: only purchasing + admin can change status to approved/rejected.
+      // Others can update non-status fields (e.g., attach a supplier).
+      allow update: if isPurchasing() ||
+        (isAnyRole() && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'aprovadoPor', 'rejeitadoPor']));
+
+      // Delete: admin only.
+      allow delete: if isAdmin();
+    }
+
+    // ===================================================================
+    // DOCUMENTS (SRV + PO formal documents)
+    // ===================================================================
+    match /documents/{docId} {
+      // All roles can read documents.
+      allow read: if isAnyRole();
+
+      // Documents are created by the system (via WO/PO generation flows).
+      // Allow maintenance + purchasing to create.
+      allow create: if isMaintenance() || isPurchasing();
+
+      // Documents should be immutable once created. Allow admin corrections only.
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ===================================================================
+    // CLEANING_INSPECTIONS (new v2 collection — structured 5S audits)
+    // ===================================================================
+    match /cleaning_inspections/{docId} {
+      // All authenticated users can read cleaning inspections.
+      allow read: if isAnyRole();
+
+      // Operations and maintenance can create inspections (and admin).
+      allow create: if isOperations() || isMaintenance();
+
+      // Allow linking WO IDs back to issues after creation.
+      allow update: if isOperations() || isMaintenance();
+
+      // Admin-only delete.
+      allow delete: if isAdmin();
+    }
+
+    // ===================================================================
+    // AUDITORIAS_LIMPEZA (legacy — kept for backward compatibility)
+    // ===================================================================
+    match /auditorias_limpeza/{docId} {
+      // All roles can read cleaning audits.
+      allow read: if isAnyRole();
+
+      // Operations and maintenance can create audits.
+      allow create: if isOperations() || isMaintenance();
+
+      // Allow same roles to update (e.g., correct a score).
+      allow update: if isOperations() || isMaintenance();
+
+      // Admin-only delete.
+      allow delete: if isAdmin();
+    }
+
+    // ===================================================================
+    // MACHINE_STATE (current status per machine — updated by inspections)
+    // ===================================================================
+    match /machine_state/{machineId} {
+      allow read: if isAnyRole();
+      allow create: if isMaintenance() || isOperations();
+      allow update: if isMaintenance() || isOperations();
+      allow delete: if isAdmin();
+    }
+
+    // ===================================================================
+    // MACHINE_INSPECTIONS (inspection records from maquinario module)
+    // ===================================================================
+    match /machine_inspections/{docId} {
+      allow read: if isAnyRole();
+      allow create: if isMaintenance() || isOperations();
+      allow update: if isMaintenance();
+      allow delete: if isAdmin();
+    }
+
+    // ===================================================================
+    // CHECKLISTS_FROTA
+    // ===================================================================
+    match /checklists_frota/{docId} {
+      allow read: if isAnyRole();
+      allow create: if isOperations() || isMaintenance();
+      allow update: if isOperations() || isMaintenance();
+      allow delete: if isAdmin();
+    }
+
+    // ===================================================================
+    // FORNECEDORES (suppliers)
+    // ===================================================================
+    match /fornecedores/{docId} {
+      // All roles can read suppliers (needed when creating POs).
+      allow read: if isAnyRole();
+
+      // Only purchasing + admin can manage the supplier database.
+      allow create: if isPurchasing();
+      allow update: if isPurchasing();
+      allow delete: if isAdmin();
+    }
+
+    // ===================================================================
+    // KPI_CACHE (optional: pre-aggregated dashboard data)
+    // Only written by Cloud Functions in Phase 2; read-only on client.
+    // ===================================================================
+    match /kpi_cache/{docId} {
+      allow read: if isAnyRole();
+      // Only Cloud Functions (service account) should write here.
+      // Until CF is active, allow admin to manually write.
+      allow write: if isAdmin();
+    }
+
+    // ===================================================================
+    // CATCH-ALL — deny everything not explicitly allowed
+    // ===================================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,129 @@
+/* =======================================================
+   TEMA GLOBAL SIGA - DESIGN SYSTEM INDUSTRIAL
+======================================================== */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+:root {
+  /* Paleta Corporativa */
+  --bg-color: #f1f5f9; /* Fundo cinza azulado muito suave */
+  --primary: #0f4c75; /* Azul escuro industrial */
+  --primary-light: #3282b8; /* Azul de destaque */
+  --accent: #00b4d8; /* Ciano para detalhes */
+
+  /* Textos */
+  --text-main: #1e293b; /* Quase preto para leitura confortável */
+  --text-muted: #64748b; /* Cinza para textos secundários */
+  --white: #ffffff;
+
+  /* Status Semânticos (Cores universais de alerta) */
+  --gray: #cbd5e1;
+  --success: #10b981; /* Verde esmeralda */
+  --warning: #f59e0b; /* Laranja/Âmbar */
+  --danger: #ef4444; /* Vermelho alerta */
+  --dark: #334155;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: "Inter", sans-serif; /* Fonte moderna e legível */
+  -webkit-tap-highlight-color: transparent; /* Remove brilho azul ao tocar no celular */
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  padding-bottom: 40px;
+  line-height: 1.5;
+}
+
+.container {
+  padding: 15px;
+  max-width: 800px; /* Alargado um pouco para telas maiores */
+  margin: 0 auto;
+}
+
+/* --- Cabeçalho Moderno com Gradiente --- */
+.main-header,
+.sub-header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: var(--white);
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(15, 76, 117, 0.2);
+}
+
+.sub-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.sub-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.btn-back {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.btn-back:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* --- Utilitário global: ocultar elementos via JS --- */
+.hidden {
+  display: none !important;
+}
+
+/* --- Overlay Global de Carregamento --- */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 76, 117, 0.85); /* Fundo azul marinho translúcido */
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  color: white;
+}
+.overlay.hidden {
+  display: none !important;
+}
+
+.overlay-content {
+  text-align: center;
+}
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(255, 255, 255, 0.2);
+  border-top: 5px solid var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 15px auto;
+}
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

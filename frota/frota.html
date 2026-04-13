@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SIGA - Inspeção de Veículo</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/frota.css">
+    <style>
+        .radio-natureza { display: flex; align-items: center; justify-content: center; flex: 1; height: 50px; border-radius: 8px; font-weight: 900; font-size: 1.1rem; cursor: pointer; border: 2px solid #cbd5e1; background: #f8fafc; color: #64748b; transition: 0.2s; }
+        .radio-natureza input { display: none; } 
+        .radio-natureza:has(input[value="Saída"]:checked) { background: #eff6ff; border-color: #3b82f6; color: #1d4ed8; }
+        .radio-natureza:has(input[value="Retorno"]:checked) { background: #fffbeb; border-color: #f59e0b; color: #b45309; }
+    </style>
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-left">
+            <a href="painel-frota.html" class="btn-back-header" title="Voltar à Garagem">←</a>
+            <div class="logo-container">
+                <h1 style="margin:0; font-size: 1.3rem;">SIGA <span style="font-size:0.8rem; font-weight:normal; color:#cbd5e1;">Frota</span></h1>
+            </div>
+        </div>
+        <div class="user-info">
+            <span style="font-size: 0.9rem; font-weight: bold">Operador</span>
+            <div class="avatar">O</div>
+        </div>
+    </header>
+
+    <nav class="main-nav">
+        <a href="../index.html" class="nav-item">🏠 Início</a>
+        <a href="../maquinario/maquinario.html" class="nav-item">⚙️ Maquinário</a>
+        <a href="../limpeza/limpeza.html" class="nav-item">🧹 Limpeza 5S</a>
+        <a href="painel-frota.html" class="nav-item active">🚛 Frota</a>
+        <a href="../os/os.html" class="nav-item">📋 O.S</a>
+      <a href="../compras/compras.html" class="nav-item">🛒 Compras</a>
+        <a href="../os/documentos.html" class="nav-item">📄 Documentos</a>
+    </nav>
+
+    <main class="container" style="padding: 0 20px 20px 20px;">
+        <h2 style="color: var(--primary); margin-bottom: 20px; font-size: 1.4rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">📋 Checklist Diário</h2>
+        
+        <form id="form-frota" class="form-siga">
+            <div class="form-section">
+                <div class="search-container">
+                    <label style="font-weight: bold; color: var(--primary);">Identificação do Veículo</label>
+                    <input type="text" id="busca-veiculo" class="input-padrao" placeholder="🔍 Digite Placa ou Modelo..." autocomplete="off">
+                    <div id="lista-veiculos" class="vehicle-list"></div>
+                    <input type="hidden" id="veiculo-selecionado-id">
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="form-group" style="display: flex; gap: 15px; margin-bottom: 20px;">
+                    <label class="radio-natureza"><input type="radio" name="natureza" value="Saída"> 🛫 Saída</label>
+                    <label class="radio-natureza"><input type="radio" name="natureza" value="Retorno"> 🛬 Retorno</label>
+                </div>
+
+                <div class="grid-2" style="margin-bottom: 15px;">
+                    <div><label>Data</label><input type="date" id="data-inspecao" class="input-padrao" required readonly style="background:#f1f5f9;"></div>
+                    <div><label>Hora</label><input type="time" id="hora-inspecao" class="input-padrao" required readonly style="background:#f1f5f9;"></div>
+                </div>
+
+                <div class="form-group" id="bloco-motorista">
+                    <label>Motorista Responsável</label>
+                    <input type="text" id="nome-motorista" class="input-padrao" placeholder="Quem está conduzindo?">
+                </div>
+                
+                <div class="form-group" id="bloco-destino">
+                    <label>Cidade / Rota de Destino</label>
+                    <input type="text" id="cidade-destino" class="input-padrao" placeholder="Ex: Teresina - PI" required>
+                </div>
+
+                <div class="grid-2">
+                    <div><label>Odômetro Atual (KM)</label><input type="number" id="km-veiculo" class="input-padrao" placeholder="Ex: 150000" required></div>
+                    <div><label>Abastecimento (L)</label><input type="number" id="abastecimento" class="input-padrao" placeholder="Opcional"></div>
+                </div>
+            </div>
+
+            <div id="container-checklist">
+                <div style="text-align: center; padding: 40px 20px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 8px; color: #64748b; margin-bottom: 25px;">
+                    <span style="font-size: 2rem; display: block; margin-bottom: 10px;">🔍</span>
+                    <strong>Selecione um veículo</strong> acima para carregar o checklist apropriado.
+                </div>
+            </div>
+
+            <div class="box-avaria">
+                <h4 style="color: #b91c1c; margin: 0 0 10px 0;">🚨 Registro de Avarias</h4>
+                <p style="font-size: 0.85rem; color: #7f1d1d; margin-bottom: 15px;">Se você marcou algum item como <strong>Não Conforme (NC)</strong>, o preenchimento abaixo e a foto são obrigatórios.</p>
+                <div class="form-group">
+                    <label>Descrição da Avaria</label>
+                    <textarea id="descricao-avaria" class="input-padrao" placeholder="Descreva detalhadamente o que está danificado ou faltando..."></textarea>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="foto-avaria" class="btn-camera" style="background: #dc2626; border:none; width: 100%; color: white; padding: 15px; text-align: center; border-radius: 8px; font-weight: bold; cursor: pointer; display: block;">📸 Anexar Foto da Avaria</label>
+                    <input type="file" id="foto-avaria" accept="image/*" capture="environment" hidden>
+                    <div id="preview-foto" style="margin-top: 15px; text-align: center;"></div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-submit" id="btn-gravar" style="width: 100%; padding: 18px; font-size: 1.2rem; background: #f59e0b; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s;">GRAVAR INSPEÇÃO</button>
+        </form>
+    </main>
+
+    <div id="overlay" class="overlay hidden">
+        <div class="overlay-content">
+            <div class="spinner"></div>
+            <p id="overlay-text" style="color: white; font-weight: bold; margin-top: 15px;">Sincronizando Inspeção...</p>
+        </div>
+    </div>
+
+    <script type="module" src="../js/modules/app-frota.js"></script>
+</body>
+</html>

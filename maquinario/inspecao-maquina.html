@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIGA — Inspeção de Maquinário</title>
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="../css/inspecao-maquina.css">
+</head>
+<body class="maq-page">
+
+  <!-- ── Topbar ──────────────────────────────────────────── -->
+  <header class="maq-topbar">
+    <a href="../maquinario/maquinario.html" class="back-link">← Maquinário</a>
+    <h1>🔧 Inspeção de Maquinário</h1>
+    <span class="maq-topbar-badge">CMMS</span>
+    <span id="topbar-user" style="font-size:.78rem;color:#94a3b8;margin-left:auto;"></span>
+  </header>
+
+  <!-- ── Progress Bar (sticky) ──────────────────────────── -->
+  <div class="progress-bar-wrapper" id="progress-wrapper">
+    <div class="progress-meta">
+      <span id="progress-label">Selecione uma máquina para começar</span>
+      <span class="progress-badge progress-badge-ok"  id="progress-ok-badge"   hidden></span>
+      <span class="progress-badge progress-badge-att" id="progress-att-badge"  hidden></span>
+      <span class="progress-badge progress-badge-crit"id="progress-crit-badge" hidden></span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-bar-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- ── Main Content ────────────────────────────────────── -->
+  <main class="maq-main">
+
+    <!-- ① Machine Selection ──────────────────────────────── -->
+    <section class="insp-section" id="section-machine-select">
+      <div class="insp-section-header section-toggle">
+        <span class="section-icon">⚙️</span>
+        <h2>1. Selecionar Máquina</h2>
+        <span class="collapse-arrow">▾</span>
+      </div>
+      <div class="section-body">
+        <div class="machine-search-row">
+          <input type="text" id="machine-search"
+                 placeholder="Buscar por nome, tipo, setor ou fabricante…"
+                 autocomplete="off">
+          <button class="btn-search-machine" id="btn-search-machine" type="button">🔍</button>
+        </div>
+        <div class="machine-results-list" id="machine-results"></div>
+        <div class="selected-machine-banner" id="selected-machine-banner" hidden></div>
+      </div>
+    </section>
+
+    <!-- ② Identification / Header ────────────────────────── -->
+    <section class="insp-section" id="section-identification" hidden>
+      <div class="insp-section-header section-toggle">
+        <span class="section-icon">📋</span>
+        <h2>2. Identificação da Inspeção</h2>
+        <span class="collapse-arrow">▾</span>
+      </div>
+      <div class="section-body">
+        <div class="form-grid">
+
+          <div class="form-field">
+            <label for="inspection-date">Data *</label>
+            <input type="date" id="inspection-date">
+          </div>
+
+          <div class="form-field">
+            <label for="inspection-time">Horário *</label>
+            <input type="time" id="inspection-time">
+          </div>
+
+          <div class="form-field">
+            <label for="inspection-shift">Turno</label>
+            <select id="inspection-shift">
+              <option value="">— Selecione —</option>
+              <option value="manha">Manhã (06h–14h)</option>
+              <option value="tarde">Tarde (14h–22h)</option>
+              <option value="noite">Noite (22h–06h)</option>
+              <option value="adm">Administrativo</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="inspector-name">Inspetor Responsável *</label>
+            <input type="text" id="inspector-name" placeholder="Nome completo">
+          </div>
+
+          <div class="form-field full">
+            <label for="technician-name">Técnico de Manutenção (se acompanhou)</label>
+            <input type="text" id="technician-name" placeholder="Nome completo">
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ③ Dynamic Checklist (7 sections) ─────────────────── -->
+    <section class="insp-section" id="section-checklist" hidden>
+      <div class="insp-section-header section-toggle">
+        <span class="section-icon">✅</span>
+        <h2>3. Checklist de Inspeção</h2>
+        <span class="collapse-arrow">▾</span>
+      </div>
+      <div class="section-body" style="padding: 12px 12px 4px;">
+
+        <!-- Severity legend -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;font-size:.75rem;">
+          <span style="display:flex;align-items:center;gap:4px;">
+            <span style="width:10px;height:10px;background:#16a34a;border-radius:50%;display:inline-block;"></span>
+            OK — Conforme
+          </span>
+          <span style="display:flex;align-items:center;gap:4px;">
+            <span style="width:10px;height:10px;background:#d97706;border-radius:50%;display:inline-block;"></span>
+            Atenção — Monitorar / Programar
+          </span>
+          <span style="display:flex;align-items:center;gap:4px;">
+            <span style="width:10px;height:10px;background:#dc2626;border-radius:50%;display:inline-block;"></span>
+            Crítico — Ação imediata (foto obrigatória)
+          </span>
+        </div>
+
+        <div id="checklist-container">
+          <!-- Populated dynamically by app-inspecao-maquina.js -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ④ Operational Metrics ────────────────────────────── -->
+    <section class="insp-section" id="section-metrics" hidden>
+      <div class="insp-section-header section-toggle">
+        <span class="section-icon">📊</span>
+        <h2>4. Métricas Operacionais</h2>
+        <span class="collapse-arrow">▾</span>
+      </div>
+      <div class="section-body">
+        <p style="font-size:.82rem;color:#64748b;margin-bottom:14px;">
+          Registre os valores medidos durante a inspeção. Deixe em branco se não aplicável.
+        </p>
+        <div class="metrics-grid">
+
+          <div class="metric-field">
+            <label for="metric-vibration">
+              Vibração <span class="metric-unit">mm/s</span>
+            </label>
+            <input type="number" class="metric-input" id="metric-vibration"
+                   placeholder="Ex.: 2.8" step="0.1" min="0">
+          </div>
+
+          <div class="metric-field">
+            <label for="metric-temperature">
+              Temperatura <span class="metric-unit">°C</span>
+            </label>
+            <input type="number" class="metric-input" id="metric-temperature"
+                   placeholder="Ex.: 65" step="1" min="0">
+          </div>
+
+          <div class="metric-field">
+            <label for="metric-noise">
+              Ruído <span class="metric-unit">dB</span>
+            </label>
+            <input type="number" class="metric-input" id="metric-noise"
+                   placeholder="Ex.: 85" step="1" min="0">
+          </div>
+
+          <div class="metric-field">
+            <label for="metric-amperage">
+              Corrente <span class="metric-unit">A</span>
+            </label>
+            <input type="number" class="metric-input" id="metric-amperage"
+                   placeholder="Ex.: 47.3" step="0.1" min="0">
+          </div>
+
+          <div class="metric-field">
+            <label for="metric-production">
+              Produção Atual <span class="metric-unit">% nominal</span>
+            </label>
+            <input type="number" class="metric-input" id="metric-production"
+                   placeholder="Ex.: 92" step="1" min="0" max="200">
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ⑤ Diagnosis & Recommendation ────────────────────── -->
+    <section class="insp-section" id="section-diagnosis" hidden>
+      <div class="insp-section-header section-toggle">
+        <span class="section-icon">🩺</span>
+        <h2>5. Diagnóstico Final</h2>
+        <span class="collapse-arrow">▾</span>
+      </div>
+      <div class="section-body">
+        <div class="diagnosis-box">
+
+          <div class="form-field">
+            <label for="diagnosis-text">Diagnóstico do Inspetor</label>
+            <textarea id="diagnosis-text" rows="4"
+                      placeholder="Descreva o estado geral da máquina, principais problemas identificados, interações entre componentes..."></textarea>
+          </div>
+
+          <div class="form-field">
+            <label for="recommendation-text">Recomendação / Ação Sugerida</label>
+            <textarea id="recommendation-text" rows="3"
+                      placeholder="Ex.: Substituir rolamento do lado carga antes de 200h de operação. Verificar alinhamento após reparo."></textarea>
+          </div>
+
+          <div class="form-field">
+            <label for="next-inspection-date">Data da Próxima Inspeção</label>
+            <input type="date" id="next-inspection-date">
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ⑥ Finalization & Signature ───────────────────────── -->
+    <section class="insp-section" id="section-finalization" hidden>
+      <div class="insp-section-header section-toggle">
+        <span class="section-icon">✍️</span>
+        <h2>6. Finalização</h2>
+        <span class="collapse-arrow">▾</span>
+      </div>
+      <div class="section-body">
+
+        <div class="responsibility-term-box">
+          <p>
+            Ao confirmar este envio, declaro que realizei a inspeção pessoalmente, que os dados
+            registrados refletem o estado real da máquina no momento da vistoria, e que quaisquer
+            não conformidades identificadas foram devidamente documentadas com fotos e descrições.
+            Ocorrências classificadas como CRÍTICAS ou com 3+ itens de ATENÇÃO gerarão automaticamente
+            Ordens de Serviço para tratativa pelo setor de manutenção.
+          </p>
+          <div class="checkbox-field">
+            <input type="checkbox" id="responsibility-term">
+            <label for="responsibility-term">Confirmo e assino esta inspeção.</label>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Submit -->
+    <button class="btn-submit-inspecao" id="btn-submit-inspecao" type="button" hidden>
+      📤 Revisar e Enviar Inspeção
+    </button>
+
+  </main>
+
+  <!-- ── Summary / Confirm Modal ────────────────────────── -->
+  <div class="modal-resumo-overlay" id="modal-resumo"
+       role="dialog" aria-modal="true" aria-labelledby="modal-resumo-title">
+    <div class="modal-resumo-box">
+      <h2 id="modal-resumo-title">📊 Resumo da Inspeção</h2>
+
+      <div class="resumo-machine-row">
+        <span class="resumo-machine-name" id="resumo-maquina">—</span>
+        <span class="resumo-status-badge" id="resumo-status">—</span>
+      </div>
+
+      <div class="resumo-stats">
+        <div class="resumo-stat">
+          <span class="stat-value" id="resumo-total">—</span>
+          <span class="stat-label">Total</span>
+        </div>
+        <div class="resumo-stat s-ok">
+          <span class="stat-value" id="resumo-ok">—</span>
+          <span class="stat-label">OK</span>
+        </div>
+        <div class="resumo-stat s-att">
+          <span class="stat-value" id="resumo-att">—</span>
+          <span class="stat-label">Atenção</span>
+        </div>
+        <div class="resumo-stat s-crit">
+          <span class="stat-value" id="resumo-crit">—</span>
+          <span class="stat-label">Crítico</span>
+        </div>
+        <div class="resumo-stat">
+          <span class="stat-value" id="resumo-pending">—</span>
+          <span class="stat-label">Pendentes</span>
+        </div>
+      </div>
+
+      <div class="resumo-wo-alert" id="resumo-wo-alert" hidden></div>
+
+      <div class="resumo-issue-list-box">
+        <h4>Ocorrências Registradas</h4>
+        <ul class="resumo-issue-list" id="resumo-issue-list"></ul>
+      </div>
+
+      <div class="modal-resumo-actions">
+        <button class="btn-cancelar-envio" id="btn-cancelar-envio" type="button">Voltar</button>
+        <button class="btn-confirmar-envio" id="btn-confirmar-envio" type="button">✔ Confirmar Envio</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Draft Recovery Modal (single) ─────────────────── -->
+  <div class="draft-modal-overlay" id="modal-draft-recovery"
+       role="dialog" aria-modal="true" aria-labelledby="draft-rec-title">
+    <div class="draft-modal-box">
+      <div class="draft-modal-icon">🔄</div>
+      <h2 id="draft-rec-title" class="draft-modal-title">Inspeção em Andamento</h2>
+      <p class="draft-modal-sub">
+        Encontramos um rascunho não enviado. Deseja continuar de onde parou?
+      </p>
+      <div class="draft-vehicle-card">
+        <div class="draft-vehicle-row">
+          <strong id="draft-recovery-machine">—</strong>
+          <span id="draft-recovery-type" class="draft-type-badge">—</span>
+        </div>
+        <div class="draft-vehicle-row draft-vehicle-meta">
+          <span id="draft-recovery-when" class="draft-when">—</span>
+        </div>
+        <div class="draft-pct-row">
+          <span id="draft-recovery-pct" class="draft-pct-label">0%</span>
+          <div class="draft-pct-track">
+            <div class="draft-pct-fill" id="draft-recovery-pct-bar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="draft-modal-actions">
+        <button class="btn-draft-discard" id="btn-draft-discard" type="button">🗑 Descartar</button>
+        <button class="btn-draft-restore" id="btn-draft-restore" type="button">↩ Restaurar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Draft List Modal (multiple) ───────────────────── -->
+  <div class="draft-modal-overlay" id="modal-draft-list"
+       role="dialog" aria-modal="true" aria-labelledby="draft-list-title">
+    <div class="draft-modal-box draft-modal-box--wide">
+      <div class="draft-modal-icon">📋</div>
+      <h2 id="draft-list-title" class="draft-modal-title">Inspeções em Andamento</h2>
+      <p class="draft-modal-sub">Selecione para continuar ou inicie uma nova inspeção.</p>
+      <div id="draft-list-container" class="draft-list-container"></div>
+      <div class="draft-modal-actions draft-modal-actions--single">
+        <button class="btn-draft-new" id="btn-draft-list-close" type="button">+ Nova Inspeção</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Save Status Pill ───────────────────────────────── -->
+  <div id="save-status-pill" class="save-status-pill" hidden aria-live="polite">
+    <span id="save-status-dot"></span>
+    <span id="save-status-text"></span>
+  </div>
+
+  <!-- ── Toast Container ────────────────────────────────── -->
+  <div id="toast-container" aria-live="polite"></div>
+
+  <!-- ── Entry Point ────────────────────────────────────── -->
+  <script type="module" src="../js/modules/app-inspecao-maquina.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>SIGA — Centro de Controlo Industrial</title>
+    <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/os.css" />
+    <link rel="stylesheet" href="../css/dashboard.css" />
+  </head>
+  <body class="dash-body">
+
+    <div class="dash-layout">
+
+      <!-- ============================================================
+           SIDEBAR
+      ============================================================ -->
+      <aside class="dash-sidebar" id="dash-sidebar">
+
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-mark">⚙️</div>
+          <div class="sidebar-logo-text">
+            <span class="sidebar-logo-name">SIGA</span>
+            <span class="sidebar-logo-sub">Centro de Controlo</span>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav">
+
+          <span class="sidebar-section-label">Principal</span>
+
+          <a href="#" class="sidebar-link active" data-panel="overview">
+            <span class="sidebar-link-icon">📊</span>
+            <span class="sidebar-link-label">Dashboard</span>
+          </a>
+
+          <span class="sidebar-section-label">Operações</span>
+
+          <a href="#" class="sidebar-link" data-panel="os">
+            <span class="sidebar-link-icon">📋</span>
+            <span class="sidebar-link-label">Ordens de Serviço</span>
+            <span class="sidebar-badge danger hidden" id="badge-os-criticas">0</span>
+          </a>
+
+          <a href="#" class="sidebar-link" data-panel="maquinario">
+            <span class="sidebar-link-icon">⚙️</span>
+            <span class="sidebar-link-label">Maquinário</span>
+          </a>
+
+          <a href="#" class="sidebar-link" data-panel="compras">
+            <span class="sidebar-link-icon">🛒</span>
+            <span class="sidebar-link-label">Pedidos de Compra</span>
+            <span class="sidebar-badge warning hidden" id="badge-po-pendentes">0</span>
+          </a>
+
+          <a href="#" class="sidebar-link" data-panel="documentos">
+            <span class="sidebar-link-icon">📄</span>
+            <span class="sidebar-link-label">Documentos</span>
+          </a>
+
+          <span class="sidebar-section-label">Ativos e Facilities</span>
+
+          <a href="#" class="sidebar-link" data-panel="frota">
+            <span class="sidebar-link-icon">🚛</span>
+            <span class="sidebar-link-label">Frota de Veículos</span>
+          </a>
+
+          <a href="#" class="sidebar-link" data-panel="limpeza">
+            <span class="sidebar-link-icon">🧹</span>
+            <span class="sidebar-link-label">Limpeza 5S</span>
+          </a>
+
+          <span class="sidebar-section-label admin-panel">Sistema</span>
+
+          <a href="#" class="sidebar-link admin-panel" data-panel="admin">
+            <span class="sidebar-link-icon">🛠️</span>
+            <span class="sidebar-link-label">Administração</span>
+          </a>
+
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="sidebar-user">
+            <div class="sidebar-avatar" id="sidebar-avatar">—</div>
+            <div class="sidebar-user-info">
+              <span class="sidebar-user-name" id="sidebar-user-name">Carregando...</span>
+              <span class="sidebar-user-role" id="sidebar-user-role">—</span>
+            </div>
+          </div>
+          <button class="sidebar-logout-btn" id="btn-logout">⎋ Terminar Sessão</button>
+        </div>
+
+      </aside>
+
+      <!-- Overlay mobile (fecha sidebar) -->
+      <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+      <!-- ============================================================
+           CONTENT AREA
+      ============================================================ -->
+      <div class="dash-content">
+
+        <!-- TOP BAR -->
+        <header class="dash-topbar">
+          <div class="topbar-left">
+            <button class="topbar-hamburger" id="btn-hamburger" aria-label="Menu">☰</button>
+            <h1 class="topbar-title" id="topbar-title">Dashboard</h1>
+          </div>
+          <div class="topbar-right">
+            <!-- FAB — Nova O.S (visible on all panels) -->
+            <button class="quick-btn primary" id="btn-fab-nova-os" style="font-size:0.8rem;padding:8px 14px;">➕ Nova O.S</button>
+            <!-- Go to Home -->
+            <a href="../index.html" class="topbar-home-btn" title="Voltar ao portal principal">🏠 Início</a>
+            <span class="topbar-timestamp" id="dash-timestamp">—</span>
+            <button class="topbar-refresh" id="btn-refresh" aria-label="Atualizar">↻ Atualizar</button>
+            <div class="topbar-avatar" id="topbar-avatar">—</div>
+          </div>
+        </header>
+
+        <!-- ============================================================
+             PANELS
+        ============================================================ -->
+        <div class="panels-area">
+
+          <!-- ============================================================
+               PANEL: OVERVIEW
+          ============================================================ -->
+          <div class="panel active" id="panel-overview">
+
+            <div id="overview-skeleton" class="skeleton-area">
+              <div class="skeleton-kpi-row">
+                <div class="skeleton-card"><div class="skeleton-line tall"></div><div class="skeleton-line short"></div></div>
+                <div class="skeleton-card"><div class="skeleton-line tall"></div><div class="skeleton-line short"></div></div>
+                <div class="skeleton-card"><div class="skeleton-line tall"></div><div class="skeleton-line short"></div></div>
+                <div class="skeleton-card"><div class="skeleton-line tall"></div><div class="skeleton-line short"></div></div>
+                <div class="skeleton-card"><div class="skeleton-line tall"></div><div class="skeleton-line short"></div></div>
+              </div>
+              <div class="dash-row cols-2">
+                <div class="skeleton-card" style="min-height:200px;"></div>
+                <div class="skeleton-card" style="min-height:200px;"></div>
+              </div>
+            </div>
+
+            <div id="overview-content" class="hidden">
+
+              <div class="kpi-row" id="kpi-row-main"></div>
+
+              <div class="quick-actions-row">
+                <button class="quick-btn primary" id="btn-fab-nova-os-overview">➕ Nova O.S</button>
+                <a href="../compras/compra-detalhe.html?modo=criar" class="quick-btn success">🛒 Novo Pedido</a>
+                <a href="#" class="quick-btn outline" data-panel-link="os">📋 Ver O.S</a>
+                <a href="#" class="quick-btn outline" data-panel-link="documentos">📄 Documentos</a>
+                <a href="#" class="quick-btn outline" data-panel-link="frota">🚛 Frota</a>
+                <a href="#" class="quick-btn outline" data-panel-link="limpeza">🧹 Limpeza</a>
+              </div>
+
+              <div class="dash-row cols-2" style="margin-bottom:20px;">
+                <div class="dash-card">
+                  <div class="dash-card-header">
+                    <h3 class="dash-card-title">🚨 Alertas Críticos</h3>
+                  </div>
+                  <div class="dash-card-body">
+                    <div class="alert-list" id="alertas-lista"></div>
+                  </div>
+                </div>
+                <div class="dash-card">
+                  <div class="dash-card-header">
+                    <h3 class="dash-card-title">⏱️ Atividade Recente</h3>
+                    <span id="feed-count" style="font-size:0.72rem;color:#94a3b8;font-weight:700;"></span>
+                  </div>
+                  <div class="dash-card-body" style="padding-top:8px;">
+                    <div class="feed-list" id="feed-lista"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="dash-row cols-2">
+                <div class="dash-card">
+                  <div class="dash-card-header"><h3 class="dash-card-title">💰 Custos do Mês</h3></div>
+                  <div class="dash-card-body">
+                    <div id="custos-barras"></div>
+                    <div class="custo-total-row">
+                      <span class="custo-total-label">Total do Mês</span>
+                      <span class="custo-total-valor" id="custo-total-mes">—</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="dash-card">
+                  <div class="dash-card-header">
+                    <h3 class="dash-card-title">🔴 Top Falhas por Máquina</h3>
+                    <a href="#" class="dash-card-action" data-panel-link="maquinario">Maquinário →</a>
+                  </div>
+                  <div class="dash-card-body" style="padding-top:8px;">
+                    <div class="ranking-list" id="top-falhas-lista"></div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div><!-- /panel-overview -->
+
+          <!-- ============================================================
+               PANEL: ORDENS DE SERVIÇO (OS Control Center)
+          ============================================================ -->
+          <div class="panel" id="panel-os">
+
+            <div class="panel-header">
+              <h2 class="panel-title">📋 Central de Ordens de Serviço</h2>
+              <div class="panel-cta-group">
+                <button class="quick-btn primary" id="btn-nova-os-panel">➕ Nova O.S</button>
+                <a href="../os/os.html" class="quick-btn outline">Ver Página Completa →</a>
+              </div>
+            </div>
+
+            <!-- KPI summary row -->
+            <div class="kpi-row" id="os-kpi-row">
+              <div class="kpi-card-v2 kpi-blue">
+                <div class="kpi-top"><div class="kpi-icon-circle">🔵</div></div>
+                <div class="kpi-value" id="os-kpi-abertas">—</div>
+                <div class="kpi-label">Abertas</div>
+              </div>
+              <div class="kpi-card-v2 kpi-amber">
+                <div class="kpi-top"><div class="kpi-icon-circle">🟡</div></div>
+                <div class="kpi-value" id="os-kpi-andamento">—</div>
+                <div class="kpi-label">Em Andamento</div>
+              </div>
+              <div class="kpi-card-v2 kpi-red">
+                <div class="kpi-top"><div class="kpi-icon-circle">🔴</div></div>
+                <div class="kpi-value" id="os-kpi-criticas">—</div>
+                <div class="kpi-label">Críticas</div>
+              </div>
+              <div class="kpi-card-v2 kpi-green">
+                <div class="kpi-top"><div class="kpi-icon-circle">🟢</div></div>
+                <div class="kpi-value" id="os-kpi-concluidas">—</div>
+                <div class="kpi-label">Concluídas</div>
+              </div>
+              <div class="kpi-card-v2 kpi-cyan">
+                <div class="kpi-top"><div class="kpi-icon-circle">⏱️</div></div>
+                <div class="kpi-value" id="os-mttr">—</div>
+                <div class="kpi-label">MTTR (h)</div>
+              </div>
+              <div class="kpi-card-v2 kpi-purple">
+                <div class="kpi-top"><div class="kpi-icon-circle">📈</div></div>
+                <div class="kpi-value" id="os-disponibilidade">—</div>
+                <div class="kpi-label">Disponibilidade</div>
+              </div>
+            </div>
+
+            <!-- Filter bar -->
+            <div class="filter-bar">
+              <button class="filter-btn os-filter-btn active" data-filter="all">
+                Todas <span class="filter-count" id="cnt-all">—</span>
+              </button>
+              <button class="filter-btn os-filter-btn" data-filter="open">
+                Abertas <span class="filter-count" id="cnt-open">—</span>
+              </button>
+              <button class="filter-btn os-filter-btn" data-filter="in_progress">
+                Em Andamento <span class="filter-count" id="cnt-in_progress">—</span>
+              </button>
+              <button class="filter-btn os-filter-btn" data-filter="critica">
+                🔴 Críticas <span class="filter-count" id="cnt-critica">—</span>
+              </button>
+              <button class="filter-btn os-filter-btn" data-filter="completed">
+                Concluídas <span class="filter-count" id="cnt-completed">—</span>
+              </button>
+              <input type="search" id="os-search-input" class="filter-search" placeholder="🔍 Buscar O.S..." />
+            </div>
+
+            <!-- OS list -->
+            <div id="os-lista-container" class="os-list-container">
+              <div class="panel-loading">
+                <div class="panel-spinner"></div>
+                <span>Carregando Ordens de Serviço...</span>
+              </div>
+            </div>
+
+            <!-- Activity + Top Falhas -->
+            <div class="dash-row cols-2" style="margin-top:20px;">
+              <div class="dash-card">
+                <div class="dash-card-header">
+                  <h3 class="dash-card-title">🔴 Top Falhas por Máquina</h3>
+                </div>
+                <div class="dash-card-body" style="padding-top:8px;">
+                  <div class="ranking-list" id="os-top-falhas"></div>
+                </div>
+              </div>
+              <div class="dash-card">
+                <div class="dash-card-header">
+                  <h3 class="dash-card-title">🕐 Atividade Recente</h3>
+                </div>
+                <div class="dash-card-body" style="padding-top:8px;">
+                  <div class="feed-list" id="os-recent-feed"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Admin migration section (admin only) -->
+            <div class="admin-panel">
+              <div class="admin-card">
+                <div class="admin-card-title">🛠️ Migração de Dados</div>
+                <div class="admin-card-body" id="migracao-status">A verificar estado da migração...</div>
+                <button class="btn-admin" id="btn-migrar">⬆️ Migrar Histórico para Work Orders</button>
+                <div class="hidden" id="migracao-progresso" style="margin-top:10px;font-size:0.82rem;color:#00b4d8;"></div>
+              </div>
+            </div>
+
+          </div><!-- /panel-os -->
+
+          <!-- ============================================================
+               PANEL: MAQUINÁRIO
+          ============================================================ -->
+          <div class="panel" id="panel-maquinario">
+
+            <div class="panel-header">
+              <h2 class="panel-title">⚙️ Maquinário</h2>
+              <div class="panel-cta-group">
+                <a href="../maquinario/maquinario.html" class="quick-btn outline">Abrir Módulo Completo →</a>
+              </div>
+            </div>
+
+            <div id="machine-grid-container">
+              <div class="panel-loading">
+                <div class="panel-spinner"></div>
+                <span>Carregando maquinário...</span>
+              </div>
+            </div>
+
+          </div><!-- /panel-maquinario -->
+
+          <!-- ============================================================
+               PANEL: PEDIDOS DE COMPRA
+          ============================================================ -->
+          <div class="panel" id="panel-compras">
+
+            <div class="panel-header">
+              <h2 class="panel-title">🛒 Pedidos de Compra</h2>
+              <div class="panel-cta-group">
+                <a href="../compras/compra-detalhe.html?modo=criar" class="quick-btn primary">➕ Novo Pedido</a>
+                <a href="../compras/compras.html" class="quick-btn outline">Ver Todos →</a>
+              </div>
+            </div>
+
+            <div class="kpi-row">
+              <div class="kpi-card-v2 kpi-amber">
+                <div class="kpi-top"><div class="kpi-icon-circle">⏳</div><span class="kpi-trend warn" id="po-trend-pendentes">—</span></div>
+                <div class="kpi-value" id="po-kpi-pendentes">—</div>
+                <div class="kpi-label">Pendentes</div>
+              </div>
+              <div class="kpi-card-v2 kpi-green">
+                <div class="kpi-top"><div class="kpi-icon-circle">✅</div></div>
+                <div class="kpi-value" id="po-kpi-aprovados">—</div>
+                <div class="kpi-label">Aprovados</div>
+              </div>
+              <div class="kpi-card-v2 kpi-cyan">
+                <div class="kpi-top"><div class="kpi-icon-circle">📦</div></div>
+                <div class="kpi-value" id="po-kpi-empedido">—</div>
+                <div class="kpi-label">Em Pedido</div>
+              </div>
+              <div class="kpi-card-v2 kpi-red">
+                <div class="kpi-top"><div class="kpi-icon-circle">🚨</div></div>
+                <div class="kpi-value" id="po-kpi-urgentes">—</div>
+                <div class="kpi-label">Urgentes</div>
+              </div>
+              <div class="kpi-card-v2 kpi-blue">
+                <div class="kpi-top"><div class="kpi-icon-circle">⏱️</div></div>
+                <div class="kpi-value" id="po-avg-aprov">—</div>
+                <div class="kpi-label">Aprovação Média</div>
+              </div>
+            </div>
+
+            <div class="dash-row cols-2">
+              <div class="dash-card">
+                <div class="dash-card-header"><h3 class="dash-card-title">💰 Custo do Mês</h3></div>
+                <div class="dash-card-body">
+                  <div id="po-custos-barras"></div>
+                  <div class="custo-total-row">
+                    <span class="custo-total-label">Total Estimado</span>
+                    <span class="custo-total-valor" id="po-custo-total">—</span>
+                  </div>
+                </div>
+              </div>
+              <div class="dash-card">
+                <div class="dash-card-header">
+                  <h3 class="dash-card-title">🕐 Atividade de Compras</h3>
+                  <a href="../compras/compras.html" class="dash-card-action">Ver Todos →</a>
+                </div>
+                <div class="dash-card-body" style="padding-top:8px;">
+                  <div class="feed-list" id="po-recent-feed"></div>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /panel-compras -->
+
+          <!-- ============================================================
+               PANEL: DOCUMENTOS
+          ============================================================ -->
+          <div class="panel" id="panel-documentos">
+
+            <div class="panel-header">
+              <h2 class="panel-title">📄 Gestão de Documentos</h2>
+              <div class="panel-cta-group">
+                <a href="../os/documentos.html" class="quick-btn outline">Abrir Centro de Documentos →</a>
+              </div>
+            </div>
+
+            <!-- Filter bar -->
+            <div class="filter-bar">
+              <button class="filter-btn docs-filter-btn active" data-filter="all">
+                Todos <span class="filter-count" id="cnt-docs-all">—</span>
+              </button>
+              <button class="filter-btn docs-filter-btn" data-filter="srv">
+                📄 SRV — Serviços <span class="filter-count" id="cnt-docs-srv">—</span>
+              </button>
+              <button class="filter-btn docs-filter-btn" data-filter="po">
+                🛒 PO — Compras <span class="filter-count" id="cnt-docs-po">—</span>
+              </button>
+            </div>
+
+            <div id="docs-lista-container" class="doc-list-container">
+              <div class="panel-loading">
+                <div class="panel-spinner"></div>
+                <span>Carregando documentos...</span>
+              </div>
+            </div>
+
+          </div><!-- /panel-documentos -->
+
+          <!-- ============================================================
+               PANEL: FROTA
+          ============================================================ -->
+          <div class="panel" id="panel-frota">
+
+            <div class="panel-header">
+              <h2 class="panel-title">🚛 Frota de Veículos</h2>
+              <div class="panel-cta-group">
+                <a href="../frota/painel-frota.html" class="quick-btn primary">Painel de Frota →</a>
+              </div>
+            </div>
+
+            <div class="dash-row cols-3" style="margin-bottom:20px;">
+              <div class="dash-card" style="grid-column:span 1;">
+                <div class="dash-card-body" style="text-align:center;padding:24px 20px;">
+                  <div class="score-display" style="justify-content:center;">
+                    <span class="score-value" id="frota-nc-rate" style="color:#ef4444;">—</span>
+                    <span class="score-suffix">%</span>
+                  </div>
+                  <div class="score-label">Taxa de Não Conformidade</div>
+                  <div style="font-size:0.75rem;color:#94a3b8;margin-top:8px;" id="frota-total-checklists">—</div>
+                </div>
+              </div>
+              <div class="dash-card" style="grid-column:span 2;">
+                <div class="dash-card-header">
+                  <h3 class="dash-card-title">🚨 Veículos com Mais NCs</h3>
+                  <a href="../frota/historico-frota.html" class="dash-card-action">Histórico →</a>
+                </div>
+                <div class="dash-card-body" style="padding-top:8px;">
+                  <div class="ranking-list" id="frota-veiculos-lista"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Full fleet list -->
+            <div class="dash-card">
+              <div class="dash-card-header">
+                <h3 class="dash-card-title">🚛 Todos os Veículos</h3>
+              </div>
+              <div class="dash-card-body">
+                <div id="fleet-list-container">
+                  <div class="panel-loading"><div class="panel-spinner"></div><span>Carregando frota...</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="quick-actions-row" style="margin-top:16px;">
+              <a href="../frota/painel-frota.html" class="quick-btn primary">📋 Painel</a>
+              <a href="../frota/frota.html" class="quick-btn outline">📜 Histórico</a>
+            </div>
+
+          </div><!-- /panel-frota -->
+
+          <!-- ============================================================
+               PANEL: LIMPEZA 5S
+          ============================================================ -->
+          <div class="panel" id="panel-limpeza">
+
+            <div class="panel-header">
+              <h2 class="panel-title">🧹 Limpeza 5S</h2>
+              <div class="panel-cta-group">
+                <a href="../limpeza/formulario-limpeza.html" class="quick-btn primary">📝 Nova Auditoria</a>
+                <a href="../limpeza/limpeza.html" class="quick-btn outline">Ver Módulo →</a>
+              </div>
+            </div>
+
+            <div class="dash-row cols-3" style="margin-bottom:20px;">
+              <div class="dash-card" style="grid-column:span 1;">
+                <div class="dash-card-body" style="text-align:center;padding:24px 20px;">
+                  <div class="score-display" style="justify-content:center;">
+                    <span class="score-value" id="limpeza-media-score" style="color:#10b981;">—</span>
+                    <span class="score-suffix">/10</span>
+                  </div>
+                  <div class="score-label">Média Geral 5S</div>
+                  <div style="font-size:0.75rem;color:#94a3b8;margin-top:8px;" id="limpeza-total-auditorias">—</div>
+                  <div style="margin-top:8px;font-size:0.78rem;font-weight:700;" id="limpeza-tendencia"></div>
+                </div>
+              </div>
+              <div class="dash-card" style="grid-column:span 2;">
+                <div class="dash-card-header">
+                  <h3 class="dash-card-title">⚠️ Zonas Críticas (nota &lt; 5)</h3>
+                </div>
+                <div class="dash-card-body">
+                  <div id="limpeza-zonas-lista"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Full zones grid (by cleaning center) -->
+            <div class="dash-card">
+              <div class="dash-card-header">
+                <h3 class="dash-card-title">🗺️ Todas as Zonas</h3>
+              </div>
+              <div class="dash-card-body">
+                <div id="cleaning-zones-container">
+                  <div class="panel-loading"><div class="panel-spinner"></div><span>Carregando zonas...</span></div>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /panel-limpeza -->
+
+          <!-- ============================================================
+               PANEL: ADMIN
+          ============================================================ -->
+          <div class="panel admin-panel" id="panel-admin">
+
+            <div class="panel-header">
+              <h2 class="panel-title">🛠️ Administração do Sistema</h2>
+            </div>
+
+            <div class="admin-card">
+              <div class="admin-card-title">Migração: historico_manutencao → work_orders</div>
+              <div class="admin-card-body" id="migracao-status-admin">A verificar estado da migração...</div>
+              <button class="btn-admin" id="btn-migrar-admin">⬆️ Migrar Histórico para Work Orders</button>
+              <div class="hidden" id="migracao-progresso-admin" style="margin-top:10px;font-size:0.82rem;color:#00b4d8;"></div>
+            </div>
+
+          </div><!-- /panel-admin -->
+
+        </div><!-- /panels-area -->
+      </div><!-- /dash-content -->
+    </div><!-- /dash-layout -->
+
+    <!-- ============================================================
+         GLOBAL: SIDE PANEL (OS detail / Document preview)
+    ============================================================ -->
+    <div class="side-panel-overlay" id="side-panel-overlay"></div>
+
+    <div class="side-panel" id="side-panel">
+      <div class="side-panel-topbar">
+        <span class="side-panel-title" id="sp-topbar-title">Detalhes</span>
+        <button class="side-panel-close" id="side-panel-close" title="Fechar">✕</button>
+      </div>
+
+      <div class="side-panel-body">
+        <!-- OS / Document header -->
+        <div id="sp-os-header"></div>
+
+        <!-- Status change buttons (OS only) -->
+        <div class="sp-section" id="sp-section-status">
+          <div class="sp-section-header">
+            <span class="sp-section-title">🔄 Alterar Status</span>
+          </div>
+          <div class="sp-section-body">
+            <div id="sp-status-change"></div>
+          </div>
+        </div>
+
+        <!-- Contexto operacional -->
+        <div class="sp-section">
+          <div class="sp-section-header">
+            <span class="sp-section-title">🏭 Contexto Operacional</span>
+          </div>
+          <div class="sp-section-body">
+            <div id="sp-contexto"></div>
+          </div>
+        </div>
+
+        <!-- Descrição técnica -->
+        <div class="sp-section">
+          <div class="sp-section-header">
+            <span class="sp-section-title">📝 Descrição Técnica</span>
+          </div>
+          <div class="sp-section-body">
+            <div id="sp-descricao"></div>
+          </div>
+        </div>
+
+        <!-- Dados específicos (tipo manutenção / serviço) -->
+        <div class="sp-section" id="sp-section-dados">
+          <div class="sp-section-header">
+            <span class="sp-section-title">📊 Dados Específicos</span>
+          </div>
+          <div class="sp-section-body">
+            <div id="sp-dados-especificos"></div>
+          </div>
+        </div>
+
+        <!-- Materiais e Custos -->
+        <div class="sp-section" id="sp-materiais">
+          <div class="sp-section-header">
+            <span class="sp-section-title">📦 Materiais &amp; Custos</span>
+          </div>
+          <div class="sp-section-body">
+            <!-- preenchido por JS -->
+          </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="sp-section">
+          <div class="sp-section-header">
+            <span class="sp-section-title">🕐 Timeline</span>
+          </div>
+          <div class="sp-section-body">
+            <ul class="sp-timeline" id="sp-timeline"></ul>
+          </div>
+        </div>
+
+      </div><!-- /side-panel-body -->
+
+      <!-- Footer actions -->
+      <div class="side-panel-footer" id="sp-footer-actions">
+        <button class="quick-btn primary modal-hidden" id="sp-btn-gerar-doc">📄 Gerar SRV</button>
+        <button class="quick-btn success modal-hidden" id="sp-btn-criar-po">🛒 Criar Pedido</button>
+        <button class="quick-btn outline" onclick="window.print()">🖨️ Imprimir</button>
+        <button class="quick-btn outline" id="sp-btn-close-footer" onclick="document.getElementById('side-panel-close').click()">✕ Fechar</button>
+      </div>
+    </div><!-- /side-panel -->
+
+    <!-- ============================================================
+         GLOBAL: CREATE OS MODAL
+    ============================================================ -->
+    <div class="modal-overlay" id="modal-criar-os">
+      <div class="modal-container">
+
+        <div class="modal-header">
+          <span class="modal-title">➕ Nova Ordem de Serviço</span>
+          <button class="modal-close" id="modal-criar-os-close">✕</button>
+        </div>
+
+        <form id="form-criar-os" novalidate>
+          <div class="modal-body">
+
+            <!-- Campos base -->
+            <div class="modal-fields-row">
+              <div class="modal-field">
+                <label>Tipo de O.S *</label>
+                <select id="modal-os-tipo" required>
+                  <option value="">Selecione...</option>
+                  <option value="maintenance">🔧 Manutenção</option>
+                  <option value="service">🛠️ Serviço</option>
+                </select>
+              </div>
+              <div class="modal-field">
+                <label>Prioridade</label>
+                <select id="modal-os-prioridade">
+                  <option value="low">Baixa</option>
+                  <option value="medium" selected>Média</option>
+                  <option value="high">Alta</option>
+                  <option value="critica">🔴 Crítica</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="modal-field">
+              <label>Título *</label>
+              <input type="text" id="modal-os-titulo" placeholder="Descreva brevemente o problema ou serviço" required />
+            </div>
+
+            <div class="modal-field">
+              <label>Descrição Detalhada *</label>
+              <textarea id="modal-os-descricao" placeholder="Descreva o problema, sintomas observados, contexto..." rows="3" required></textarea>
+            </div>
+
+            <div class="modal-fields-row">
+              <div class="modal-field">
+                <label>Setor *</label>
+                <select id="modal-os-setor" required>
+                  <option value="">Selecione...</option>
+                  <option value="producao">Produção</option>
+                  <option value="manutencao">Manutenção</option>
+                  <option value="logistica">Logística</option>
+                  <option value="administrativo">Administrativo</option>
+                  <option value="utilidades">Utilidades</option>
+                </select>
+              </div>
+              <div class="modal-field">
+                <label>Origem</label>
+                <select id="modal-os-origem">
+                  <option value="manual">Manual</option>
+                  <option value="machine">Maquinário</option>
+                  <option value="fleet">Frota</option>
+                  <option value="cleaning">Limpeza</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="modal-fields-row">
+              <div class="modal-field">
+                <label>Ativo / Equipamento</label>
+                <input type="text" id="modal-os-origin-nome" placeholder="Ex: Peletizadora PEL-001" />
+              </div>
+              <div class="modal-field">
+                <label>Solicitante</label>
+                <input type="text" id="modal-os-solicitante" placeholder="Nome do solicitante" />
+              </div>
+            </div>
+
+            <!-- MANUTENÇÃO fields -->
+            <div id="modal-secao-manutencao" class="modal-hidden">
+              <div class="modal-section-title">🔧 Dados de Manutenção</div>
+              <div class="modal-fields-row">
+                <div class="modal-field">
+                  <label>Tipo de Manutenção</label>
+                  <select id="modal-maint-type">
+                    <option value="corrective">Corretiva</option>
+                    <option value="preventive">Preventiva</option>
+                  </select>
+                </div>
+                <div class="modal-field">
+                  <label>Técnico Responsável</label>
+                  <input type="text" id="modal-maint-tech" placeholder="Nome do técnico" />
+                </div>
+              </div>
+              <div class="modal-field">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                  <input type="checkbox" id="modal-maint-downtime" style="width:auto;" />
+                  <span style="text-transform:none;font-size:0.85rem;">Equipamento parado (Downtime)</span>
+                </label>
+              </div>
+              <div class="modal-field">
+                <label>Observações</label>
+                <textarea id="modal-maint-obs" placeholder="Observações técnicas..." rows="2"></textarea>
+              </div>
+            </div>
+
+            <!-- SERVIÇO fields -->
+            <div id="modal-secao-servico" class="modal-hidden">
+              <div class="modal-section-title">🛠️ Dados do Serviço</div>
+              <div class="modal-fields-row">
+                <div class="modal-field">
+                  <label>Categoria</label>
+                  <select id="modal-srv-category">
+                    <option value="maquina">Manutenção de Máquina</option>
+                    <option value="instalacao">Instalação de Equipamento</option>
+                    <option value="ti">TI / Sistemas</option>
+                    <option value="administrativo">Administrativo</option>
+                    <option value="outros">Outros</option>
+                  </select>
+                </div>
+                <div class="modal-field">
+                  <label>Executor / Responsável</label>
+                  <input type="text" id="modal-srv-executor" placeholder="Quem irá executar" />
+                </div>
+              </div>
+              <div class="modal-fields-row">
+                <div class="modal-field">
+                  <label>Data de Início</label>
+                  <input type="date" id="modal-srv-start" />
+                </div>
+                <div class="modal-field">
+                  <label>Data de Término</label>
+                  <input type="date" id="modal-srv-end" />
+                </div>
+              </div>
+
+              <!-- Materiais -->
+              <div class="modal-section-title">📦 Materiais</div>
+              <div id="modal-mat-lista"></div>
+              <button type="button" class="btn-add-mat" id="modal-btn-add-mat">+ Adicionar Material</button>
+
+              <!-- Mão de obra -->
+              <div class="modal-fields-row" style="margin-top:12px;">
+                <div class="modal-field">
+                  <label>Mão de Obra (R$)</label>
+                  <input type="number" id="modal-labor-cost" placeholder="0.00" min="0" step="0.01" />
+                </div>
+              </div>
+
+              <!-- Custo total display -->
+              <div class="modal-cost-row">
+                <div class="modal-cost-item">
+                  <div class="modal-cost-label">📦 Materiais</div>
+                  <div class="modal-cost-value" id="modal-display-mat">R$ 0,00</div>
+                </div>
+                <div class="modal-cost-item">
+                  <div class="modal-cost-label">👷 Mão de Obra</div>
+                  <div class="modal-cost-value" id="modal-display-labor">R$ 0,00</div>
+                </div>
+                <div class="modal-cost-item">
+                  <div class="modal-cost-label">💰 Total</div>
+                  <div class="modal-cost-value" id="modal-display-total" style="color:#0f4c75;">R$ 0,00</div>
+                </div>
+              </div>
+
+              <div class="modal-field" style="margin-top:12px;">
+                <label>Observações</label>
+                <textarea id="modal-srv-obs" placeholder="Observações do serviço..." rows="2"></textarea>
+              </div>
+            </div>
+
+          </div><!-- /modal-body -->
+
+          <div class="modal-footer">
+            <button type="button" class="quick-btn outline" id="modal-criar-os-cancel">Cancelar</button>
+            <button type="submit" class="quick-btn primary" id="modal-criar-os-save">Salvar O.S</button>
+          </div>
+        </form>
+
+      </div><!-- /modal-container -->
+    </div><!-- /modal-criar-os -->
+
+    <!-- TOAST -->
+    <div id="toast" class="toast"></div>
+
+    <script type="module" src="../js/modules/dashboard/dashboard-core.js"></script>
+  </body>
+</html>

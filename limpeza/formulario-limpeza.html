@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>SIGA — Inspeção de Limpeza</title>
+  <link rel="stylesheet" href="../css/global.css" />
+  <style>
+    /* ── Base ───────────────────────────────────────────────────── */
+    * { box-sizing:border-box; }
+    body { background:#f1f5f9; }
+
+    .main-header { display:flex;align-items:center;justify-content:space-between;background:var(--primary,#004a99);color:white;padding:14px 20px;box-shadow:0 4px 6px rgba(0,0,0,.1); }
+    .header-left { display:flex;align-items:center;gap:14px; }
+    .btn-back-header { color:white;text-decoration:none;font-size:1.5rem;font-weight:bold;line-height:1; }
+    .logo-container h1 { margin:0;font-size:1.4rem;letter-spacing:1px; }
+    .logo-container span { font-size:.78rem;color:#cbd5e1; }
+    .user-info { display:flex;align-items:center;gap:8px; }
+    .avatar { background:white;color:var(--primary,#004a99);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1rem; }
+
+    .main-nav { display:flex;gap:10px;padding:12px 20px;background:white;overflow-x:auto;white-space:nowrap;border-bottom:1px solid #e2e8f0; }
+    .main-nav::-webkit-scrollbar { height:3px; }
+    .main-nav::-webkit-scrollbar-thumb { background:#cbd5e1;border-radius:3px; }
+    .nav-item { padding:9px 16px;text-decoration:none;color:#475569;font-weight:600;font-size:.9rem;border-radius:8px;background:#f1f5f9;border:1px solid #e2e8f0;transition:.2s; }
+    .nav-item:hover { background:#e2e8f0; }
+    .nav-item.active { background:var(--primary,#004a99);color:white;border-color:var(--primary,#004a99); }
+
+    /* ── Zone Header ────────────────────────────────────────────── */
+    .zone-header-card { background:white;border-radius:12px;border:1px solid #e2e8f0;padding:14px 16px;margin-bottom:16px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px; }
+    .zone-icon { font-size:2rem;line-height:1; }
+    .zone-details { flex:1; }
+    .zone-id-chip { background:#1e293b;color:white;padding:2px 9px;border-radius:5px;font-size:.72rem;font-weight:700;display:inline-block;margin-bottom:4px; }
+    .zone-name-main { font-size:1.1rem;font-weight:800;color:#0f172a;margin:0 0 2px; }
+    .zone-desc { font-size:.78rem;color:#64748b; }
+    .inspector-info { font-size:.8rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px; }
+
+    /* ── Progress ───────────────────────────────────────────────── */
+    .progress-wrap { background:white;border-radius:10px;border:1px solid #e2e8f0;padding:12px 16px;margin-bottom:16px; }
+    .progress-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:8px; }
+    .progress-track { height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden; }
+    .progress-fill { height:100%;background:linear-gradient(90deg,#1e40af,#7c3aed);border-radius:4px;transition:width .35s; }
+    .progress-lbl { font-size:.78rem;font-weight:700;color:#475569; }
+
+    /* ── Section nav tabs ───────────────────────────────────────── */
+    .section-tabs { display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px; }
+    .section-tabs::-webkit-scrollbar { height:3px; }
+    .section-tabs::-webkit-scrollbar-thumb { background:#cbd5e1;border-radius:3px; }
+    .section-tab { padding:7px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:white;font-size:.78rem;font-weight:700;color:#475569;cursor:pointer;white-space:nowrap;transition:.15s;flex-shrink:0; }
+    .section-tab.active { background:var(--primary,#004a99);color:white;border-color:var(--primary,#004a99); }
+    .section-tab.done   { background:#f0fdf4;color:#16a34a;border-color:#86efac; }
+    .section-tab.has-issue { background:#fef2f2;color:#dc2626;border-color:#fecaca; }
+
+    /* ── Section Panel ──────────────────────────────────────────── */
+    .section-panel { display:none; }
+    .section-panel.active { display:block; }
+    .section-title { font-size:1rem;font-weight:800;color:var(--primary,#004a99);margin:0 0 14px;display:flex;align-items:center;gap:6px; }
+
+    /* ── Checklist Item ─────────────────────────────────────────── */
+    .checklist-item { background:white;border-radius:10px;border:1px solid #e2e8f0;padding:14px 16px;margin-bottom:10px;transition:border-color .15s; }
+    .checklist-item.answered { border-color:#bfdbfe; }
+    .checklist-item.critical-fail { border-color:#fecaca !important;background:#fef2f2; }
+    .item-text { font-size:.88rem;font-weight:600;color:#1e293b;margin-bottom:10px;line-height:1.4; }
+    .item-badges { display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px; }
+    .badge-critical { background:#fef2f2;color:#dc2626;border:1px solid #fecaca;padding:1px 8px;border-radius:4px;font-size:.67rem;font-weight:700; }
+    .badge-structural { background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;padding:1px 8px;border-radius:4px;font-size:.67rem;font-weight:700; }
+    .badge-material { background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe;padding:1px 8px;border-radius:4px;font-size:.67rem;font-weight:700; }
+    .badge-photo { background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;padding:1px 8px;border-radius:4px;font-size:.67rem;font-weight:700; }
+
+    /* ── Score buttons (0–5) ────────────────────────────────────── */
+    .score-buttons { display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px; }
+    .score-btn {
+      flex:1;min-width:40px;padding:10px 6px;border-radius:8px;border:2px solid #e2e8f0;
+      background:white;font-size:.85rem;font-weight:800;cursor:pointer;transition:.15s;text-align:center;
+    }
+    .score-btn:hover { border-color:#93c5fd;background:#eff6ff; }
+    .score-btn.selected-0 { background:#fee2e2;border-color:#fecaca;color:#dc2626; }
+    .score-btn.selected-1 { background:#fef3c7;border-color:#fde68a;color:#b45309; }
+    .score-btn.selected-2 { background:#fff7ed;border-color:#fed7aa;color:#c2410c; }
+    .score-btn.selected-3 { background:#fefce8;border-color:#fef08a;color:#a16207; }
+    .score-btn.selected-4 { background:#f0fdf4;border-color:#86efac;color:#15803d; }
+    .score-btn.selected-5 { background:#dcfce7;border-color:#4ade80;color:#15803d; }
+
+    /* Pass/Fail buttons */
+    .passfail-buttons { display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px; }
+    .pf-btn { padding:12px 8px;border-radius:8px;border:2px solid #e2e8f0;background:white;font-size:.85rem;font-weight:700;cursor:pointer;transition:.15s;text-align:center; }
+    .pf-btn.pass-selected { background:#f0fdf4;border-color:#4ade80;color:#15803d; }
+    .pf-btn.fail-selected { background:#fee2e2;border-color:#fca5a5;color:#dc2626; }
+    .pf-btn.na-selected   { background:#f8fafc;border-color:#cbd5e1;color:#64748b; }
+
+    /* ── Issue fields (shown on fail) ───────────────────────────── */
+    .issue-fields { display:none;padding:10px;background:#fef9f0;border:1.5px solid #fde68a;border-radius:8px;margin-top:6px; }
+    .issue-fields.visible { display:block; }
+    .issue-label { font-size:.75rem;font-weight:700;color:#92400e;margin-bottom:5px; }
+    .issue-input { width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:.85rem;resize:vertical;background:white; }
+    .issue-input:focus { border-color:var(--primary,#004a99);outline:none; }
+    .btn-photo-small { display:inline-flex;align-items:center;gap:5px;padding:8px 12px;border-radius:7px;background:#1e293b;color:white;font-size:.78rem;font-weight:700;cursor:pointer;margin-top:6px; }
+    .photo-preview-small { margin-top:6px;display:flex;gap:6px;flex-wrap:wrap; }
+    .photo-preview-small img { width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0; }
+
+    /* ── Live Score Display ─────────────────────────────────────── */
+    .live-score-bar { background:white;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:14px; }
+    .score-circle { width:60px;height:60px;border-radius:50%;border:3px solid #e2e8f0;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0; }
+    .score-circle .s-num { font-size:1.1rem;font-weight:900;line-height:1; }
+    .score-circle .s-pct { font-size:.55rem;font-weight:700; }
+    .score-info { flex:1; }
+    .score-status-lbl { font-size:.85rem;font-weight:700; }
+    .score-track-wrap { height:6px;background:#e2e8f0;border-radius:3px;margin-top:5px;overflow:hidden; }
+    .score-track-fill { height:100%;border-radius:3px;transition:width .3s; }
+
+    /* ── Notes + Employee ───────────────────────────────────────── */
+    .form-section { background:white;border-radius:10px;border:1px solid #e2e8f0;padding:14px 16px;margin-bottom:14px; }
+    .form-section label { display:block;font-size:.85rem;font-weight:700;color:#475569;margin-bottom:6px; }
+    .input-padrao { width:100%;padding:11px 13px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.9rem;background:white; }
+    .input-padrao:focus { border-color:var(--primary,#004a99);outline:none; }
+    select.input-padrao { cursor:pointer; }
+    textarea.input-padrao { resize:vertical; }
+
+    /* ── Actions Summary ────────────────────────────────────────── */
+    .actions-summary { background:white;border-radius:10px;border:1px solid #e2e8f0;padding:14px 16px;margin-bottom:14px; }
+    .action-item { display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:7px;margin-bottom:6px;font-size:.83rem; }
+    .action-cleaning   { background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe; }
+    .action-structural { background:#fff7ed;color:#c2410c;border:1px solid #fed7aa; }
+    .action-material   { background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe; }
+
+    /* ── Submit Bar ─────────────────────────────────────────────── */
+    .submit-bar { position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid #e2e8f0;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;z-index:100;box-shadow:0 -4px 16px rgba(0,0,0,.08); }
+    .btn-nav { padding:13px 20px;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;border:none;transition:.15s;min-height:48px; }
+    .btn-prev { background:#f1f5f9;color:#475569;border:1.5px solid #e2e8f0; }
+    .btn-prev:hover { background:#e2e8f0; }
+    .btn-next { background:var(--primary,#004a99);color:white; }
+    .btn-next:hover { background:#003875; }
+    .btn-submit { background:#16a34a;color:white; }
+    .btn-submit:hover { background:#15803d; }
+    .btn-submit:disabled { opacity:.4;cursor:not-allowed; }
+
+    /* ── Overlay / Toast ────────────────────────────────────────── */
+    .overlay { position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:999; }
+    .overlay.hidden { display:none; }
+    .overlay-content { background:white;padding:30px;border-radius:14px;text-align:center;min-width:200px; }
+    .spinner { width:36px;height:36px;border:4px solid #e2e8f0;border-top-color:var(--primary,#004a99);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    #toast { position:fixed;top:80px;left:50%;transform:translateX(-50%);padding:13px 22px;border-radius:8px;z-index:9999;font-weight:700;max-width:90%;text-align:center;display:none;font-size:.88rem; }
+    #toast.show { display:block; }
+    #toast.sucesso { background:#059669;color:white; }
+    #toast.erro    { background:#dc2626;color:white; }
+    #toast.aviso   { background:#d97706;color:white; }
+
+    .container { max-width:640px;margin:0 auto;padding:16px 16px 120px; }
+    .hidden { display:none !important; }
+  </style>
+</head>
+<body>
+
+<header class="main-header">
+  <div class="header-left">
+    <a href="limpeza.html" class="btn-back-header" title="Voltar">←</a>
+    <div class="logo-container">
+      <h1>SIGA</h1>
+      <span id="header-subtitle">Inspeção de Limpeza 5S</span>
+    </div>
+  </div>
+  <div class="user-info">
+    <span id="header-user" style="font-size:.85rem;font-weight:700;">—</span>
+    <div class="avatar" id="header-avatar">?</div>
+  </div>
+</header>
+
+<nav class="main-nav">
+  <a href="../index.html"                 class="nav-item">🏠 Início</a>
+  <a href="../maquinario/maquinario.html" class="nav-item">⚙️ Maquinário</a>
+  <a href="../frota/painel-frota.html"    class="nav-item">🚛 Frota</a>
+  <a href="limpeza.html"                  class="nav-item active">🧹 Limpeza 5S</a>
+  <a href="../os/os.html"                 class="nav-item">📋 O.S</a>
+  <a href="../compras/compras.html"       class="nav-item">🛒 Compras</a>
+</nav>
+
+<main class="container">
+
+  <!-- Zone Header -->
+  <div class="zone-header-card">
+    <div class="zone-icon" id="zone-icon">🧹</div>
+    <div class="zone-details">
+      <span class="zone-id-chip" id="zone-id-chip">—</span>
+      <h2 class="zone-name-main" id="zone-name">Carregando...</h2>
+      <div class="zone-desc" id="zone-desc">—</div>
+    </div>
+  </div>
+
+  <!-- Inspector + Employee select -->
+  <div class="form-section">
+    <label for="inspector-input">👤 Inspetor (quem realiza a auditoria)</label>
+    <input type="text" id="inspector-input" class="input-padrao" placeholder="Nome do inspetor / auditor" />
+    <label for="employee-select" style="margin-top:10px;">👷 Funcionário Avaliado</label>
+    <select id="employee-select" class="input-padrao">
+      <option value="">Selecione...</option>
+    </select>
+    <input type="hidden" id="employee-id" />
+  </div>
+
+  <!-- Live Score -->
+  <div class="live-score-bar">
+    <div class="score-circle" id="score-circle" style="border-color:#e2e8f0;color:#94a3b8;">
+      <span class="s-num" id="score-num">0</span>
+      <span class="s-pct">%</span>
+    </div>
+    <div class="score-info">
+      <div class="score-status-lbl" id="score-status-lbl">Aguardando respostas...</div>
+      <div style="font-size:.72rem;color:#94a3b8;margin-top:2px;" id="score-detail">Preencha o checklist abaixo</div>
+      <div class="score-track-wrap">
+        <div class="score-track-fill" id="score-track-fill" style="width:0%;background:#e2e8f0;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <div class="progress-header">
+      <span class="progress-lbl" id="progress-lbl">Seção 1 / 1</span>
+      <span class="progress-lbl" id="progress-items">0 / 0 itens respondidos</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%;"></div></div>
+  </div>
+
+  <!-- Section tabs -->
+  <div class="section-tabs" id="section-tabs"></div>
+
+  <!-- Section panels (generated by JS) -->
+  <div id="sections-container"></div>
+
+  <!-- Notes + submission -->
+  <div class="form-section" style="margin-top:8px;">
+    <label for="observacoes">📝 Observações Gerais <span style="font-weight:400;color:#94a3b8;">(opcional)</span></label>
+    <textarea id="observacoes" class="input-padrao" rows="3" placeholder="Anote observações relevantes, contexto, condições especiais..."></textarea>
+  </div>
+
+  <!-- Actions to be generated (summary) -->
+  <div id="actions-summary-wrap" class="hidden">
+    <div class="actions-summary">
+      <h4 style="margin:0 0 10px;font-size:.88rem;font-weight:800;color:#0f172a;">⚡ Ações que serão geradas automaticamente:</h4>
+      <div id="actions-summary-list"></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Submit bar -->
+<div class="submit-bar">
+  <button class="btn-nav btn-prev" id="btn-prev" style="visibility:hidden;">← Anterior</button>
+  <span style="font-size:.78rem;font-weight:700;color:#64748b;" id="nav-step-text">1 / 1</span>
+  <div style="display:flex;gap:8px;">
+    <button class="btn-nav btn-next" id="btn-next">Próximo →</button>
+    <button class="btn-nav btn-submit hidden" id="btn-submit" disabled>✅ Salvar Inspeção</button>
+  </div>
+</div>
+
+<!-- Overlay -->
+<div class="overlay hidden" id="overlay">
+  <div class="overlay-content">
+    <div class="spinner"></div>
+    <p id="overlay-text" style="font-weight:600;color:#475569;margin:0;">Salvando inspeção...</p>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module" src="../js/modules/app-formulario-limpeza.js"></script>
+</body>
+</html>

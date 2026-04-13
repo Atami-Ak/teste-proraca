@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>SIGA - Ordens de Serviço</title>
+    <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/os.css" />
+  </head>
+  <body>
+
+    <!-- CABEÇALHO -->
+    <header class="main-header">
+      <div class="header-left">
+        <a href="../index.html" class="btn-back-header" title="Início">←</a>
+        <div class="logo-container">
+          <h1>SIGA</h1>
+          <span>Ordens de Serviço</span>
+        </div>
+      </div>
+      <div class="user-info">
+        <span style="font-size:0.9rem;font-weight:bold">Operador</span>
+        <div class="avatar">O</div>
+      </div>
+    </header>
+
+    <!-- NAVEGAÇÃO GLOBAL -->
+    <nav class="main-nav">
+      <a href="../index.html" class="nav-item">🏠 Início</a>
+      <a href="../maquinario/maquinario.html" class="nav-item">⚙️ Maquinário</a>
+      <a href="../frota/painel-frota.html" class="nav-item">🚛 Frota</a>
+      <a href="../limpeza/limpeza.html" class="nav-item">🧹 Limpeza 5S</a>
+      <a href="os.html" class="nav-item active">📋 O.S</a>
+      <a href="documentos.html" class="nav-item">📄 Documentos</a>
+    </nav>
+
+    <main class="container">
+
+      <!-- CABEÇALHO DA PÁGINA -->
+      <div class="page-header">
+        <h2>Central de Ordens de Serviço</h2>
+        <a href="os-detalhe.html?modo=criar" class="btn-nova-os">+ Nova O.S</a>
+      </div>
+
+      <!-- STATS -->
+      <div class="stats-bar">
+        <div class="stat-card">
+          <span class="stat-valor" id="stat-total">—</span>
+          <span class="stat-label">Total</span>
+        </div>
+        <div class="stat-card aberta">
+          <span class="stat-valor" id="stat-aberta">—</span>
+          <span class="stat-label">Abertas</span>
+        </div>
+        <div class="stat-card andamento">
+          <span class="stat-valor" id="stat-andamento">—</span>
+          <span class="stat-label">Em Andamento</span>
+        </div>
+        <div class="stat-card concluida">
+          <span class="stat-valor" id="stat-concluida">—</span>
+          <span class="stat-label">Concluídas</span>
+        </div>
+      </div>
+
+      <!-- FILTROS -->
+      <div class="filtros-container">
+        <span class="filtro-label">Tipo:</span>
+        <div class="filtro-grupo" id="filtros-tipo">
+          <button class="btn-filtro ativo" data-filtro-tipo="todos">Todos</button>
+          <button class="btn-filtro tipo-manutencao" data-filtro-tipo="maintenance">🔧 Manutenção</button>
+          <button class="btn-filtro tipo-servico" data-filtro-tipo="service">🛠️ Serviço</button>
+        </div>
+        <div class="divisor-filtro"></div>
+        <span class="filtro-label">Status:</span>
+        <div class="filtro-grupo" id="filtros-status">
+          <button class="btn-filtro ativo" data-filtro-status="todos">Todos</button>
+          <button class="btn-filtro" data-filtro-status="open">Abertas</button>
+          <button class="btn-filtro" data-filtro-status="in_progress">Em Andamento</button>
+          <button class="btn-filtro" data-filtro-status="waiting_parts">Aguardando</button>
+          <button class="btn-filtro" data-filtro-status="completed">Concluídas</button>
+        </div>
+      </div>
+
+      <!-- FILTRO POR MÁQUINA -->
+      <div id="secao-filtro-maquina" style="display:none;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+          <span class="filtro-label">Máquina:</span>
+          <button id="btn-agrupar" class="btn-filtro" style="margin-left:auto;">⊞ Agrupar por Máquina</button>
+        </div>
+        <div id="filtro-maquinas" class="filtro-grupo" style="flex-wrap:wrap;gap:6px;"></div>
+      </div>
+
+      <!-- LISTA DE O.S -->
+      <div id="os-lista" class="os-lista">
+        <!-- Preenchido via JS -->
+      </div>
+
+    </main>
+
+    <!-- LOADING -->
+    <div id="overlay" class="overlay">
+      <div class="overlay-content">
+        <div class="spinner"></div>
+        <p>Carregando Ordens de Serviço...</p>
+      </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="toast"></div>
+
+    <script type="module" src="../js/modules/app-os.js"></script>
+  </body>
+</html>

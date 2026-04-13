@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>SIGA - Investigação de Veículo</title>
+    <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/historico.css" />
+    <style>
+      /* ── Navegação Global ── */
+      .main-header {
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--primary, #004a99); color: white;
+        padding: 15px 20px; box-shadow: 0 4px 6px rgba(0,0,0,.1);
+      }
+      .header-left { display: flex; align-items: center; gap: 15px; }
+      .btn-back-header {
+        color: white; text-decoration: none; font-size: 1.6rem;
+        font-weight: bold; transition: transform .2s; line-height: 1;
+      }
+      .btn-back-header:hover { transform: scale(1.1); }
+      .logo-container h1 { margin: 0; font-size: 1.5rem; letter-spacing: 1px; }
+      .logo-container span { font-size: .8rem; color: #cbd5e1; }
+      .user-info { display: flex; align-items: center; gap: 10px; }
+      .avatar {
+        background: white; color: var(--primary, #004a99); width: 35px; height: 35px;
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        font-weight: 900; font-size: 1.1rem;
+      }
+      .main-nav {
+        display: flex; gap: 12px; padding: 15px 20px; background: white;
+        overflow-x: auto; white-space: nowrap; margin-bottom: 20px;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      .main-nav::-webkit-scrollbar { height: 4px; }
+      .main-nav::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+      .nav-item {
+        padding: 10px 18px; text-decoration: none; color: #475569; font-weight: 600;
+        font-size: .95rem; border-radius: 8px; background: #f1f5f9;
+        border: 1px solid #e2e8f0; transition: .3s;
+        display: flex; align-items: center; gap: 8px;
+      }
+      .nav-item:hover { background: #e2e8f0; color: var(--primary, #004a99); }
+      .nav-item.active {
+        background: var(--primary, #004a99); color: white;
+        border-color: var(--primary, #004a99);
+        box-shadow: 0 4px 8px rgba(0,74,153,.25);
+      }
+      .page-title {
+        color: var(--primary); margin-bottom: 20px; font-size: 1.4rem;
+        border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;
+      }
+
+      /* ── KPIs ── */
+      .kpi-grid {
+        display: grid; grid-template-columns: repeat(3,1fr);
+        gap: 10px; margin-top: 20px;
+      }
+      @media (max-width: 480px) { .kpi-grid { grid-template-columns: repeat(2,1fr); } }
+      .kpi-card {
+        background: #f8fafc; border: 1px solid #e2e8f0;
+        padding: 14px 10px; border-radius: 8px; text-align: center; transition: .3s;
+      }
+      .kpi-valor {
+        font-size: 1.4rem; font-weight: 800; color: var(--primary);
+        display: block; margin-bottom: 4px; transition: .3s;
+      }
+      .kpi-label {
+        font-size: .7rem; color: var(--text-muted); font-weight: 600;
+        text-transform: uppercase; letter-spacing: .5px;
+      }
+      .kpi-card.alerta .kpi-valor { color: var(--danger); }
+      .kpi-card.kpi-mtbf .kpi-valor { color: #2563eb; }
+      .kpi-card.kpi-mttr .kpi-valor { color: #7c3aed; }
+      .kpi-card.kpi-trend .kpi-valor { font-size: 1rem; }
+
+      /* ── Alert section ── */
+      .alert-section {
+        margin-top: 16px; display: flex; flex-direction: column; gap: 8px;
+      }
+      .alert-item {
+        display: flex; align-items: flex-start; gap: 10px;
+        padding: 10px 14px; border-radius: 8px; font-size: .85rem;
+      }
+      .alert-critical { background: #fef2f2; border: 1.5px solid #fecaca; color: #7f1d1d; }
+      .alert-warning  { background: #fffbeb; border: 1.5px solid #fde68a; color: #78350f; }
+
+      /* ── Timeline filters ── */
+      .header-timeline {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 15px; flex-wrap: wrap; gap: 10px;
+      }
+      .filtro-select {
+        padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1;
+        outline: none; font-size: .88rem; color: #444; background: white;
+        cursor: pointer; font-weight: 600;
+      }
+      .filtro-select:focus { border-color: var(--primary); }
+
+      /* ── Timeline badges ── */
+      .badge-tipo {
+        display: inline-block; padding: 2px 8px; border-radius: 4px;
+        font-size: .7rem; font-weight: 700; margin-left: 6px;
+      }
+      .badge-prioridade {
+        display: inline-block; padding: 2px 7px; border-radius: 4px;
+        font-size: .68rem; font-weight: 700; margin-left: 4px;
+      }
+      .badge-downtime {
+        display: inline-block; padding: 2px 7px; border-radius: 4px;
+        font-size: .68rem; font-weight: 600;
+        background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe;
+      }
+
+      /* ── Nova O.S button ── */
+      .btn-nova-os {
+        background: #8b5cf6; color: white; border: none;
+        padding: 9px 14px; border-radius: 8px; font-weight: 700;
+        font-size: .85rem; cursor: pointer; text-decoration: none;
+        display: inline-flex; align-items: center; gap: 6px;
+        transition: .2s; white-space: nowrap;
+      }
+      .btn-nova-os:hover { background: #7c3aed; transform: translateY(-1px); }
+
+      /* ── Filter Pills ── */
+      .filter-pills {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .pill {
+        padding: 8px 16px;
+        border-radius: 99px;
+        border: 1.5px solid #cbd5e1;
+        background: #fff;
+        color: #475569;
+        font-size: .82rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: .15s;
+        white-space: nowrap;
+      }
+      .pill:hover { border-color: var(--primary); color: var(--primary); }
+      .pill-active {
+        background: var(--primary);
+        color: #fff;
+        border-color: var(--primary);
+        box-shadow: 0 2px 8px rgba(15,76,117,.25);
+      }
+
+      /* ── Grouped Timeline ── */
+      .tl-group {
+        list-style: none;
+        margin-bottom: 18px;
+      }
+      .tl-inspection-card {
+        border-radius: 10px;
+        padding: 14px 16px;
+        border: 1.5px solid #e2e8f0;
+        border-left-width: 4px;
+        position: relative;
+      }
+      .tl-children {
+        margin-top: 0;
+        padding-left: 24px;
+        position: relative;
+      }
+      .tl-children::before {
+        content: "";
+        position: absolute;
+        left: 10px;
+        top: 0;
+        bottom: 12px;
+        width: 2px;
+        background: linear-gradient(to bottom, #cbd5e1, transparent);
+        border-radius: 2px;
+      }
+      .tl-connector-label {
+        font-size: .72rem;
+        color: #94a3b8;
+        font-weight: 700;
+        padding: 6px 0 8px 4px;
+        letter-spacing: .3px;
+      }
+      .tl-wo-card {
+        border-radius: 8px;
+        padding: 12px 14px;
+        border: 1.5px solid #e2e8f0;
+        background: #fff;
+        margin-bottom: 8px;
+        position: relative;
+      }
+      .tl-wo-card::before {
+        content: "";
+        position: absolute;
+        left: -16px;
+        top: 18px;
+        width: 8px;
+        height: 2px;
+        background: #cbd5e1;
+      }
+      .tl-child-card {
+        background: #fafafa;
+      }
+      .tl-empty {
+        list-style: none;
+        text-align: center;
+        padding: 30px;
+        color: #64748b;
+        background: #f8fafc;
+        border-radius: 10px;
+        border: 1px dashed #e2e8f0;
+        font-size: .9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="main-header">
+      <div class="header-left">
+        <a href="painel-frota.html" class="btn-back-header" title="Voltar ao Painel">←</a>
+        <div class="logo-container">
+          <h1>SIGA</h1>
+          <span>Gestão de Frota</span>
+        </div>
+      </div>
+      <div class="user-info">
+        <span style="font-size:.9rem;font-weight:bold;">Operador</span>
+        <div class="avatar">O</div>
+      </div>
+    </header>
+
+    <nav class="main-nav">
+      <a href="../index.html" class="nav-item">🏠 Início</a>
+      <a href="../maquinario/maquinario.html" class="nav-item">⚙️ Maquinário</a>
+      <a href="painel-frota.html" class="nav-item active">🚛 Frota</a>
+      <a href="../limpeza/limpeza.html" class="nav-item">🧹 Limpeza 5S</a>
+      <a href="../os/os.html" class="nav-item">📋 O.S</a>
+      <a href="../compras/compras.html" class="nav-item">🛒 Compras</a>
+      <a href="../os/documentos.html" class="nav-item">📄 Documentos</a>
+    </nav>
+
+    <main class="container">
+      <h2 class="page-title">Investigação do Veículo</h2>
+
+      <div class="cabecalho-maquina">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div>
+            <span class="tag-id" id="display-id">---</span>
+            <h3 id="display-nome" style="margin:4px 0 0;">Carregando Veículo...</h3>
+          </div>
+          <div id="status-atual-badge" style="display:none;padding:6px 14px;border-radius:99px;font-weight:700;font-size:.82rem;"></div>
+        </div>
+
+        <!-- 6-card KPI grid -->
+        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);">
+          <div class="kpi-card">
+            <span class="kpi-valor" id="kpi-intervencoes">—</span>
+            <span class="kpi-label">Total Registros</span>
+          </div>
+          <div class="kpi-card alerta">
+            <span class="kpi-valor" id="kpi-paradas">—</span>
+            <span class="kpi-label">Total Paradas</span>
+          </div>
+          <div class="kpi-card alerta">
+            <span class="kpi-valor" id="kpi-horas-paradas">—</span>
+            <span class="kpi-label">Downtime Total</span>
+          </div>
+          <div class="kpi-card kpi-mtbf">
+            <span class="kpi-valor" id="kpi-mtbf">—</span>
+            <span class="kpi-label">MTBF (h)</span>
+          </div>
+          <div class="kpi-card kpi-mttr">
+            <span class="kpi-valor" id="kpi-mttr">—</span>
+            <span class="kpi-label">MTTR (h)</span>
+          </div>
+          <div class="kpi-card kpi-trend">
+            <span class="kpi-valor" id="kpi-trend">—</span>
+            <span class="kpi-label">Tendência NC</span>
+          </div>
+        </div>
+
+        <!-- Alert section (hidden until JS populates) -->
+        <div id="alert-section" class="alert-section" style="display:none;"></div>
+      </div>
+
+      <div class="timeline-container">
+        <div class="header-timeline">
+          <h4 style="color:var(--primary);font-size:1.05rem;margin:0;">Histórico Unificado</h4>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <div class="filter-pills">
+              <button id="pill-all"         class="pill pill-active">Todos</button>
+              <button id="pill-inspections" class="pill">🔍 Inspeções</button>
+              <button id="pill-work_orders" class="pill">🛠 O.S</button>
+            </div>
+            <a id="btn-nova-os-veiculo" href="#" class="btn-nova-os">+ Nova O.S</a>
+          </div>
+        </div>
+
+        <ul id="lista-historico-completo" class="timeline-list"></ul>
+      </div>
+    </main>
+
+    <div id="modal-relatorio" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="modal-titulo">Detalhes do Evento</h3>
+          <span class="close-modal" id="btn-fechar-modal">&times;</span>
+        </div>
+        <div id="modal-corpo" class="modal-body"></div>
+      </div>
+    </div>
+
+    <div id="overlay" class="overlay">
+      <div class="overlay-content">
+        <div class="spinner"></div>
+        <p>Minerando dados da nuvem...</p>
+      </div>
+    </div>
+
+    <script type="module" src="../js/modules/app-historico-frota.js"></script>
+  </body>
+</html>

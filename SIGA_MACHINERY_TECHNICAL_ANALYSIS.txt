@@ -1,0 +1,1458 @@
+================================================================================
+  SIGA — MACHINERY MODULE TECHNICAL ANALYSIS
+  Document Type  : Professional Engineering Audit
+  Version        : 1.0
+  Scope          : Full Machinery Module (CMMS)
+  System         : SIGA — Sistema Integrado de Gestão de Ativos
+  Environment    : Firebase / Firestore / Vanilla JS (ES Modules) / Mobile-first web
+  Analyst Profile: Senior Software Engineer + Industrial Maintenance Systems Specialist
+================================================================================
+
+================================================================================
+  TABLE OF CONTENTS
+================================================================================
+
+  A) CURRENT SYSTEM OVERVIEW
+  B) IDENTIFIED PROBLEMS
+      B1. Architecture & Code Design
+      B2. Data Layer & Firestore Usage
+      B3. Performance & Scalability
+      B4. Security & Data Integrity
+      B5. Technical Debt & Code Quality
+  C) FUNCTIONAL GAPS (INDUSTRIAL STANDARD)
+  D) UX/UI ANALYSIS
+      D1. Current State Critique (per screen)
+      D2. Proposed Modern UI Architecture
+  E) DATA MODEL ANALYSIS
+      E1. Current Schema Evaluation
+      E2. Proposed New Schema
+  F) INTEGRATION ANALYSIS
+  G) KPI SYSTEM DESIGN
+      G1. Current KPI Capabilities
+      G2. KPI Gaps
+      G3. Proposed KPI Architecture
+  H) PROPOSED NEW ARCHITECTURE
+  I) REFACTORING PLAN
+  J) FINAL RECOMMENDATIONS
+
+
+================================================================================
+  A) CURRENT SYSTEM OVERVIEW
+================================================================================
+
+The SIGA Machinery Module is a web-based CMMS (Computerized Maintenance Management
+System) for an industrial feed production facility. The system is built with
+vanilla JavaScript ES Modules, Firebase Firestore as the database, Firebase
+Storage for photo evidence, and Firebase Auth for session management.
+
+PAGES IN SCOPE
+--------------
+  1. maquinario/maquinario.html            — Asset Dashboard (main entry point)
+  2. maquinario/formulario-maquinario.html — Work Order creation / execution form
+  3. maquinario/historico-maquina.html     — Machine history, KPIs, alert section
+  4. maquinario/detalhes-relatorio.html    — 8-section professional WO report
+
+JS MODULES IN SCOPE
+-------------------
+  1. js/modules/app-maquinario.js          — Dashboard controller
+  2. js/modules/app-formulario.js          — WO form controller
+  3. js/modules/app-historico.js           — Machine investigation controller
+  4. js/modules/app-detalhes.js            — Report builder
+  5. js/core/machine-state-engine.js       — Core CMMS engine (status, KPIs, alerts)
+  6. js/core/db.js                         — Monolithic data access layer
+
+SUPPORTING DATA FILES
+---------------------
+  1. js/data/dados-maquinas.js             — Static machine catalog (8 assets)
+  2. css/maquinario.css                    — Dashboard styles
+
+FIRESTORE COLLECTIONS USED
+---------------------------
+  - historico_manutencao                   — All work order records (flat)
+  - machine_state                          — Real-time status per machine (1 doc/machine)
+  - purchase_orders                        — Auto-triggered POs from Revisão WOs
+  - work_orders                            — Referenced but not created by this module
+
+ASSET CATALOG
+-------------
+  8 hardcoded machines: Misturador Horizontal (MIS-001), Peletizadora (PEL-001),
+  Moinho de Martelos (MOI-001), Extrusora (EXT-001), Silo de Armazenagem (SIL-001),
+  Elevador de Canecas (ELE-001), Ensacadeira Automática (ENS-001), Caldeira a
+  Vapor (CAL-001).
+
+  Machine criticality is static text ("Alta"/"Média"/"Baixa") — not computed.
+
+STATUS SYSTEM
+-------------
+  6 normalized states: operational, attention, preventive_due, in_maintenance,
+  stopped, critical. Persisted in machine_state collection. Legacy form still
+  uses Portuguese strings: "Operacional", "Revisão", "Parada", "Troca".
+
+  NOTE: "critical" status is defined in STATUS_META but never automatically
+  derived by the engine from raw data. It can only appear if previously stored.
+  There is no auto-escalation logic from "stopped" to "critical".
+
+
+================================================================================
+  B) IDENTIFIED PROBLEMS
+================================================================================
+
+------------------------------------------------------------------------
+  B1. ARCHITECTURE & CODE DESIGN
+------------------------------------------------------------------------
+
+PROBLEM B1-1: MONOLITHIC db.js — 3 UNRELATED DOMAINS IN ONE FILE
+  Severity: HIGH
+  File: js/core/db.js
+
+  db.js contains export functions for three completely separate domains:
+    - Machinery & Work Orders (salvarManutencaoFirebase, obterHistoricoMaquina, etc.)
+    - Cleaning / 5S Audits   (salvarAuditoriaLimpeza, obterTodasAuditoriasLimpeza)
+    - Fleet Checklists       (salvarChecklistFrota, obterHistoricoFrota)
+
+  This violates Single Responsibility Principle. A bug fix or import change
+  in the machinery layer requires touching the same file as fleet logic.
+  Any of the three domains breaking at import time will silently break all.
+
+  Impact: Maintenance risk, testing isolation failure, merge conflicts in teams.
+
+  Fix: Split into db-maquinas.js, db-limpeza.js, db-frota.js.
+
+PROBLEM B1-2: STATIC MACHINE CATALOG — HARDCODED IN JS FILE
+  Severity: HIGH
+  File: js/data/dados-maquinas.js
+
+  The asset master data (machine list, names, sectors, criticality) is a static
+  JS export. Adding, removing, or modifying a machine requires a code edit and
+  deployment. There is no admin interface, no Firestore-backed catalog.
+
+  Additionally, the static criticidade field ("Alta"/"Média"/"Baixa") contradicts
+  the machine-state-engine which computes criticality dynamically. The static
+  field is displayed on every card without being updated by real KPI data.
+
+  Impact: Operational inflexibility. Production staff cannot register a new
+  machine without developer involvement. Static criticidade misleads operators.
+
+PROBLEM B1-3: "CRITICAL" STATUS NEVER AUTO-DERIVED
+  Severity: HIGH
+  File: js/core/machine-state-engine.js
+
+  The STATUS_META map defines 6 states including "critical", but normalizarStatusLegacy()
+  has no case that maps to "critical". The form only presents 4 status buttons
+  (Operacional, Revisão, Parada, Troca). There is no escalation rule that
+  automatically promotes a machine from "stopped" to "critical" based on
+  duration, frequency, or safety conditions.
+
+  The gerarAlertas() function generates a "critical alert" but this is a UI
+  alert, not a status change. The machine_state.currentStatus will never be
+  "critical" under normal operation.
+
+  Impact: The critical status chip in the legend and STATUS_META is decorative.
+  High-severity machines that have been stopped for 12+ hours still display
+  only "Parada". Field operators receive no visual escalation.
+
+PROBLEM B1-4: DUAL-SOURCE TRUTH FOR DOWNTIME AND FAILURE COUNTS
+  Severity: MEDIUM
+  File: machine-state-engine.js + db.js
+
+  machine_state.totalDowntimeHours is accumulated incrementally (additive merge
+  on each WO save). calcularKPIsLegacy().totalDowntimeHours recalculates the
+  same figure from scratch by summing historico_manutencao records.
+
+  These two values will diverge when:
+    (a) Records are manually deleted or edited in Firestore console
+    (b) The machine_state document did not exist when early WOs were saved
+    (c) The updateMachineState call fails silently (.catch()) and the WO saves
+        but the state doesn't update
+
+  Impact: KPI Snapshot in detalhes-relatorio.html reads from calcularKPIsLegacy
+  (correct), while the criticality ranking uses machine_state values (may be
+  wrong). Dashboard ranking score and history KPIs can show different numbers
+  for the same machine.
+
+PROBLEM B1-5: _perfil FIELD WRITTEN TO FIRESTORE
+  Severity: MEDIUM
+  File: db.js (salvarManutencaoFirebase)
+
+  app-formulario.js appends _perfil: { uid, nome } to the payload as an
+  "internal" field before calling salvarManutencaoFirebase(). The comment in
+  app-formulario.js says it is "stripped before Firestore write", but db.js
+  does NOT strip it. The full payload object including _perfil is passed
+  directly to addDoc() and updateDoc().
+
+  This means every historico_manutencao document in Firestore contains:
+    _perfil: { uid: "firebase_uid_xxx", nome: "Operador Name" }
+
+  The duplicate data (uid/nome) is already in dadosOperador. The _perfil field
+  is wasteful and leaks internal architecture details to the data layer.
+
+PROBLEM B1-6: DYNAMIC FIREBASE IMPORTS INSIDE BUSINESS LOGIC
+  Severity: MEDIUM
+  File: app-detalhes.js (carregarRegistrosRelacionados), app-formulario.js
+
+  Two functions import Firebase modules at call time via:
+    const { collection, getDocs, ... } =
+      await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+
+  This pattern (dynamic import of CDN URLs inside functions) is fragile:
+    - Creates an additional network request on first call
+    - Bypasses any module bundler tree-shaking
+    - Duplicates the Firebase module instance if firebase-config.js already
+      loaded it via the same URL (browser may cache, but it's unreliable)
+    - Any CDN URL change breaks these functions silently
+
+  Fix: Import all Firebase functions at the module top level, or centralize
+  all Firestore operations in the db layer.
+
+PROBLEM B1-7: CROSS-COLLECTION QUERIES WITHOUT VERIFIED COMPOSITE INDEXES
+  Severity: MEDIUM
+  File: app-detalhes.js (carregarRegistrosRelacionados)
+
+  The function queries:
+    query(collection(db, "work_orders"), where("originId", "==", machineId),
+          orderBy("timestampEnvio", "desc"), limit(5))
+
+  This requires a Firestore composite index on work_orders:
+    [originId ASC + timestampEnvio DESC]
+
+  If this index is not configured in firebase.json or the Firestore console,
+  the query throws a runtime error that is caught silently (catch block renders
+  "Não foi possível carregar registros relacionados."). The operator sees no
+  data and no error — a silent failure that looks like missing data.
+
+  The same applies to purchase_orders query with machineId + timestampEnvio.
+
+PROBLEM B1-8: inspecao-maquina.html REFERENCED BUT NOT ANALYZED
+  Severity: LOW-MEDIUM
+  File: maquinario.html (line 132)
+
+  The dashboard header button links to "inspecao-maquina.html" described as
+  "Nova Inspeção Estruturada (CMMS)". This file was not included in the scope
+  files and was not analyzed. It may duplicate functionality with
+  formulario-maquinario.html or represent an entirely separate data structure.
+  Data written by this form may not be read by app-historico.js or
+  app-maquinario.js if it writes to a different collection.
+
+  Action Required: Audit inspecao-maquina.html and its JS module to determine
+  if it creates data in historico_manutencao or a separate collection.
+  Reconcile with the main form or remove if redundant.
+
+------------------------------------------------------------------------
+  B2. DATA LAYER & FIRESTORE USAGE
+------------------------------------------------------------------------
+
+PROBLEM B2-1: UNBOUNDED COLLECTION READS — NO PAGINATION AT QUERY LEVEL
+  Severity: HIGH
+  File: db.js (obterHistoricoMaquina), machine-state-engine.js (calcularKPIsLegacy)
+
+  Both functions use getDocs(query(collection(db, "historico_manutencao"),
+  where("dadosEquipamento.id", "==", idMaquina))) with no limit() clause.
+
+  As the system ages, a high-usage machine like PEL-001 or EXT-001 may
+  accumulate thousands of records. Every single record is fetched on every
+  dashboard load, every history page view, and every KPI calculation.
+
+  At 1,000 records/machine × 8 machines × 2 calls/page = 16,000 Firestore
+  document reads per dashboard load. Firestore free tier is 50,000 reads/day.
+
+  Fix: Add limit(100) for history display. For KPI calculation, consider
+  storing pre-aggregated KPIs in the machine_state document, updated on
+  each WO save.
+
+PROBLEM B2-2: MISSING orderBy IN calcularKPIsLegacy QUERY
+  Severity: MEDIUM
+  File: machine-state-engine.js
+
+  The query in calcularKPIsLegacy does not include orderBy. Firestore does not
+  guarantee document order without an explicit orderBy clause. Client-side sort
+  with recs.sort() works but means all documents must be fetched before any
+  can be processed. This prevents cursor-based pagination and requires a full
+  collection scan on the client.
+
+  Additionally, a where() + orderBy() combination on different fields requires
+  a composite index. Without it, the query works but cannot scale.
+
+PROBLEM B2-3: DUAL SCHEMA — STATUS IN TWO PLACES
+  Severity: MEDIUM
+  Files: All modules
+
+  Every data read uses the pattern:
+    const s = reg.diagnostico?.statusFinal || reg.status;
+
+  This indicates two schema generations exist in Firestore:
+    - Legacy records: status field at document root
+    - New records: diagnostico.statusFinal
+
+  This dual-schema handling is present in 6+ locations across the codebase.
+  If a third schema generation is introduced, every location needs updating.
+
+  Fix: Data migration script to normalize all legacy records to
+  diagnostico.statusFinal. Remove the || reg.status fallback chain
+  after migration.
+
+PROBLEM B2-4: MACHINE_STATE BOOTSTRAPPING PROBLEM
+  Severity: MEDIUM
+  File: machine-state-engine.js (getMachineState)
+
+  getMachineState() returns null for machines that have never had a WO saved
+  with the new engine active. getEffectiveStatus(null) returns "operational"
+  by default. This means machines with 10 years of historico_manutencao data
+  (pre-engine) will show as "Operational" on the dashboard, regardless of
+  their actual last known status.
+
+  The dashboard alert banner logic filters on stateMap[m.id]?.currentStatus —
+  machines with no state document are invisible to alerts. A machine that was
+  historically "Parada" would not appear in the stopped/critical alert list.
+
+  Fix: Implement a one-time backfill routine that reads the most recent
+  historico_manutencao record per machine and seeds machine_state accordingly.
+
+PROBLEM B2-5: HORIMETRO DATA IS COLLECTED BUT NEVER USED
+  Severity: LOW-MEDIUM
+  File: app-formulario.js, db.js
+
+  The form section "2. Leituras Operacionais (CBM)" captures:
+    - medidores.horimetro (hours)
+    - medidores.temperaturaC (temperature)
+
+  These values are saved to Firestore in every WO record but are never:
+    (a) Displayed in any report or KPI section
+    (b) Used in any KPI calculation
+    (c) Compared against service interval thresholds
+    (d) Trended over time
+
+  This is a missed predictive maintenance opportunity. Horimetro data
+  is the basis for interval-based preventive maintenance scheduling
+  (e.g., "change oil every 500 hours" instead of "every 30 days").
+
+------------------------------------------------------------------------
+  B3. PERFORMANCE & SCALABILITY
+------------------------------------------------------------------------
+
+PROBLEM B3-1: N SEQUENTIAL FIRESTORE READS IN DASHBOARD BOOT
+  Severity: HIGH
+  File: app-maquinario.js (carregarDadosFirebase)
+
+  The timeline enrichment loop uses:
+    for (const maq of catalogoMaquinas) {
+      const historico = await obterHistoricoMaquina(maq.id);
+      ...
+    }
+
+  "await" inside a for-of loop forces sequential execution. With 8 machines,
+  this creates 8 sequential Firestore reads, each waiting for the previous
+  to complete. Total wait time = sum of all 8 individual read latencies.
+
+  At 200ms per read, this adds 1,600ms of sequential blocking after the
+  initial parallel state/KPI loads.
+
+  Fix: Replace with Promise.all() to parallelize:
+    await Promise.all(catalogoMaquinas.map(async (maq) => { ... }));
+
+PROBLEM B3-2: FULL KPI RECALCULATION ON EVERY PAGE LOAD
+  Severity: HIGH
+  File: machine-state-engine.js (calcularKPIsLegacy)
+
+  MTBF, MTTR, trend, and failure counts are recalculated from scratch on:
+    - Dashboard load (for all 8 machines in parallel)
+    - History page load (for the viewed machine)
+    - Report detail page load (for KPI snapshot)
+
+  Each calculation fetches all records for a machine. For a machine with
+  2 years of daily inspections (730 records), this fetches and processes
+  730 documents every time someone opens the dashboard.
+
+  Fix: Persist computed KPIs in the machine_state document, updated
+  incrementally on each WO save. Reserve full recalculation for an
+  admin-triggered "rebuild KPIs" operation.
+
+PROBLEM B3-3: NO CACHING LAYER
+  Severity: MEDIUM
+  File: All modules
+
+  There is no sessionStorage, localStorage, or in-memory cache for:
+    - Machine state documents (read 3x per dashboard: states + KPIs + history)
+    - Static machine catalog (already in JS but re-imported each module load)
+
+  Navigating from dashboard → history → back to dashboard triggers a full
+  re-fetch of all Firestore data. No stale-while-revalidate pattern.
+
+------------------------------------------------------------------------
+  B4. SECURITY & DATA INTEGRITY
+------------------------------------------------------------------------
+
+PROBLEM B4-1: _perfil LEAKS TO FIRESTORE (documented in B1-5)
+  See B1-5 above.
+
+PROBLEM B4-2: NO ROLE-BASED ACCESS CONTROL AT APPLICATION LEVEL
+  Severity: HIGH
+  File: js/core/db-auth.js (assumed), all form modules
+
+  All authenticated users can create, edit, and close any work order.
+  There is no:
+    - Technician role (can create WOs only)
+    - Supervisor role (can close or approve WOs)
+    - Read-only role (reporting only)
+    - Admin role (machine catalog management)
+
+  A junior operator could close a critical WO that has not been physically
+  resolved. No approval workflow exists.
+
+PROBLEM B4-3: NO AUDIT TRAIL FOR WO EDITS
+  Severity: HIGH
+  File: db.js (salvarManutencaoFirebase, idExistente branch)
+
+  When closing a WO (os_id parameter present), the code calls:
+    await updateDoc(docRef, payload);
+
+  This overwrites the original document with new data. There is no:
+    - Version history of the WO before/after closure
+    - Timestamp of who made the edit and when
+    - Preservation of original symptom/status data
+
+  The dataFechoOficial field is added on closure, but the original
+  diagnostic data can be overwritten, compromising audit integrity.
+  In regulatory industrial environments (NR-12 compliance), this is
+  a critical gap.
+
+PROBLEM B4-4: FIRESTORE SECURITY RULES NOT VERIFIED
+  Severity: CRITICAL (operational assumption)
+
+  The code assumes Firestore security rules enforce authentication.
+  Without verified rules, unauthenticated direct Firestore API calls
+  could read or write historico_manutencao, machine_state, and
+  purchase_orders. Client-side auth checks (checkAuth) are not
+  security boundaries — they are UX guards only.
+
+  Recommended baseline rules:
+    allow read, write: if request.auth != null && request.auth.uid != null;
+
+------------------------------------------------------------------------
+  B5. TECHNICAL DEBT & CODE QUALITY
+------------------------------------------------------------------------
+
+PROBLEM B5-1: DUPLICATED HELPER FUNCTIONS ACROSS MODULES
+  Severity: LOW-MEDIUM
+
+  The following utility functions are copy-pasted identically across 3+ files:
+    - obterTs(reg)      — timestamp extraction with Firestore Timestamp handling
+    - fmt() / fmtDataHora() — date/time formatting with pt-BR locale
+    - abrirModalDetalhes() — modal renderer (slightly different per page)
+    - tipoBadge() / tipoBadgeHtml() — maintenance type badge HTML
+
+  These should live in a shared js/utils/formatters.js and js/utils/badges.js.
+
+PROBLEM B5-2: NAVIGATION CSS DUPLICATED IN EVERY HTML FILE
+  Severity: LOW-MEDIUM
+
+  The CSS for .main-header, .main-nav, .nav-item, .btn-back-header, .avatar,
+  .logo-container is duplicated inline in:
+    - maquinario.html
+    - formulario-maquinario.html
+    - historico-maquina.html
+    - detalhes-relatorio.html
+
+  These 30+ lines of CSS are identical across all 4 files. Any navigation
+  style change requires editing 4 HTML files. This CSS should be in global.css.
+
+PROBLEM B5-3: INLINE EVENT HANDLERS IN PRODUCTION HTML
+  Severity: LOW
+  File: maquinario.html
+
+  The "Nova Inspeção" button uses:
+    onmouseover="this.style.background='#1e3a8a'"
+    onmouseout="this.style.background='#1e40af'"
+
+  Inline handlers violate Content Security Policy restrictions and are a
+  code quality smell. The rest of the codebase correctly uses addEventListener.
+
+PROBLEM B5-4: PRIORIDADE_META MISSING KEY INCONSISTENCY
+  Severity: LOW
+  File: machine-state-engine.js
+
+  PRIORIDADE_META has key "Média" (with accent) but the form sends urgencia
+  as "Média" only when the Revisão status is active. The analiseFalha.urgencia
+  field is not captured for Parada/Troca WOs (blocoUrgencia.style.display = "none").
+  This means most corrective WOs have urgencia = "Baixa" (the default) regardless
+  of actual severity. The priority badge is thus decorative for corrective WOs.
+
+PROBLEM B5-5: FORM VISIBILITY LOGIC IS 80+ LINES OF IMPERATIVE IF/ELSE
+  Severity: LOW
+  File: app-formulario.js (atualizarVisibilidadeCampos)
+
+  The function conditionally shows/hides form sections based on combinations
+  of (tipo × status × osIdEditando). The current implementation is ~90 lines
+  of nested if/else with repeated classList.add/remove calls. Adding a new
+  status or a new section requires reading the entire function to find the
+  right branch. A declarative visibility map would be far more maintainable.
+
+
+================================================================================
+  C) FUNCTIONAL GAPS (INDUSTRIAL STANDARD)
+================================================================================
+
+The following features are standard in professional CMMS platforms (SAP PM,
+IBM Maximo, eMaint, Limble CMMS) and are absent from the current system:
+
+GAP C1: PREVENTIVE MAINTENANCE SCHEDULING ENGINE
+  Current: The system detects "preventive_due" as a binary flag (>30 days
+           without any maintenance). Threshold is hardcoded at 30 days for
+           ALL machines regardless of manufacturer recommendation.
+  Missing:
+    - Per-machine maintenance plans (MP-001, MP-002...) with configurable
+      intervals (calendar-based: every 30/90/180 days, OR hour-based: every
+      500/1000/2000 hours)
+    - Work Order auto-generation when an interval is due
+    - PM schedule calendar view showing upcoming planned jobs
+    - PM compliance rate KPI (% of scheduled PMs completed on time)
+    - Escalation when PM is overdue by >X days/hours
+
+GAP C2: MACHINE LIFECYCLE MANAGEMENT
+  Missing:
+    - Asset registration with: install date, manufacture date, warranty expiry,
+      expected service life, replacement cost estimate
+    - OEM model number, serial number, supplier fields
+    - Asset hierarchy (parent/child: Caldeira → Queimador → Válvula)
+    - Asset condition grading (Good / Fair / Poor / End of Life)
+    - Replacement forecasting based on age + failure frequency
+
+GAP C3: WORK ORDER APPROVAL WORKFLOW
+  Missing:
+    - WO status lifecycle: Draft → Submitted → Approved → In Progress → Pending
+      Parts → Completed → Verified
+    - Supervisor approval required before WO execution (for critical machines)
+    - Technician acknowledgement (accept/reject assigned WO)
+    - Rejection with reason → back to draft
+    - Email/push notification to assigned technician
+
+GAP C4: COST TRACKING PER WO AND PER MACHINE
+  Missing:
+    - Labor cost per WO (hours × labor rate)
+    - Parts cost per WO (BOM items × unit cost from inventory)
+    - Total maintenance cost per machine per period
+    - Cost trend: rising/falling maintenance cost over time
+    - Cost per breakdown vs cost per preventive intervention
+    - Budget vs actual maintenance cost report
+    - ROI calculation for PM program
+
+GAP C5: INVENTORY / SPARE PARTS INTEGRATION
+  Missing:
+    - When parts are listed on a WO (estoque.itens), inventory is not decremented
+    - No minimum stock alert for critical spare parts
+    - No auto-reorder point trigger
+    - No parts cross-reference to machine (which machines use which parts)
+    - The auto Purchase Order (triggerAutoPurchaseOrder) creates a PO but does
+      not check if stock already exists before ordering
+
+GAP C6: SHIFT MANAGEMENT AND HANDOVER NOTES
+  Missing:
+    - Shift assignment for technicians (morning/afternoon/night)
+    - Handover notes between shifts for ongoing issues
+    - "Machine condition at end of shift" report
+    - Multi-technician WO assignment (primary + support)
+
+GAP C7: DIGITAL WORK PERMIT SYSTEM
+  Current: Only a single NR-12 LOTO checkbox with no enforcement or audit trail.
+  Missing:
+    - Formal Lock-Out/Tag-Out (LOTO) permit with permit number
+    - Multiple point isolation records (circuit breaker numbers, valve IDs)
+    - Energization verification checklist
+    - Work permit expiry time
+    - Permit issuer/acceptor dual signature
+    - Incident link: if an incident occurs during a WO, link to permit
+
+GAP C8: OFFLINE CAPABILITY FOR FIELD USE
+  Missing:
+    - Service Worker / PWA manifest for offline caching
+    - IndexedDB queue for WO submissions when disconnected
+    - Auto-sync when connectivity restored
+    - "Last synced X minutes ago" indicator for field operators
+
+GAP C9: QR CODE / BARCODE MACHINE IDENTIFICATION
+  Missing:
+    - Printable QR codes for each machine (encodes machine ID + URL)
+    - Camera-based QR scan on mobile to open machine directly in form
+    - No need to navigate through dashboard when on-site
+
+GAP C10: OEE (OVERALL EQUIPMENT EFFECTIVENESS) CALCULATION
+  Missing:
+    - Availability = (Total Time - Downtime) / Total Time
+    - Performance = Actual Output / Theoretical Output (requires production data)
+    - Quality = Good Units / Total Units
+    - OEE = Availability × Performance × Quality
+    - At minimum, Availability can be calculated from existing downtime data
+
+GAP C11: CONDITION-BASED MONITORING (CBM) RULES
+  Current: Horimetro and temperature are captured but never used.
+  Missing:
+    - Per-machine threshold rules (e.g., temp > 95°C → generate alert)
+    - Horimetro comparison to service interval (e.g., oil change every 500h)
+    - Vibration or pressure readings (if sensors available)
+    - Trending of CBM readings over time
+
+GAP C12: FAILURE REPORTING (ISO 14224 / FMEA ALIGNMENT)
+  Current: Limited failure taxonomy (6 sintoma options, 6 causa-raiz options)
+  Missing:
+    - ISO 14224-aligned failure taxonomy (failure mode, failure effect,
+      failure mechanism, failure cause)
+    - FMEA (Failure Mode and Effects Analysis) integration
+    - Failure code library (standardized across the organization)
+    - Failure consequence classification (safety, environmental, production)
+
+GAP C13: REPORTING AND ANALYTICS EXPORTS
+  Missing:
+    - PDF export of WO reports (currently browser print only)
+    - CSV export of maintenance history
+    - Monthly/quarterly maintenance summary report
+    - Management dashboard with cross-machine KPI comparison
+    - Pareto analysis: top 20% of machines causing 80% of downtime
+
+
+================================================================================
+  D) UX/UI ANALYSIS
+================================================================================
+
+------------------------------------------------------------------------
+  D1. CURRENT STATE CRITIQUE (per screen)
+------------------------------------------------------------------------
+
+SCREEN D1-1: maquinario.html — Asset Dashboard
+  STRENGTHS:
+    - Real-time status badges with color coding (6 states)
+    - Alert banner (critical/attention/preventive-due)
+    - Critical machine ranking
+    - Maintenance type badges on timeline items
+    - KPI mini badges (MTBF, MTTR, recent failures)
+
+  WEAKNESSES:
+    - VERTICAL STACK ONLY: All 8 machine cards render as a stacked list.
+      On a desktop or tablet, 2-3 cards could show side by side, using
+      half the vertical space. The accordion pattern adds extra clicks.
+    - ACCORDION COLLAPSED BY DEFAULT: The "Últimos Registros" accordion
+      hides the most operationally relevant content — the recent history.
+      An operator opening the dashboard should immediately see the last
+      WO without clicking. Default should be expanded for the top 3 machines.
+    - STATUS NOT IMMEDIATELY VISIBLE: The status badge is in the top-right
+      of each card and is small (0.72rem). On mobile, the operator must
+      look carefully to find which machines have issues. The card's left
+      border color conveys status, but at 4px wide it is easily missed.
+    - NO SEARCH OR FILTER: With 8 machines currently and potential to grow,
+      there is no way to filter by sector, criticality, or status. An operator
+      looking for all "Parada" machines must scan all cards.
+    - "EXECUTAR O.S. PENDENTE" BUTTON INCONSISTENCY: The yellow execute
+      shortcut button renders inside each card only when the last WO is
+      "Revisão". This logic is fragile and can miss pending WOs if the
+      last record is not a Revisão.
+    - NO TOTAL MACHINE COUNT OR FLEET HEALTH SUMMARY: There is no header
+      KPI showing "8 machines: 5 operational, 1 attention, 1 stopped, 1 preventive due".
+      An operator must scan all cards to understand fleet health.
+    - INLINE MOUSEOVER HANDLERS ON "NOVA INSPEÇÃO" BUTTON: This is a code
+      quality issue that also breaks on touch devices.
+
+SCREEN D1-2: formulario-maquinario.html — Work Order Form
+  STRENGTHS:
+    - Conditional section visibility (smart form shows only relevant fields)
+    - LOTO/NR-12 safety checkbox for stopping events
+    - BOM parts list with add/remove
+    - Photo capture with multi-photo support
+    - Previous machine status banner (injected from machine_state)
+    - Reasonably clear section numbering (1-5)
+
+  WEAKNESSES:
+    - SINGLE LONG SCROLL FORM: 5 sections on one page requires significant
+      scrolling on mobile. A step/wizard pattern (Previous / Next with
+      progress indicator) would better fit field use on 6" screens.
+    - STATUS BUTTONS NOT VISUALLY URGENT: The 4 status buttons are
+      identical size/weight until selected. "Parada" and "Troca" are
+      high-urgency choices that should have visual weight differentiation
+      even before selection (e.g., red border on Parada button).
+    - photo INPUT capture="environment": On iOS, this forces the camera
+      app and prevents access to the photo library. A field tech may need
+      to attach a photo taken earlier. Remove capture attribute or make it
+      a toggle.
+    - NO AUTO-CALCULATED DOWNTIME: The form has dataInicioOS and dataFimOS
+      datetime inputs and a separate tempoParada field. If both dates are
+      filled, tempoParada should auto-calculate (fim - início) instead of
+      requiring manual entry. Data entry error risk is high.
+    - NO SAVE AS DRAFT: If the operator is interrupted mid-form (phone call,
+      emergency), all entered data is lost. There is no localStorage draft.
+    - PARTS FIELD ALWAYS VISIBLE BUT OPTIONAL: The BOM section is inside
+      secao-recursos which shows/hides by status. For simple "Inspecao"
+      type with "Operacional" result, this section is hidden — correct.
+      But when shown, the parts field label changes meaning (buy/used/used),
+      which can confuse operators.
+    - URGENCY FIELD ONLY FOR "REVISÃO" STATUS: Critical and Alta priority
+      should be available for Parada/Troca WOs. A machine that fails
+      catastrophically (Parada, Corretiva) may have Crítica urgency for
+      follow-up work.
+
+SCREEN D1-3: historico-maquina.html — Machine Investigation
+  STRENGTHS:
+    - 6 KPI cards (total, stops, downtime, MTBF, MTTR, trend)
+    - Alert section with colored severity indicators
+    - Dual filter (status + type)
+    - Pagination (10 per page)
+    - Maintenance type badges and downtime badges on timeline
+    - Real-time status badge in header
+    - 10-second timeout guard
+
+  WEAKNESSES:
+    - KPI CARDS DO NOT FILTER: Total Registros, Total Paradas, Downtime
+      update when filters are applied (from filtered list), but MTBF and
+      MTTR always show full-history values. This inconsistency is confusing:
+      "I filtered to last month but MTBF shows all time" is not communicated.
+    - NO DATE RANGE FILTER: The existing filters are status and maintenance
+      type. There is no date range filter. An operator cannot ask "show me
+      all corrective WOs from Q1 2026" — the only option is status or type.
+    - TIMELINE ITEMS NOT CLICKABLE TO REPORT: Timeline items open a modal
+      with a summary, and the modal has "Ver Relatório Completo" link. This
+      is two clicks to reach the report. A direct link from the timeline item
+      would be better.
+    - ALERT SECTION BELOW KPI CARDS: Critical alerts should be at the TOP
+      of the page, above KPI cards. An operator arriving at the history page
+      for a machine in crisis should see the alert before the numbers.
+    - "NOVA O.S." BUTTON CONTEXT: The "Nova O.S." button has machine context
+      in the URL but the label is generic. Should be "Nova O.S. para [machine name]".
+
+SCREEN D1-4: detalhes-relatorio.html — WO Report
+  STRENGTHS:
+    - Professional gradient header with document classification
+    - 8-section structured report
+    - Status transition visualization (before → after)
+    - Conditional sections (downtime, RCA shown only when data exists)
+    - BOM table
+    - KPI Snapshot (4 cards)
+    - Related WOs and POs section
+    - Photo gallery
+    - Execute CTA for pending WOs
+
+  WEAKNESSES:
+    - RELATED RECORDS QUERY MAY SILENTLY FAIL (see B1-7): The work_orders
+      and purchase_orders queries require composite indexes. If not present,
+      section ⑧ shows the fallback message silently.
+    - KPI SNAPSHOT SOURCE INCONSISTENCY: The KPI snapshot calls
+      calcularKPIsLegacy which fetches all history records again — a page
+      that already loaded one WO record is now loading all WO records for
+      the same machine in parallel. This is 2 Firestore reads that could
+      be 1 (pass KPIs from the previous page via sessionStorage or URL params).
+    - NO PRINT/PDF BUTTON: The report is designed to look professional
+      (gradient header, numbered sections) but has no print or PDF export
+      button. Industrial environments require printable WO reports for:
+        * Regulatory audits
+        * Contractor billing
+        * Plant manager sign-off
+    - NO EDIT OR RE-OPEN WO CAPABILITY: A completed WO has no "edit" button.
+      If a technician forgot to add parts or misspelled the report, there
+      is no correction pathway from the report page.
+
+------------------------------------------------------------------------
+  D2. PROPOSED MODERN UI ARCHITECTURE
+------------------------------------------------------------------------
+
+PROPOSED DASHBOARD LAYOUT
+  Two-column grid on desktop, single column on mobile:
+    ┌─────────────────────────────────────────────────────────┐
+    │  Fleet Health Summary Bar: 5 Operational | 1 Stopped   │
+    │  Alert Banner (conditionally shown)                     │
+    ├─────────────────────┬───────────────────────────────────┤
+    │  Search + Filter Bar│  View Toggle: Grid / List         │
+    ├─────────────────────┴───────────────────────────────────┤
+    │  [Card] [Card] [Card]   ← 3-up grid on desktop          │
+    │  [Card] [Card] [Card]   ← 2-up grid on tablet           │
+    │  [Card]                 ← 1-up on mobile                │
+    └─────────────────────────────────────────────────────────┘
+
+  Machine Card (redesigned):
+    ┌────────────────────────────────────┐
+    │ 🔴 PARADA                 MIS-001  │
+    │ Misturador Horizontal              │
+    │ Setor: Mistura · Criticidade: Alta │
+    ├────────────────────────────────────┤
+    │ MTBF 72h · MTTR 4h · 0 falhas/7d  │
+    ├────────────────────────────────────┤
+    │ Último evento: Corretiva 08/04/26  │
+    │ "Rolamento principal substituído"  │
+    ├────────────────────────────────────┤
+    │ [+ Novo Registro]  [Ver Histórico] │
+    └────────────────────────────────────┘
+
+  Key changes:
+    - Status as full-width color band at top of card (high visibility)
+    - KPI mini row always visible (no accordion)
+    - Last event summary always visible (no accordion)
+    - Two clear CTAs per card
+    - Sector and static criticality visible without hover
+
+PROPOSED FORM LAYOUT (Multi-step wizard)
+  Step 1: Machine + Operator context (auto-filled, read-only confirm)
+  Step 2: Intervention type + Machine status (critical buttons)
+  Step 3: Failure analysis (shown conditionally, skippable)
+  Step 4: Resources + time (downtime auto-calculated from dates)
+  Step 5: Report text + photos + submit
+  Progress bar showing step N/5 with machine name in header.
+
+PROPOSED HISTORY PAGE LAYOUT
+  Full-width alert section (if alerts exist) at top.
+  KPI cards in 3-column grid (responsive).
+  Date range picker above filter selects.
+  Timeline as a vertical list with left-side date column (like a Gantt).
+  Clicking any timeline item opens the full report page directly.
+
+MOBILE-FIRST IMPROVEMENTS
+  - Minimum touch target: 44×44px (Apple HIG guideline)
+  - Status buttons: Full-width, height 56px each, with status icon
+  - Photo upload: Two buttons: "📸 Camera" and "🖼️ Gallery" (separate)
+  - Swipe to navigate between machines in history page
+  - Bottom navigation bar (instead of top horizontal scroll nav)
+    for primary actions: Dashboard, New WO, History, Alerts
+
+
+================================================================================
+  E) DATA MODEL ANALYSIS
+================================================================================
+
+------------------------------------------------------------------------
+  E1. CURRENT SCHEMA EVALUATION
+------------------------------------------------------------------------
+
+CURRENT: historico_manutencao document
+{
+  dadosEquipamento: {
+    id: "MIS-001",
+    nome: "Misturador Horizontal",
+    subconjuntoAfetado: "Motor/Acionamento"
+  },
+  dadosOperador: { id: "uid", nome: "Operador" },
+  diagnostico: {
+    tipoManutencao: "Corretiva",
+    statusFinal: "Parada",
+    machineStatusBefore: "operational",   // new CMMS field
+    tempoParada: 4.5,
+    horasTrabalhadas: 2,
+    dataInicioOS: "2026-04-09T08:00",
+    dataFimOS: "2026-04-09T12:30",
+    relatorio: "Texto livre...",
+  },
+  medidores: { horimetro: 12500, temperaturaC: 85 },
+  analiseFalha: {
+    sintoma: "Ruido Anormal",
+    causaRaiz: "Desgaste Natural",
+    acaoTomada: "Substituido",
+    urgencia: "Alta",
+    dataLimite: "2026-04-20",
+  },
+  seguranca: { equipamentoBloqueadoLOTO: true },
+  estoque: { itens: [{ nome: "Rolamento SKF", quantidade: 2 }] },
+  anexos: { urlsLinks: ["https://..."], quantidade: 1 },
+  _perfil: { uid: "xxx", nome: "Operador" },   // BUG: should not be here
+  dataCriacaoOficial: Timestamp,
+  timestampEnvio: 1712700000000,
+}
+
+ISSUES WITH CURRENT SCHEMA:
+  1. No unique WO number (human-readable: WO-2026-0001)
+  2. estoque.itens has no unit cost → cannot calculate WO cost
+  3. analiseFalha.urgencia not populated for Parada/Troca WOs
+  4. medidores data is captured but unused in any KPI
+  5. Dual schema: some old records have root-level status/relatorio
+  6. _perfil field leaks to Firestore
+  7. No versioning or edit history
+
+------------------------------------------------------------------------
+  E2. PROPOSED NEW SCHEMA
+------------------------------------------------------------------------
+
+COLLECTION: machines (replaces dados-maquinas.js)
+{
+  id: "MIS-001",                          // Document ID
+  nome: "Misturador Horizontal",
+  setor: "Mistura",
+  fabricante: "Marca X",
+  modelo: "MH-500",
+  numeroSerie: "SN-2019-001",
+  dataInstalacao: Timestamp,
+  dataGarantiaExpiracao: Timestamp,
+  vidaUtilEsperadaAnos: 15,
+  custoReposicao: 85000.00,
+  criticidade: "alta",                    // "alta"|"media"|"baixa" — static from org
+  planoManutencaoId: "PM-MIS-001",        // FK to maintenance_plans
+  ativa: true,
+  criadoEm: Timestamp,
+  atualizadoEm: Timestamp,
+}
+
+COLLECTION: work_orders (replaces historico_manutencao)
+{
+  id: "WO-2026-001",                      // human-readable, auto-generated
+  machineId: "MIS-001",                   // indexed
+  machineName: "Misturador Horizontal",   // denormalized for display
+  machineSetor: "Mistura",
+  status: "completed",                    // draft|submitted|approved|in_progress|pending_parts|completed|cancelled
+  type: "corrective",                     // corrective|preventive|inspection|predictive
+  priority: "alta",                       // baixa|media|alta|critica
+  title: "Falha no rolamento principal",
+  machineStatusBefore: "operational",
+  machineStatusAfter: "stopped",
+  failure: {
+    symptom: "Ruido Anormal",             // standardized enum
+    affectedComponent: "Transmissao/Rolamentos",
+    rootCause: "Desgaste Natural",        // standardized enum
+    failureMode: "Degradation",           // ISO 14224 alignment
+    failureConsequence: "production",     // safety|environmental|production|quality
+  },
+  action: {
+    taken: "Substituido",
+    description: "Texto livre detalhado do técnico",
+    lotoConfirmed: true,
+    startedAt: Timestamp,
+    completedAt: Timestamp,
+    downtimeHours: 4.5,
+    laborHours: 2.0,
+  },
+  resources: {
+    technician: { uid: "xxx", nome: "João" },
+    approvedBy: { uid: "yyy", nome: "Supervisor" },
+    parts: [
+      {
+        nome: "Rolamento SKF 6205",
+        quantidade: 2,
+        unitCost: 45.00,
+        totalCost: 90.00,
+      }
+    ],
+    totalPartsCost: 90.00,
+    totalLaborCost: 100.00,              // laborHours × labor rate
+    totalCost: 190.00,
+  },
+  measurements: {
+    horimetro: 12500,
+    temperaturaC: 85,
+  },
+  scheduling: {
+    requestedDeadline: Timestamp,
+    urgency: "alta",
+    planId: null,                        // FK to maintenance_plans if preventive
+  },
+  photos: ["https://storage.../1.jpg"],
+  createdAt: Timestamp,
+  createdBy: { uid: "xxx", nome: "Técnico" },
+  updatedAt: Timestamp,
+  updatedBy: { uid: "xxx", nome: "Técnico" },
+  // Immutable version history (sub-collection)
+  // versions: sub-collection of snapshots
+}
+
+COLLECTION: machine_state (largely unchanged, with additions)
+{
+  machineId: "MIS-001",
+  currentStatus: "stopped",
+  lastMaintenanceDate: 1712700000000,
+  lastMaintenanceType: "Corretiva",
+  lastWorkOrderId: "WO-2026-001",
+  // Persisted KPIs — updated on each WO save
+  kpis: {
+    totalWOs: 45,
+    totalParadas: 12,
+    totalDowntimeHours: 88.5,
+    mtbfHours: 72,
+    mttrHours: 3.5,
+    recentFailures7d: 1,
+    trend: "stable",
+    lastCalculatedAt: 1712700000000,
+  },
+  // For CBM rules
+  latestMeasurements: {
+    horimetro: 12500,
+    temperaturaC: 85,
+    recordedAt: 1712700000000,
+  },
+  updatedAt: Timestamp,
+  updatedBy: "João",
+}
+
+COLLECTION: maintenance_plans (new — preventive schedule)
+{
+  id: "PM-MIS-001",
+  machineId: "MIS-001",
+  name: "Plano Preventivo — Misturador Horizontal",
+  tasks: [
+    {
+      id: "task-001",
+      name: "Lubrificação de rolamentos",
+      intervalType: "calendar",          // calendar|hours
+      intervalDays: 30,
+      intervalHours: null,
+      estimatedDurationHours: 1,
+      lastExecutedAt: Timestamp,
+      nextDueAt: Timestamp,             // computed
+      status: "due",                    // upcoming|due|overdue
+    },
+    {
+      id: "task-002",
+      name: "Troca de óleo do redutor",
+      intervalType: "hours",
+      intervalDays: null,
+      intervalHours: 500,
+      estimatedDurationHours: 2,
+      lastExecutedHorimetro: 12000,
+      nextDueHorimetro: 12500,
+      status: "due",
+    }
+  ],
+  ativa: true,
+}
+
+
+================================================================================
+  F) INTEGRATION ANALYSIS
+================================================================================
+
+CURRENT INTEGRATIONS
+  - machine_state → formulario (reads current status before new WO)
+  - formulario → purchase_orders (auto-creates PO for Revisão WOs with parts)
+  - formulario → machine_state (updates after WO save)
+  - historico_manutencao → machine_state (KPI calculation reads from historico)
+  - detalhes-relatorio → work_orders (reads related WOs — may fail, see B1-7)
+  - detalhes-relatorio → purchase_orders (reads related POs — may fail)
+
+MISSING INTEGRATION F1: OS MODULE LINK
+  The os/os.html module has a work_orders collection. The machinery module
+  writes to historico_manutencao. These are separate collections for the
+  same conceptual entity. A WO created in os-detalhe.html (origin=machine)
+  does not appear in historico-maquina.html. A WO in historico_manutencao
+  does not appear in os/os.html.
+
+  Proposed: Unify all WOs into one collection (work_orders). The machinery
+  form becomes a specialized WO creation flow that writes to work_orders
+  with type=maintenance. historico-maquina.html queries work_orders where
+  machineId == id instead of historico_manutencao.
+
+MISSING INTEGRATION F2: PURCHASE ORDERS — PARTS STOCK CHECK
+  Auto-triggered POs (from Revisão WOs) do not check existing stock.
+  If the part is already available in inventory, a PO is created unnecessarily.
+  The purchase_orders module and the WO form need a shared inventory state.
+
+MISSING INTEGRATION F3: COST TRACKING TO REPORTING
+  No screen or report shows:
+    - Total maintenance cost for a machine (lifetime or period)
+    - Cost breakdown by type (corrective vs preventive vs inspection)
+    - Top-5 most expensive machines to maintain
+  The raw data (parts + labor) exists in WO records but is never aggregated.
+
+PROPOSED INTEGRATION ARCHITECTURE
+  ┌────────────────────────────────────────────────────────────────┐
+  │                     work_orders (unified)                      │
+  │   machineId → machines | technicianId → users                 │
+  │   planId → maintenance_plans | poId → purchase_orders         │
+  └──────────────────┬────────────────────────────┬───────────────┘
+                     │                            │
+              ┌──────▼──────┐              ┌──────▼──────┐
+              │ machine_state│              │ purchase_   │
+              │ (aggregated  │              │ orders      │
+              │  KPIs)       │              │             │
+              └─────────────┘              └─────────────┘
+
+
+================================================================================
+  G) KPI SYSTEM DESIGN
+================================================================================
+
+------------------------------------------------------------------------
+  G1. CURRENT KPI CAPABILITIES
+------------------------------------------------------------------------
+
+  IMPLEMENTED (via calcularKPIsLegacy):
+    ✅ Total records count
+    ✅ Total failure count (Parada + Troca)
+    ✅ Total downtime hours (accumulated from records)
+    ✅ MTBF (Mean Time Between Failures) — interval between consecutive stops
+    ✅ MTTR (Mean Time To Repair) — time from stop to next Operacional
+    ✅ Recent failure frequency (last 7 days)
+    ✅ Trend analysis (last-5 vs previous-5 severity score)
+    ✅ Criticality score (composite formula)
+
+  DISPLAYED:
+    ✅ Dashboard: MTBF, MTTR, recentFailures, trend (mini badges per card)
+    ✅ History page: 6 KPI cards
+    ✅ Report page: 4-card KPI snapshot
+    ✅ Alert section: contextual warnings for critical KPI states
+
+------------------------------------------------------------------------
+  G2. KPI GAPS
+------------------------------------------------------------------------
+
+  MISSING:
+    ❌ Machine Availability %:  (Total Hours - Downtime) / Total Hours × 100
+    ❌ PM Compliance Rate:      Completed PMs on time / Scheduled PMs × 100
+    ❌ Failure Rate:            Failures per month (trending)
+    ❌ Mean Time Between Maintenance (MTBM): includes all interventions
+    ❌ Cost per Failure:        total WO cost / number of failures
+    ❌ Cost per Machine per Month: rolling average
+    ❌ Backlog of Open WOs:     count of WOs in attention/submitted status
+    ❌ WO Completion Rate:      WOs closed in SLA / total WOs
+    ❌ First-Time Fix Rate:     WOs resolved without return visit
+
+------------------------------------------------------------------------
+  G3. PROPOSED KPI ARCHITECTURE
+------------------------------------------------------------------------
+
+  PRINCIPLE: Move from full-recalculation on read → incremental update on write.
+
+  On each WO save, update machine_state.kpis incrementally:
+    totalWOs            += 1
+    totalParadas        += (isFailure ? 1 : 0)
+    totalDowntimeHours  += downtimeHours
+    costThisMonth       += (partsCost + laborCost)
+
+  Recalculate on write:
+    mtbfHours     = recalculate from last N failure timestamps (stored in kpis.failureTimestamps[])
+    mttrHours     = recalculate from last N stop→recovery pairs
+    trend         = recalculate from last 10 WO severity scores
+    availability  = 1 - (totalDowntimeHours / totalOperationalHours)
+    totalOperationalHours tracked from install date or first WO date
+
+  KPI DEFINITIONS (formal)
+  ────────────────────────
+  MTBF (h):
+    Σ(time between consecutive failures) / (count of intervals)
+    Minimum 2 failures required. Source: consecutive "Parada"/"Troca" timestamps.
+    Healthy threshold: > 168h (1 week). Critical threshold: < 24h.
+
+  MTTR (h):
+    Σ(time from failure registration to "Operacional" registration) / count
+    Source: Parada timestamp → next Operacional timestamp pairs.
+    Healthy threshold: < 4h. Warning threshold: > 8h.
+
+  Availability (%):
+    ((Total Calendar Hours - Total Downtime Hours) / Total Calendar Hours) × 100
+    Total Calendar Hours = (now - first WO date) / 3_600_000
+    Healthy target: > 95%. Critical: < 85%.
+
+  PM Compliance Rate (%):
+    (Preventive WOs completed before due date / Total scheduled PMs) × 100
+    Requires maintenance_plans collection and scheduled WO auto-generation.
+
+  Failure Rate (failures/month):
+    Total failures / number of active months
+    Trend: compare current month rate vs 3-month rolling average.
+
+  Criticality Score (composite):
+    score = (totalParadas × 3) + (totalDowntimeHours × 0.5) +
+            (recentFailures7d × 5) + trendBonus + statusBonus
+    trendBonus: worsening=+10, improving=-5, stable=0
+    statusBonus: critical=20, stopped=15, in_maintenance=8, attention=5
+
+
+================================================================================
+  H) PROPOSED NEW ARCHITECTURE
+================================================================================
+
+PAGE ARCHITECTURE
+-----------------
+  Keep 4 main pages with the following scope clarifications:
+
+  1. maquinario/maquinario.html
+     - Renamed concern: "Fleet Asset Dashboard"
+     - Add: Search/filter bar (sector, status, criticality)
+     - Add: Fleet health summary row (counts per status)
+     - Add: Grid layout option
+     - Add: Preventive schedule upcoming (next 7 days)
+
+  2. maquinario/formulario-maquinario.html
+     - Renamed concern: "Work Order Form (Multi-step)"
+     - Step wizard with 5 steps
+     - Auto-calculated downtime
+     - Draft persistence in localStorage
+     - Unified WO creation (write to work_orders, not historico_manutencao)
+
+  3. maquinario/historico-maquina.html
+     - Renamed concern: "Machine Investigation & Analytics"
+     - Add: Date range filter
+     - Move alerts above KPI cards
+     - Add: Availability % KPI card
+     - Add: Cost trend chart (if Chart.js added)
+     - Timeline: direct link to full report (no intermediate modal)
+
+  4. maquinario/detalhes-relatorio.html
+     - Renamed concern: "Work Order Report"
+     - Add: Print/PDF export button
+     - Add: Edit WO button (re-open draft)
+     - Fix: Related queries with verified composite indexes
+
+  NEW PAGES REQUIRED:
+  5. maquinario/maquinas-admin.html
+     - CRUD for machine catalog (currently hardcoded in dados-maquinas.js)
+     - Register/deactivate machines without code deployment
+     - Assign maintenance plans to machines
+
+  6. maquinario/plano-preventivo.html
+     - View/edit maintenance plans
+     - Calendar view of upcoming PMs
+     - Overdue PM highlighting
+     - Mark PM as completed → auto-creates WO
+
+  7. maquinario/analytics.html
+     - Cross-machine KPI dashboard
+     - Cost tracking table
+     - Top failing machines
+     - Trend charts
+
+JS MODULE ARCHITECTURE (proposed separation of concerns)
+---------------------------------------------------------
+
+  js/core/
+    firebase-config.js           — unchanged
+    db-auth.js                   — unchanged
+    db-maquinas.js               — NEW: all CRUD for work_orders, machines, machine_state
+    db-limpeza.js                — SPLIT from db.js
+    db-frota.js                  — SPLIT from db.js
+    machine-state-engine.js      — refactored: KPIs become incremental on write
+
+  js/modules/
+    app-maquinario.js            — dashboard controller
+    app-formulario.js            — WO form (multi-step)
+    app-historico.js             — investigation page
+    app-detalhes.js              — report builder
+    app-maquinas-admin.js        — NEW: machine catalog CRUD
+    app-plano-preventivo.js      — NEW: PM schedule
+
+  js/utils/
+    formatters.js                — NEW: fmtData, obterTs, formatDuration
+    badges.js                    — NEW: tipoBadgeHtml, statusChip, prioridadeBadge
+    kpi-calc.js                  — EXTRACTED: full KPI recalculation logic
+
+  js/data/
+    dados-maquinas.js            — DEPRECATED: replaced by machines collection
+    machine-status-meta.js       — NEW: only STATUS_META, TIPO_META constants (no Firestore)
+
+DATABASE LAYER REDESIGN
+-----------------------
+  Rule: ALL Firestore operations go through the db-*.js layer.
+  No module (app-*.js) imports directly from firebase-firestore.js.
+  No dynamic Firestore imports inside business logic functions.
+
+  db-maquinas.js exports:
+    getMachines()                           — from machines collection
+    getMachine(id)
+    createMachine(data)
+    updateMachine(id, data)
+    createWorkOrder(payload)               — writes to work_orders
+    updateWorkOrder(id, payload)
+    getWorkOrdersByMachine(machineId, opts) — with limit, pagination cursor
+    getWorkOrder(id)
+    getMachineState(machineId)
+    getMachineStates(ids)
+    updateMachineStateOnWOSave(machineId, woData)  — incremental KPI update
+
+
+================================================================================
+  I) REFACTORING PLAN
+================================================================================
+
+PHASE 0: IMMEDIATE FIXES (no breaking changes, low risk)
+  Estimated sessions: 1-2
+
+  I0-1: Strip _perfil from Firestore payload in db.js
+        → Add: delete payload._perfil; before addDoc/updateDoc
+
+  I0-2: Add limit(200) to obterHistoricoMaquina and calcularKPIsLegacy
+        → Prevents unbounded reads on machines with large history
+
+  I0-3: Parallelize carregarDadosFirebase (for-of → Promise.all)
+        → ~50% dashboard load time reduction
+
+  I0-4: Move navigation CSS from inline <style> in each HTML to global.css
+        → No behavior change, pure cleanup
+
+  I0-5: Extract obterTs, fmt, abrirModalDetalhes to js/utils/formatters.js
+        → Import shared utils in all 4 modules
+
+  I0-6: Remove capture="environment" from photo input
+        → Restore gallery access on iOS
+
+  I0-7: Add auto-calculate for tempoParada from dataInicioOS/dataFimOS
+        → Reduce data entry error
+
+PHASE 1: DATA LAYER SPLIT (medium risk — no schema change)
+  Estimated sessions: 2-3
+  Risk: Import paths change. All modules must be updated together.
+
+  I1-1: Split db.js into db-maquinas.js + db-limpeza.js + db-frota.js
+        → Update all module imports accordingly
+        → Verify each module independently after split
+
+  I1-2: Add orderBy("timestampEnvio", "desc") to all historico queries
+        → Requires Firestore composite index creation:
+          Collection: historico_manutencao
+          Fields: dadosEquipamento.id ASC + timestampEnvio DESC
+
+  I1-3: Create Firestore indexes for work_orders and purchase_orders queries
+        in detalhes-relatorio (resolves B1-7 silent failures)
+
+  I1-4: Backfill machine_state from historico_manutencao
+        → Write a one-time admin script that:
+          (a) Gets all unique machine IDs from historico_manutencao
+          (b) Calls calcularKPIsLegacy per machine
+          (c) Seeds machine_state with lastMaintenanceDate, currentStatus, KPIs
+
+PHASE 2: SCHEMA MIGRATION (high risk — requires data migration)
+  Estimated sessions: 3-4
+  Risk: Existing Firestore data must be preserved. New schema is additive.
+
+  I2-1: Create machines Firestore collection from dados-maquinas.js
+        → Write migration script to seed 8 initial machines
+        → Update app-maquinario.js to read from Firestore instead of JS file
+        → Keep dados-maquinas.js as fallback for 1 release cycle
+
+  I2-2: Add kpis sub-document to machine_state
+        → Run backfill (from I1-4) to populate kpis.{}
+        → Update machine-state-engine.updateMachineState to increment KPIs
+        → Update calcularKPIsLegacy to read from kpis.{} first, fallback to full calc
+
+  I2-3: Normalize historico_manutencao dual schema (root status + diagnostico.statusFinal)
+        → Write migration script: for each document where diagnostico is absent,
+          create diagnostico.statusFinal = doc.status, diagnostico.relatorio = doc.relatorio
+        → Remove || reg.status fallbacks from all modules after migration
+
+PHASE 3: FEATURE ADDITIONS (new functionality)
+  Estimated sessions: 4-6
+
+  I3-1: Machine catalog admin page (maquinas-admin.html + app-maquinas-admin.js)
+        → CRUD UI for machines collection
+        → Sector management
+        → Basic criticality assignment
+
+  I3-2: Preventive maintenance plans (maintenance_plans collection)
+        → Per-machine plan with configurable tasks and intervals
+        → Calendar-due detection replacing 30-day hardcoded threshold
+        → PM task auto-generates WO when due
+
+  I3-3: Work Order multi-step form wizard
+        → 5-step form with localStorage draft
+        → Auto-calculated downtime field
+        → Unified write to work_orders collection
+
+  I3-4: Cost tracking
+        → Add unit cost field to BOM items
+        → Compute totalCost per WO on save
+        → Aggregate cost in machine_state.kpis
+        → Display on history page and analytics
+
+  I3-5: Print/PDF export for WO report
+        → @media print CSS for detalhes-relatorio.html
+        → "Print Report" button
+        → Clean print layout (no navigation, white background)
+
+  I3-6: Availability KPI and OEE (partial)
+        → Calculate availability from machine install date + total downtime
+        → Display on history page as 7th KPI card
+
+PHASE 4: INFRASTRUCTURE HARDENING
+  Estimated sessions: 2
+
+  I4-1: Firestore Security Rules review and hardening
+        → Role-based read/write rules
+        → Prevent unauthenticated access to all machine collections
+        → Prevent technicians from modifying machine catalog
+
+  I4-2: PWA Manifest + Service Worker for offline capability
+        → Cache dashboard and form HTML/CSS/JS
+        → IndexedDB queue for offline WO submission
+
+MIGRATION RISK REGISTER
+  ┌────────────────────────────────┬──────────────┬────────────────────────┐
+  │ Phase                          │ Risk Level   │ Mitigation             │
+  ├────────────────────────────────┼──────────────┼────────────────────────┤
+  │ P0: Immediate fixes            │ Low          │ Test locally first     │
+  │ P1: DB split + indexes         │ Medium       │ Batch import testing   │
+  │ P2: Schema migration           │ High         │ Backup before script   │
+  │                                │              │ Run in staging first   │
+  │ P3: Feature additions          │ Low-Medium   │ Feature flags          │
+  │ P4: Infrastructure             │ Low          │ Non-breaking additions │
+  └────────────────────────────────┴──────────────┴────────────────────────┘
+
+WHAT CAN BREAK DURING MIGRATION
+  1. Firestore composite index creation takes time (minutes to hours).
+     During index build, queries with orderBy will fail. Plan for
+     maintenance window or add conditional orderBy (detect index readiness).
+
+  2. If historico_manutencao schema migration script fails mid-run,
+     some documents will be normalized and some will not. The dual-schema
+     fallback (|| reg.status) must remain until ALL documents are verified.
+
+  3. If dados-maquinas.js is removed before the machines Firestore collection
+     is fully populated, the dashboard will show 0 cards. Keep the JS file
+     as a fallback that is used when Firestore returns empty.
+
+  4. If machine_state is seeded with wrong KPIs (bad backfill), the
+     criticality ranking will be wrong. Include a validation step in the
+     backfill script that compares seeded KPIs vs live calcularKPIsLegacy results.
+
+DATA SAFETY CHECKLIST BEFORE PHASE 2
+  [ ] Export full historico_manutencao to JSON backup
+  [ ] Export full machine_state to JSON backup
+  [ ] Test migration script against a copy of the Firestore project
+  [ ] Verify all document counts before and after migration
+  [ ] Test dashboard, history page, and report page against migrated data
+
+
+================================================================================
+  J) FINAL RECOMMENDATIONS
+================================================================================
+
+PRIORITY 1 — CRITICAL (address before next production use)
+  1. Strip _perfil from Firestore writes (security: user data leakage)
+  2. Verify and configure Firestore security rules (unauthenticated access risk)
+  3. Add limit() to all unbounded Firestore reads (cost and performance)
+  4. Create required composite indexes for detalhes-relatorio related queries
+
+PRIORITY 2 — HIGH (address within next sprint)
+  5. Split db.js into domain-specific files
+  6. Backfill machine_state from historico_manutencao (bootstrap problem)
+  7. Parallelize carregarDadosFirebase dashboard loop
+  8. Implement auto-calculation of downtime from start/end timestamps
+  9. Migrate machine catalog to Firestore collection with admin UI
+  10. Move navigation CSS to global.css (eliminate 4× duplication)
+
+PRIORITY 3 — MEDIUM (next quarter)
+  11. Multi-step wizard form with draft persistence
+  12. Preventive maintenance planning engine
+  13. Cost tracking per WO and per machine
+  14. Date range filter on history page
+  15. Print/PDF export for WO reports
+  16. Unify work_orders and historico_manutencao into single collection
+
+PRIORITY 4 — LOW (roadmap)
+  17. Offline PWA capability (Service Worker + IndexedDB)
+  18. QR code machine identification for mobile field use
+  19. Role-based access control (technician / supervisor / admin)
+  20. OEE calculation and availability KPI
+  21. Availability for integration with SMS/email alert notifications
+  22. Barcode/QR scanning for spare parts in BOM
+
+ARCHITECTURAL NORTH STAR
+  The current system is a functional MVP with good foundational design
+  (machine-state-engine.js, STATUS_META, modular imports). The core
+  concepts are sound. The primary technical debt is:
+    (a) Static machine catalog instead of Firestore-backed
+    (b) Monolithic db.js serving 3 domains
+    (c) Unbounded reads without pagination
+    (d) Missing KPI persistence (recalculate on every read)
+    (e) No preventive schedule engine (only age-based threshold)
+
+  With Phases 0-2 complete, the system will be production-ready for
+  a facility of this scale (8-20 machines). Phase 3 additions elevate
+  it from MVP to enterprise-grade CMMS. Phase 4 enables field deployment
+  in low-connectivity industrial environments.
+
+  The most impactful single improvement is PRIORITY 2 item #6:
+  backfilling machine_state from historico_manutencao. Until this is
+  done, the entire real-time status, alert, and ranking system will
+  show incorrect (default "Operational") states for all machines that
+  existed before the engine was deployed.
+
+================================================================================
+  END OF ANALYSIS DOCUMENT
+  SIGA — Machinery Module Technical Analysis v1.0
+  Generated: 2026-04-10
+================================================================================

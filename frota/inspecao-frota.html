@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIGA — Inspeção de Frota</title>
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="../css/inspecao-frota.css">
+</head>
+<body class="insp-page">
+
+  <!-- ── Topbar ──────────────────────────────────────────── -->
+  <header class="insp-topbar">
+    <a href="../frota/frota.html" class="back-link">← Frota</a>
+    <h1>📋 Inspeção de Veículo</h1>
+    <span id="topbar-user" style="font-size:.8rem;color:#94a3b8;"></span>
+  </header>
+
+  <!-- ── Progress Bar (sticky) ──────────────────────────── -->
+  <div class="progress-bar-wrapper" id="progress-wrapper">
+    <div class="progress-meta">
+      <span id="progress-label">Selecione um veículo para começar</span>
+      <span id="progress-nc-badge" hidden></span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-bar-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- ── Main Content ────────────────────────────────────── -->
+  <main class="insp-main">
+
+    <!-- 1. Vehicle Selection -->
+    <section class="insp-section" id="section-vehicle-select">
+      <div class="insp-section-header section-toggle">
+        <span>🚛</span>
+        <h2>1. Selecionar Veículo</h2>
+        <span class="collapse-arrow">▾</span>
+      </div>
+      <div class="section-body">
+        <div class="vehicle-search-row">
+          <input type="text" id="vehicle-search" placeholder="Buscar por placa, modelo ou categoria…" autocomplete="off">
+          <button class="btn-search" id="btn-search-vehicle" type="button">🔍</button>
+        </div>
+        <div class="vehicle-results-list" id="vehicle-results"></div>
+        <div class="selected-vehicle-banner" id="selected-vehicle-banner" hidden></div>
+      </div>
+    </section>
+
+    <!-- 2. Header / Identification Form -->
+    <section class="insp-section" id="section-header" hidden>
+      <div class="insp-section-header section-toggle">
+        <span>📄</span>
+        <h2>2. Identificação da Inspeção</h2>
+        <span class="collapse-arrow">▾</span>
+      </div>
+      <div class="section-body">
+        <div class="form-grid">
+
+          <div class="form-field">
+            <label for="inspection-type">Tipo de Inspeção</label>
+            <select id="inspection-type">
+              <option value="departure">Saída</option>
+              <option value="return">Retorno</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="inspection-location">Local de Inspeção *</label>
+            <input type="text" id="inspection-location" placeholder="Ex.: Pátio Central">
+          </div>
+
+          <div class="form-field">
+            <label for="destination-city">Cidade de Destino</label>
+            <input type="text" id="destination-city" placeholder="Ex.: São Paulo – SP">
+          </div>
+
+          <div class="form-field">
+            <label for="mileage">Quilometragem *</label>
+            <input type="number" id="mileage" placeholder="Ex.: 85430" min="0">
+          </div>
+
+          <div class="form-field">
+            <label for="inspection-date">Data *</label>
+            <input type="date" id="inspection-date">
+          </div>
+
+          <div class="form-field">
+            <label for="inspection-time">Horário *</label>
+            <input type="time" id="inspection-time">
+          </div>
+
+          <div class="form-field full">
+            <div class="checkbox-field">
+              <input type="checkbox" id="fueling-done">
+              <label for="fueling-done">Abastecimento realizado antes da saída</label>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Advanced lighting toggle (only shown when checklist is rendered) -->
+        <div class="advanced-toggle-row" id="advanced-lighting-row">
+          <input type="checkbox" id="toggle-advanced-lighting">
+          <label for="toggle-advanced-lighting">Este veículo possui iluminação avançada (DRL / Farol de Neblina)</label>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 3. Dynamic Checklist -->
+    <section class="insp-section" id="section-checklist" hidden>
+      <div class="insp-section-header section-toggle">
+        <span>✅</span>
+        <h2>3. Checklist de Inspeção</h2>
+        <span class="collapse-arrow">▾</span>
+      </div>
+      <div class="section-body" style="padding:0;">
+        <div id="checklist-container">
+          <!-- Dynamically populated by app-inspecao-frota.js -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Maintenance & Fluids -->
+    <section class="insp-section" id="section-maintenance" hidden>
+      <div class="insp-section-header section-toggle">
+        <span>🔧</span>
+        <h2>4. Manutenção e Fluidos</h2>
+        <span class="collapse-arrow">▾</span>
+      </div>
+      <div class="section-body">
+        <div class="fluid-grid">
+
+          <div class="fluid-field">
+            <label for="oil-level">Nível de Óleo</label>
+            <select id="oil-level">
+              <option value="">— Selecione —</option>
+              <option value="ok">OK</option>
+              <option value="baixo">Baixo</option>
+              <option value="critico">Crítico</option>
+            </select>
+          </div>
+
+          <div class="fluid-field">
+            <label for="coolant-level">Nível de Arrefecimento</label>
+            <select id="coolant-level">
+              <option value="">— Selecione —</option>
+              <option value="ok">OK</option>
+              <option value="baixo">Baixo</option>
+              <option value="critico">Crítico</option>
+            </select>
+          </div>
+
+          <div class="fluid-field">
+            <label for="brake-fluid">Fluido de Freio</label>
+            <select id="brake-fluid">
+              <option value="">— Selecione —</option>
+              <option value="ok">OK</option>
+              <option value="baixo">Baixo</option>
+              <option value="critico">Crítico</option>
+            </select>
+          </div>
+
+          <div class="fluid-field">
+            <label for="tires-pressure">Pressão dos Pneus (PSI)</label>
+            <input type="text" id="tires-pressure" placeholder="Ex.: 110 / 110 / 110">
+          </div>
+
+        </div>
+
+        <div class="form-field" style="margin-top:14px;">
+          <label for="maintenance-obs">Observações de Manutenção</label>
+          <textarea id="maintenance-obs" rows="3" placeholder="Registre qualquer observação sobre o estado mecânico do veículo…"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Finalization -->
+    <section class="insp-section" id="section-finalization" hidden>
+      <div class="insp-section-header section-toggle">
+        <span>✍️</span>
+        <h2>5. Finalização</h2>
+        <span class="collapse-arrow">▾</span>
+      </div>
+      <div class="section-body">
+        <div class="form-grid">
+
+          <div class="form-field">
+            <label for="inspector-name">Nome do Inspetor *</label>
+            <input type="text" id="inspector-name" placeholder="Nome completo">
+          </div>
+
+          <div class="form-field">
+            <label for="driver-name">Nome do Motorista / Operador *</label>
+            <input type="text" id="driver-name" placeholder="Nome completo">
+          </div>
+
+          <div class="form-field full">
+            <label for="general-notes">Observações Gerais</label>
+            <textarea id="general-notes" rows="3" placeholder="Qualquer anotação adicional sobre a inspeção…"></textarea>
+          </div>
+
+        </div>
+
+        <div class="responsibility-term-box">
+          <p>
+            Ao confirmar, o inspetor e o motorista/operador declararam que as informações fornecidas são
+            verdadeiras e que o veículo foi vistoriado conforme os itens indicados. Qualquer não conformidade
+            registrada gerará automaticamente uma Ordem de Serviço para tratativa pelo setor de manutenção.
+          </p>
+          <div class="checkbox-field">
+            <input type="checkbox" id="responsibility-term">
+            <label for="responsibility-term">Declaro que li e aceito os termos acima.</label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Submit Button -->
+    <button class="btn-submit-inspecao" id="btn-submit-inspecao" type="button" hidden>
+      📤 Revisar e Enviar Inspeção
+    </button>
+
+  </main>
+
+  <!-- ── Summary / Confirm Modal ────────────────────────── -->
+  <div class="modal-resumo-overlay" id="modal-resumo" role="dialog" aria-modal="true" aria-labelledby="modal-resumo-title">
+    <div class="modal-resumo-box">
+      <h2 id="modal-resumo-title">📊 Resumo da Inspeção</h2>
+
+      <div style="font-size:.88rem;color:#64748b;">
+        <strong id="resumo-veiculo"></strong>
+        &mdash; <span id="resumo-tipo"></span>
+      </div>
+
+      <div class="resumo-stats">
+        <div class="resumo-stat">
+          <span class="stat-value" id="resumo-total">—</span>
+          <span class="stat-label">Total</span>
+        </div>
+        <div class="resumo-stat stat-c">
+          <span class="stat-value" id="resumo-c">—</span>
+          <span class="stat-label">Conformes</span>
+        </div>
+        <div class="resumo-stat stat-nc">
+          <span class="stat-value" id="resumo-nc">—</span>
+          <span class="stat-label">NC</span>
+        </div>
+        <div class="resumo-stat">
+          <span class="stat-value" id="resumo-restantes">—</span>
+          <span class="stat-label">Pendentes</span>
+        </div>
+      </div>
+
+      <div class="resumo-critica-alert" id="resumo-critica-alert" hidden></div>
+
+      <div class="resumo-nc-list-box">
+        <h4>Não Conformidades Registradas</h4>
+        <ul class="resumo-nc-list" id="resumo-nc-list"></ul>
+      </div>
+
+      <div class="modal-resumo-actions">
+        <button class="btn-cancelar-envio" id="btn-cancelar-envio" type="button">Voltar</button>
+        <button class="btn-confirmar-envio" id="btn-confirmar-envio" type="button">✔ Confirmar Envio</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Save Status Pill (fixed, bottom-right) ───────── -->
+  <div id="save-status-pill" class="save-status-pill" hidden aria-live="polite">
+    <span id="save-status-dot"></span>
+    <span id="save-status-text"></span>
+  </div>
+
+  <!-- ── Toast Container ────────────────────────────────── -->
+  <div id="toast-container" aria-live="polite"></div>
+
+  <!-- ── Draft Recovery Modal (single draft) ───────────── -->
+  <div class="draft-modal-overlay" id="modal-draft-recovery"
+       role="dialog" aria-modal="true" aria-labelledby="draft-recovery-title">
+    <div class="draft-modal-box">
+      <div class="draft-modal-icon" aria-hidden="true">🔄</div>
+      <h2 id="draft-recovery-title" class="draft-modal-title">Inspeção em Andamento</h2>
+      <p class="draft-modal-sub">
+        Encontramos um rascunho não enviado. Deseja continuar de onde parou?
+      </p>
+
+      <div class="draft-vehicle-card">
+        <div class="draft-vehicle-row">
+          <strong id="draft-recovery-plate">—</strong>
+          <span id="draft-recovery-type" class="draft-type-badge">—</span>
+        </div>
+        <div class="draft-vehicle-row draft-vehicle-meta">
+          <span id="draft-recovery-model">—</span>
+          <span id="draft-recovery-when" class="draft-when">—</span>
+        </div>
+        <div class="draft-pct-row">
+          <span id="draft-recovery-pct" class="draft-pct-label">0%</span>
+          <div class="draft-pct-track">
+            <div class="draft-pct-fill" id="draft-recovery-pct-bar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="draft-modal-actions">
+        <button class="btn-draft-discard" id="btn-draft-discard" type="button">
+          🗑 Descartar
+        </button>
+        <button class="btn-draft-restore" id="btn-draft-restore" type="button">
+          ↩ Restaurar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Draft List Modal (multiple drafts) ────────────── -->
+  <div class="draft-modal-overlay" id="modal-draft-list"
+       role="dialog" aria-modal="true" aria-labelledby="draft-list-title">
+    <div class="draft-modal-box draft-modal-box--wide">
+      <div class="draft-modal-icon" aria-hidden="true">📋</div>
+      <h2 id="draft-list-title" class="draft-modal-title">Inspeções em Andamento</h2>
+      <p class="draft-modal-sub">
+        Selecione uma inspeção para continuar, descarte individualmente,
+        ou inicie uma nova.
+      </p>
+
+      <div id="draft-list-container" class="draft-list-container">
+        <!-- Populated by JS -->
+      </div>
+
+      <div class="draft-modal-actions draft-modal-actions--single">
+        <button class="btn-draft-new" id="btn-draft-list-close" type="button">
+          + Nova Inspeção
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Module Entry Point ─────────────────────────────── -->
+  <script type="module" src="../js/modules/app-inspecao-frota.js"></script>
+
+</body>
+</html>
