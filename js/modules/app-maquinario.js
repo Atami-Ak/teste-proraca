@@ -377,7 +377,7 @@ async function abrirModalMaquina(machineId, machineName) {
 
   // Load data
   try {
-    const { getWorkOrdersByMachine }     = await import("../core/db-unified.js");
+    const { getWorkOrdersByMachine }     = await import("../core/db-os.js");
     const { obterHistoricoMaquina }      = await import("../core/db-maquinas.js");
     const { getMachineState, STATUS_META: SM } = await import("../core/machine-state-engine.js");
 
