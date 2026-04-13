@@ -9,6 +9,7 @@
  */
 
 import { login, getCurrentUser } from "../core/db-auth.js";
+import { buildUrl } from "../core/router.js";
 
 // ============================================================
 // ELEMENTS
@@ -121,8 +122,8 @@ function _resolvePostLoginUrl(perfil) {
 
 function _defaultPath(perfil) {
   // Admins go directly to the dashboard — their primary workspace
-  if (perfil && perfil.role === "admin") return "../dashboard/dashboard.html";
-  return "../index.html";
+  if (perfil && perfil.role === "admin") return buildUrl("dashboard/dashboard.html");
+  return buildUrl("index.html");
 }
 
 // ============================================================

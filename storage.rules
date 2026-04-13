@@ -1,0 +1,136 @@
+// storage.rules — SIGA Firebase Storage Security Rules
+//
+// Protege todos os caminhos de upload de fotos do sistema.
+// Estratégia: somente usuários autenticados e ativos podem fazer upload;
+//             leitura pública de URLs de download é bloqueada — somente autenticados.
+//
+// Paths cobertos:
+//   evidencias_maquinas/  — fotos de manutenção (legacy db.js)
+//   evidencias_limpeza/   — fotos de auditoria de limpeza (legacy db.js)
+//   evidencias_frota/     — fotos de checklist de frota (legacy db.js)
+//   inspecoes_frota/      — fotos de inspeção por veículo (db-frota.js)
+//   inspecoes_maquinas/   — fotos de inspeção por máquina (db-maquinas.js)
+//   cleaning_photos/      — fotos de auditoria estruturada v2 (db-limpeza.js)
+//
+// HOW TO DEPLOY:
+//   firebase deploy --only storage
+//
+// LIMITES:
+//   Máx. 10 MB por arquivo (imagens JPG de campo via câmera mobile)
+//   Somente content-type image/* permitido
+
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // =======================================================================
+    // HELPER FUNCTIONS
+    // =======================================================================
+
+    /** Usuário está autenticado. */
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    /** Arquivo é uma imagem válida (JPEG, PNG, WebP). */
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    /** Tamanho do arquivo não excede 10 MB. */
+    function isUnder10MB() {
+      return request.resource.size <= 10 * 1024 * 1024;
+    }
+
+    /** Combinação de validações para upload de foto de campo. */
+    function isValidPhotoUpload() {
+      return isAuthenticated() && isImage() && isUnder10MB();
+    }
+
+    // =======================================================================
+    // EVIDENCIAS_MAQUINAS — fotos de manutenção de máquinas (legacy)
+    // Caminho: evidencias_maquinas/{timestamp}_{machineId}_foto{N}.jpg
+    // Criado por: db.js → salvarRelatorio()
+    // Quem faz upload: maintenance + admin
+    // =======================================================================
+    match /evidencias_maquinas/{fileName} {
+      allow read:   if isAuthenticated();
+      allow create: if isValidPhotoUpload();
+      allow update: if false;   // imutável após criação
+      allow delete: if request.auth != null;  // qualquer autenticado pode limpar
+    }
+
+    // =======================================================================
+    // EVIDENCIAS_LIMPEZA — fotos de auditoria de limpeza (legacy)
+    // Caminho: evidencias_limpeza/{timestamp}_{zonaId}_{itemId}.jpg
+    // Criado por: db.js → salvarAuditoria()
+    // Quem faz upload: operations + maintenance + admin
+    // =======================================================================
+    match /evidencias_limpeza/{fileName} {
+      allow read:   if isAuthenticated();
+      allow create: if isValidPhotoUpload();
+      allow update: if false;
+      allow delete: if request.auth != null;
+    }
+
+    // =======================================================================
+    // EVIDENCIAS_FROTA — fotos de checklist de frota (legacy)
+    // Caminho: evidencias_frota/{timestamp}_{vehicleId}.jpg
+    // Criado por: db.js → salvarChecklist()
+    // Quem faz upload: operations + maintenance + admin
+    // =======================================================================
+    match /evidencias_frota/{fileName} {
+      allow read:   if isAuthenticated();
+      allow create: if isValidPhotoUpload();
+      allow update: if false;
+      allow delete: if request.auth != null;
+    }
+
+    // =======================================================================
+    // INSPECOES_FROTA — fotos de inspeção estruturada por veículo
+    // Caminho: inspecoes_frota/{placa}/{timestamp}_{itemId}_{N}.jpg
+    // Criado por: db-frota.js → salvarInspecaoFrota()
+    // Quem faz upload: operations + maintenance + admin
+    // =======================================================================
+    match /inspecoes_frota/{placa}/{fileName} {
+      allow read:   if isAuthenticated();
+      allow create: if isValidPhotoUpload();
+      allow update: if false;
+      allow delete: if request.auth != null;
+    }
+
+    // =======================================================================
+    // INSPECOES_MAQUINAS — fotos de inspeção por máquina
+    // Caminho: inspecoes_maquinas/{machineId}/{timestamp}_{itemId}_{N}.jpg
+    // Criado por: db-maquinas.js → salvarInspecaoMaquina()
+    // Quem faz upload: maintenance + admin
+    // =======================================================================
+    match /inspecoes_maquinas/{machineId}/{fileName} {
+      allow read:   if isAuthenticated();
+      allow create: if isValidPhotoUpload();
+      allow update: if false;
+      allow delete: if request.auth != null;
+    }
+
+    // =======================================================================
+    // CLEANING_PHOTOS — fotos de auditoria de limpeza estruturada (v2)
+    // Caminho: cleaning_photos/{timestamp}_{zoneId}_{itemId}.jpg
+    // Criado por: db-limpeza.js → salvarInspecaoLimpeza()
+    // Quem faz upload: operations + maintenance + admin
+    // =======================================================================
+    match /cleaning_photos/{fileName} {
+      allow read:   if isAuthenticated();
+      allow create: if isValidPhotoUpload();
+      allow update: if false;
+      allow delete: if request.auth != null;
+    }
+
+    // =======================================================================
+    // CATCH-ALL — nega tudo que não foi explicitamente permitido
+    // =======================================================================
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

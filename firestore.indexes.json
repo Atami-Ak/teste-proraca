@@ -1,0 +1,154 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "work_orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "origin",         "order": "ASCENDING" },
+        { "fieldPath": "originId",       "order": "ASCENDING" },
+        { "fieldPath": "timestampEnvio", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "work_orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "originId",       "order": "ASCENDING" },
+        { "fieldPath": "timestampEnvio", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "work_orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "timestampEnvio", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "work_orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "origem",         "order": "ASCENDING" },
+        { "fieldPath": "timestampEnvio", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "work_orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",         "order": "ASCENDING" },
+        { "fieldPath": "timestampEnvio", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "purchase_orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",         "order": "ASCENDING" },
+        { "fieldPath": "timestampEnvio", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "purchase_orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "osOrigemId",     "order": "ASCENDING" },
+        { "fieldPath": "timestampEnvio", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "purchase_orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "vehicleId",      "order": "ASCENDING" },
+        { "fieldPath": "timestampEnvio", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "purchase_orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "timestampEnvio", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "documents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tipo",           "order": "ASCENDING" },
+        { "fieldPath": "emitidoEm",      "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "documents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sourceId",       "order": "ASCENDING" },
+        { "fieldPath": "emitidoEm",      "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "machine_inspections",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "machineId",      "order": "ASCENDING" },
+        { "fieldPath": "timestampEnvio", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "checklists_frota",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "header.vehicleId", "order": "ASCENDING" },
+        { "fieldPath": "timestampEnvio",   "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "checklists_frota",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "timestampEnvio", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "auditorias_limpeza",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "timestampEnvio", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "auditorias_limpeza",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "zonaId",         "order": "ASCENDING" },
+        { "fieldPath": "timestampEnvio", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "cleaning_inspections",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "zoneId",         "order": "ASCENDING" },
+        { "fieldPath": "timestampEnvio", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "historico_manutencao",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "dadosEquipamento.id", "order": "ASCENDING" },
+        { "fieldPath": "timestampEnvio",      "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "fornecedores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ativo", "order": "ASCENDING" },
+        { "fieldPath": "nome",  "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

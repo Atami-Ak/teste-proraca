@@ -76,6 +76,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import { auth, db } from "./firebase-config.js";
+import { getBaseDepth } from "./base-path.js";
 
 // ============================================================
 // CONSTANTS
@@ -584,18 +585,26 @@ function _showPage() {
 // ============================================================
 
 /**
- * Returns the number of directory levels deep the current page is.
+ * Returns the number of directory levels deep the current page is,
+ * relative to the project root.
  *
- * Examples:
+ * Accounts for the GitHub Pages deployment prefix (repo name) so that
+ * the login/index redirect paths are never over-counted.
+ *
+ * Examples (local):
  *   /index.html              → 0
  *   /os/os.html              → 1
  *   /dashboard/dashboard.html → 1
- *   /compras/compra-detalhe.html → 1
+ *
+ * Examples (GitHub Pages — prefix = "teste-pr-main"):
+ *   /teste-pr-main/index.html              → 0
+ *   /teste-pr-main/os/os.html              → 1
+ *   /teste-pr-main/dashboard/dashboard.html → 1
  */
 function _getDepth() {
   const parts = window.location.pathname.split("/").filter(Boolean);
-  // parts = ["os", "os.html"] → depth = 1 (only directory segments)
-  return Math.max(0, parts.length - 1);
+  // Subtract the base prefix depth (0 on localhost, 1 on GitHub Pages).
+  return Math.max(0, parts.length - 1 - getBaseDepth());
 }
 
 function _prefix() {

@@ -1,0 +1,847 @@
+================================================================================
+  SIGA — FIRESTORE SECURITY RULES
+  Version: 2.0 (Full Audit)
+  Generated: 2026-04-13
+  System: Sistema Integrado de Gestão de Ativos (SIGA)
+  Project: proraca-6f522
+================================================================================
+
+  ROLE MATRIX
+  ┌──────────────┬────────┬─────────────┬────────────┬────────────┐
+  │ Collection   │ admin  │ maintenance │ operations │ purchasing │
+  ├──────────────┼────────┼─────────────┼────────────┼────────────┤
+  │ users        │  CRUD  │  R (own)    │  R (own)   │  R (own)   │
+  │ work_orders  │  CRUD  │  CRUD       │  CRU*      │  R         │
+  │ documents    │  CRUD  │  CR         │  R         │  CR        │
+  │ purchase_orders│ CRUD │  CR         │  CR        │  CRUD      │
+  │ checklists_frota│ CRUD│  CRU        │  CRU       │  R         │
+  │ machine_insp.│  CRUD  │  CRU        │  CR        │  R         │
+  │ cleaning_insp│  CRUD  │  CRU        │  CRU       │  R         │
+  │ auditorias_limpeza│CRUD│ CRU       │  CRU       │  R         │
+  │ machine_state│  CRUD  │  RU         │  RU        │  R         │
+  │ vehicle_state│  CRUD  │  RU         │  RU        │  R         │
+  │ fornecedores │  CRUD  │  R          │  R         │  CRUD      │
+  │ kpi_cache    │  CRUD  │  R          │  R         │  R         │
+  │ historico_mn.│  D     │  R          │  R         │  R         │
+  └──────────────┴────────┴─────────────┴────────────┴────────────┘
+  * operations can update work_orders but NOT change status/prioridade
+
+================================================================================
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================================
+    // SECTION 1 — BASE AUTHENTICATION HELPERS
+    // =========================================================================
+
+    /** True if the request comes from a signed-in Firebase Auth user. */
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    /**
+     * Reads the caller's Firestore user profile.
+     * NOTE: This costs 1 extra Firestore read per rule evaluation.
+     * Migrating to Custom Claims eliminates this cost (see SECURITY WARNINGS).
+     */
+    function _userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    /**
+     * Returns the caller's role string.
+     * Possible values: "admin" | "maintenance" | "operations" | "purchasing"
+     */
+    function getRole() {
+      return _userDoc().role;
+    }
+
+    /**
+     * Returns true only if the user's account is explicitly marked active.
+     * Deactivated users (ativo == false) are treated as unauthenticated.
+     */
+    function isActive() {
+      return _userDoc().ativo == true;
+    }
+
+    /**
+     * Combined guard: authenticated + profile exists + account active.
+     * Base requirement for ALL non-public operations.
+     */
+    function isAuthAndActive() {
+      return isAuthenticated() && isActive();
+    }
+
+    // =========================================================================
+    // SECTION 2 — ROLE HELPERS
+    //   Each function also implies isAuthAndActive() — no need to double-check.
+    // =========================================================================
+
+    function isAdmin() {
+      return isAuthAndActive() && getRole() == 'admin';
+    }
+
+    /** Maintenance role includes admin (admin can do everything maintenance can). */
+    function isMaintenance() {
+      return isAuthAndActive() && getRole() in ['admin', 'maintenance'];
+    }
+
+    /** Operations role includes admin. */
+    function isOperations() {
+      return isAuthAndActive() && getRole() in ['admin', 'operations'];
+    }
+
+    /** Purchasing role includes admin. */
+    function isPurchasing() {
+      return isAuthAndActive() && getRole() in ['admin', 'purchasing'];
+    }
+
+    /**
+     * Any valid role — used for read access to shared collections.
+     * Explicitly enumerating roles prevents future role injection.
+     */
+    function isAnyRole() {
+      return isAuthAndActive() &&
+             getRole() in ['admin', 'maintenance', 'operations', 'purchasing'];
+    }
+
+    // =========================================================================
+    // SECTION 3 — FIELD VALIDATION HELPERS
+    // =========================================================================
+
+    /** Returns true if a field exists in the incoming document. */
+    function hasField(data, field) {
+      return field in data;
+    }
+
+    /** Returns true if all provided fields are present in the document. */
+    function hasAllFields(data, fields) {
+      return data.keys().hasAll(fields);
+    }
+
+    /**
+     * Validates that a string field exists, is a string, and is not empty.
+     */
+    function isNonEmptyString(data, field) {
+      return hasField(data, field)
+          && data[field] is string
+          && data[field].size() > 0;
+    }
+
+    /**
+     * Validates an enum field against an allowed set.
+     * The value must be a string present in the allowedValues list.
+     */
+    function isValidEnum(data, field, allowedValues) {
+      return hasField(data, field)
+          && data[field] is string
+          && data[field] in allowedValues;
+    }
+
+    // ---- Domain enum validators ----
+
+    function isValidWOStatus(data) {
+      return isValidEnum(data, 'status',
+        ['open', 'in_progress', 'waiting_parts', 'completed', 'cancelled']);
+    }
+
+    function isValidWOPriority(data) {
+      return isValidEnum(data, 'priority', ['low', 'medium', 'high', 'critical']);
+    }
+
+    function isValidWOType(data) {
+      return isValidEnum(data, 'type',
+        ['maintenance', 'service', 'inspection', 'cleaning_issue']);
+    }
+
+    function isValidWOOrigin(data) {
+      return isValidEnum(data, 'origin',
+        ['machine', 'fleet', 'cleaning', 'manual', 'inspection', 'legacy', 'machinery']);
+    }
+
+    function isValidPOStatus(data) {
+      return isValidEnum(data, 'status',
+        ['pending', 'approved', 'ordered', 'received', 'cancelled']);
+    }
+
+    function isValidPOCategory(data) {
+      return isValidEnum(data, 'categoria',
+        ['peca', 'equipamento', 'servico', 'operacional']);
+    }
+
+    function isValidPOUrgency(data) {
+      return isValidEnum(data, 'urgencia', ['normal', 'urgente', 'critico']);
+    }
+
+    function isValidMachineStatus(data) {
+      return isValidEnum(data, 'currentStatus',
+        ['operational', 'attention', 'preventive_due', 'in_maintenance',
+         'stopped', 'critical']);
+    }
+
+    function isValidCleaningStatus(data) {
+      return isValidEnum(data, 'status',
+        ['excellent', 'acceptable', 'attention', 'critical']);
+    }
+
+    function isValidSupplierCategory(data) {
+      return isValidEnum(data, 'categoria',
+        ['peca', 'equipamento', 'servico', 'operacional']);
+    }
+
+    // ---- Integrity guards ----
+
+    /**
+     * Prevents changing immutable fields after a document is created.
+     * affectedKeys() returns only keys that differ between old and new data.
+     */
+    function didNotChange(field) {
+      return !(request.resource.data.diff(resource.data).affectedKeys().hasAny([field]));
+    }
+
+    /**
+     * Prevents changing any of the listed immutable fields.
+     */
+    function noneChanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    /**
+     * True if the caller owns the document (createdBy.uid matches their UID).
+     * Requires the stored document to have a top-level uid field OR
+     * a nested createdBy.uid.
+     * NOTE: Use with caution — ownership is not a substitute for role checks.
+     */
+    function isOwner(resource) {
+      return resource.data.uid == request.auth.uid ||
+             (resource.data.keys().hasAny(['createdByUid']) &&
+              resource.data.createdByUid == request.auth.uid);
+    }
+
+    // =========================================================================
+    // SECTION 4 — USERS COLLECTION
+    //   Central authority for roles and account status.
+    // =========================================================================
+
+    match /users/{userId} {
+
+      // Users can read their own profile; admins can read all.
+      // (Profile is needed for role resolution on every page load.)
+      allow read: if isAuthenticated() &&
+                     (request.auth.uid == userId || isAdmin());
+
+      // Admins create user profiles after Firebase Auth account creation.
+      allow create: if isAdmin()
+                    && isNonEmptyString(request.resource.data, 'nome')
+                    && isNonEmptyString(request.resource.data, 'email')
+                    && isValidEnum(request.resource.data, 'role',
+                         ['admin', 'maintenance', 'operations', 'purchasing'])
+                    && request.resource.data.ativo is bool;
+
+      // Two update paths:
+      //   1. Admin can change any field (role reassignment, deactivation, etc.)
+      //   2. User can update ONLY their own lastLogin timestamp — nothing else.
+      allow update: if (
+        isAdmin()
+      ) || (
+        isAuthenticated() &&
+        request.auth.uid == userId &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLogin'])
+      );
+
+      // Hard deletes: admin only. Prefer desativarUsuario() (soft delete) instead.
+      allow delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // SECTION 5 — WORK_ORDERS
+    //   Core operational collection. Highest change volume.
+    //   Status transitions are the most security-sensitive operations.
+    // =========================================================================
+
+    match /work_orders/{woId} {
+
+      // All authenticated roles can read work orders.
+      // purchasing needs read-only to link POs to WOs.
+      allow read: if isAnyRole();
+
+      // CREATE — maintenance or operations can open a WO.
+      // purchasing is excluded (they react to WOs, don't create them).
+      // Validate minimum required fields on creation.
+      allow create: if (isMaintenance() || isOperations())
+                    && isValidWOType(request.resource.data)
+                    && isValidWOStatus(request.resource.data)
+                    && isValidWOPriority(request.resource.data)
+                    && isNonEmptyString(request.resource.data, 'title')
+                    && isNonEmptyString(request.resource.data, 'origin')
+                    // Prevent setting status=completed on creation
+                    && request.resource.data.status != 'completed'
+                    // Prevent fake createdAt timestamps
+                    && request.resource.data.createdAt == request.time;
+
+      // UPDATE — two-tier:
+      //   Maintenance/admin: full update (status changes, assignments, closure)
+      //   Operations: can update WO (add notes, attach photos) but CANNOT change
+      //               status, priority, or assignedTo (maintenance-owned fields)
+      allow update: if isMaintenance()
+                    // Protect immutable creation fields
+                    && noneChanged(['createdAt', 'origin', 'originId'])
+                    // Prevent clearing the number (auto-generated, permanent)
+                    && (
+                         !hasField(request.resource.data, 'numero') ||
+                         request.resource.data.numero == resource.data.numero
+                       )
+                    ||
+                    (
+                      isOperations() &&
+                      // Operations cannot change status, priority, or assignedTo
+                      noneChanged(['status', 'priority', 'assignedTo',
+                                   'createdAt', 'origin', 'originId'])
+                    );
+
+      // DELETE — admin only. WOs are audit records.
+      allow delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // SECTION 6 — DOCUMENTS (SRV-XXXX / PO-XXXX)
+    //   Formal documents generated from WOs and POs.
+    //   These are immutable once created — only admin can correct.
+    // =========================================================================
+
+    match /documents/{docId} {
+
+      // All roles can read documents.
+      allow read: if isAnyRole();
+
+      // CREATE — maintenance generates SRV docs; purchasing generates PO docs.
+      allow create: if (isMaintenance() || isPurchasing())
+                    // tipo must be one of the two known document types
+                    && isValidEnum(request.resource.data, 'tipo',
+                         ['service_report', 'purchase_document'])
+                    && isNonEmptyString(request.resource.data, 'numero')
+                    && isNonEmptyString(request.resource.data, 'sourceId')
+                    && isNonEmptyString(request.resource.data, 'emissor')
+                    && request.resource.data.emitidoEm == request.time;
+
+      // UPDATE — documents are treated as immutable. Only admin corrections.
+      allow update: if isAdmin();
+
+      // DELETE — admin only.
+      allow delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // SECTION 7 — PURCHASE_ORDERS
+    //   Approval workflow: pending → approved → ordered → received → cancelled
+    //   Only purchasing/admin can advance the approval states.
+    // =========================================================================
+
+    match /purchase_orders/{poId} {
+
+      // All roles can read purchase orders.
+      allow read: if isAnyRole();
+
+      // CREATE — any authenticated role can request a purchase.
+      // (maintenance creates from WO materials, operations from inspections)
+      allow create: if isAnyRole()
+                    && isValidPOCategory(request.resource.data)
+                    && isValidPOUrgency(request.resource.data)
+                    && isNonEmptyString(request.resource.data, 'solicitante')
+                    // New POs must always start as "pending"
+                    && request.resource.data.status == 'pending'
+                    // items must be a list
+                    && request.resource.data.items is list
+                    && request.resource.data.createdAt == request.time;
+
+      // UPDATE — two-tier:
+      //   purchasing/admin: full update including status transitions
+      //   any role: can update non-approval fields (add notes, attach references)
+      //             but CANNOT touch approval/rejection/status fields
+      allow update: if isPurchasing()
+                    && noneChanged(['createdAt'])
+                    // Validate any status change stays within allowed enum
+                    && (
+                         !hasField(request.resource.data, 'status') ||
+                         isValidPOStatus(request.resource.data)
+                       )
+                    ||
+                    (
+                      isAnyRole() &&
+                      noneChanged(['status', 'aprovadoPor', 'aprovadoPorUid',
+                                   'aprovadoEm', 'rejeitadoPor', 'rejeitadoPorUid',
+                                   'rejeitadoEm', 'createdAt'])
+                    );
+
+      // DELETE — admin only.
+      allow delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // SECTION 8 — CHECKLISTS_FROTA (Fleet Vehicle Inspections)
+    // =========================================================================
+
+    match /checklists_frota/{docId} {
+
+      allow read: if isAnyRole();
+
+      // CREATE — operations and maintenance create fleet inspection records.
+      allow create: if (isOperations() || isMaintenance())
+                    && isNonEmptyString(request.resource.data, 'vehicleId')
+                    && isNonEmptyString(request.resource.data, 'vehiclePlate')
+                    && isNonEmptyString(request.resource.data, 'inspector')
+                    && request.resource.data.checklist is list
+                    && request.resource.data.createdAt == request.time;
+
+      // UPDATE — operations/maintenance can update (e.g., backlink WO/PO IDs).
+      // Cannot change vehicleId or inspector after creation.
+      allow update: if (isOperations() || isMaintenance())
+                    && noneChanged(['vehicleId', 'vehiclePlate',
+                                   'inspector', 'createdAt']);
+
+      allow delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // SECTION 9 — MACHINE_INSPECTIONS (Machinery Inspection Records)
+    // =========================================================================
+
+    match /machine_inspections/{docId} {
+
+      allow read: if isAnyRole();
+
+      // CREATE — maintenance creates machinery inspection records.
+      // Operations allowed too (operator can run shift inspections).
+      allow create: if (isMaintenance() || isOperations())
+                    && isNonEmptyString(request.resource.data, 'machineId')
+                    && isNonEmptyString(request.resource.data, 'machineName')
+                    && isNonEmptyString(request.resource.data, 'inspector')
+                    && request.resource.data.items is list
+                    // status must be valid
+                    && isValidEnum(request.resource.data, 'status',
+                         ['OK', 'ATTENTION', 'CRITICAL', 'PENDING'])
+                    && request.resource.data.createdAt == request.time;
+
+      // UPDATE — maintenance only (post-processing: link WO IDs, add diagnosis).
+      // Cannot change core inspection data after submission.
+      allow update: if isMaintenance()
+                    && noneChanged(['machineId', 'machineName', 'inspector',
+                                   'items', 'createdAt']);
+
+      allow delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // SECTION 10 — CLEANING_INSPECTIONS (5S / Cleaning Audits v2)
+    // =========================================================================
+
+    match /cleaning_inspections/{docId} {
+
+      allow read: if isAnyRole();
+
+      // CREATE — operations and maintenance create cleaning audits.
+      allow create: if (isOperations() || isMaintenance())
+                    && isNonEmptyString(request.resource.data, 'zoneId')
+                    && isNonEmptyString(request.resource.data, 'zoneName')
+                    && request.resource.data.score is number
+                    && request.resource.data.score >= 0
+                    && request.resource.data.score <= 100
+                    && isValidCleaningStatus(request.resource.data)
+                    && request.resource.data.sections is list;
+
+      // UPDATE — allow linking WO IDs back to issues after creation.
+      allow update: if (isOperations() || isMaintenance())
+                    && noneChanged(['zoneId', 'employeeId', 'score',
+                                   'sections', 'dataCriacaoOficial']);
+
+      allow delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // SECTION 11 — AUDITORIAS_LIMPEZA (Legacy Cleaning Audits)
+    //   Kept for backward-compatibility reads. New writes go to cleaning_inspections.
+    //   This collection is being phased out.
+    // =========================================================================
+
+    match /auditorias_limpeza/{docId} {
+
+      allow read: if isAnyRole();
+
+      // CREATE — only allowed for the legacy sync path (db-limpeza.js writes
+      // a mirror record when saving to cleaning_inspections).
+      allow create: if (isOperations() || isMaintenance())
+                    && isNonEmptyString(request.resource.data, 'zonaId')
+                    && isNonEmptyString(request.resource.data, 'funcionarioAvaliado')
+                    && request.resource.data.notaLimpeza is number;
+
+      // UPDATE — allow legacy linkback updates.
+      allow update: if (isOperations() || isMaintenance())
+                    && noneChanged(['zonaId', 'funcionarioAvaliado',
+                                   'notaLimpeza', 'dataCriacaoOficial']);
+
+      allow delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // SECTION 12 — MACHINE_STATE (Machinery KPI Cache)
+    //   Written by machine-state-engine.js after WO closes or inspection saves.
+    //   Document ID = machineId (e.g., "MIS-001").
+    //   No direct client write should originate from UI buttons.
+    // =========================================================================
+
+    match /machine_state/{machineId} {
+
+      // All roles can read machine state (used in dashboard, machinery panel).
+      allow read: if isAnyRole();
+
+      // CREATE — maintenance or operations can initialise a state record.
+      allow create: if (isMaintenance() || isOperations())
+                    && isValidMachineStatus(request.resource.data)
+                    && request.resource.data.updatedAt == request.time;
+
+      // UPDATE — maintenance/operations update state after WO events.
+      // Protect currentStatus integrity: only valid enum values allowed.
+      allow update: if (isMaintenance() || isOperations())
+                    && (
+                         !hasField(request.resource.data, 'currentStatus') ||
+                         isValidMachineStatus(request.resource.data)
+                       )
+                    && request.resource.data.updatedAt == request.time;
+
+      allow delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // SECTION 13 — VEHICLE_STATE (Fleet KPI Cache)
+    //   Mirror of machine_state for fleet vehicles.
+    //   Written by vehicle-state-engine.js.
+    //   Document ID = vehicleId.
+    // =========================================================================
+
+    match /vehicle_state/{vehicleId} {
+
+      allow read: if isAnyRole();
+
+      allow create: if (isMaintenance() || isOperations())
+                    && isValidMachineStatus(request.resource.data)
+                    && request.resource.data.updatedAt == request.time;
+
+      allow update: if (isMaintenance() || isOperations())
+                    && (
+                         !hasField(request.resource.data, 'currentStatus') ||
+                         isValidMachineStatus(request.resource.data)
+                       )
+                    && request.resource.data.updatedAt == request.time;
+
+      allow delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // SECTION 14 — FORNECEDORES (Supplier Master Data)
+    //   Managed exclusively by purchasing role.
+    //   Other roles need read access when creating purchase orders.
+    // =========================================================================
+
+    match /fornecedores/{docId} {
+
+      // All roles need read access to select suppliers on purchase orders.
+      allow read: if isAnyRole();
+
+      // CREATE — purchasing or admin only.
+      allow create: if isPurchasing()
+                    && isNonEmptyString(request.resource.data, 'nome')
+                    && request.resource.data.nome.size() >= 2
+                    && isValidSupplierCategory(request.resource.data)
+                    && request.resource.data.ativo is bool
+                    && request.resource.data.criadoEm == request.time;
+
+      // UPDATE — purchasing or admin only.
+      // Cannot change criadoEm (creation timestamp must be immutable).
+      allow update: if isPurchasing()
+                    && didNotChange('criadoEm')
+                    && (
+                         !hasField(request.resource.data, 'avaliacao') ||
+                         (request.resource.data.avaliacao is number &&
+                          request.resource.data.avaliacao >= 1 &&
+                          request.resource.data.avaliacao <= 5)
+                       )
+                    && (
+                         !hasField(request.resource.data, 'nome') ||
+                         request.resource.data.nome.size() >= 2
+                       );
+
+      // DELETE — admin only (prefer desativarFornecedor instead).
+      allow delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // SECTION 15 — HISTORICO_MANUTENCAO (Legacy Maintenance Records)
+    //   This collection is READ-ONLY from a security perspective.
+    //   New code writes to work_orders. Legacy forms still write here via db.js
+    //   (formulario-maquinario.html), but this is being phased out.
+    //   Once migration is complete, change create/update to `if false`.
+    // =========================================================================
+
+    match /historico_manutencao/{docId} {
+
+      // All roles need read access (bridge queries in db-bridge.js).
+      allow read: if isAnyRole();
+
+      // TEMPORARY: maintenance can still create legacy records.
+      // TODO: Set to `if false` after migration to work_orders is complete.
+      allow create: if isMaintenance()
+                    && hasField(request.resource.data, 'dadosEquipamento')
+                    && hasField(request.resource.data, 'diagnostico');
+
+      // TEMPORARY: maintenance can still update legacy records.
+      // TODO: Set to `if false` after migration.
+      allow update: if isMaintenance()
+                    && noneChanged(['dadosEquipamento', 'dataCriacaoOficial']);
+
+      // Hard delete: admin only.
+      allow delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // SECTION 16 — KPI_CACHE (Pre-aggregated Dashboard Metrics)
+    //   Written by Cloud Functions (Phase 2) or admin manually.
+    //   Clients should NEVER write to this collection directly.
+    //   Until CF is active, admin can write manually via dashboard.
+    // =========================================================================
+
+    match /kpi_cache/{docId} {
+
+      // All roles need read access (dashboard).
+      allow read: if isAnyRole();
+
+      // Write: admin only until Cloud Functions service account takes over.
+      // When CF is deployed, remove this and rely on service account bypass.
+      allow write: if isAdmin();
+    }
+
+    // =========================================================================
+    // SECTION 17 — CATCH-ALL
+    //   Deny all access to any collection not explicitly listed above.
+    //   This is the most important security rule — deny by default.
+    // =========================================================================
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+  } // end match /databases/{database}/documents
+} // end service cloud.firestore
+
+
+================================================================================
+  APPENDIX A — SECURITY WARNINGS
+================================================================================
+
+  ⚠ WARNING 1 — ROLE READ ON EVERY REQUEST (CRITICAL PERFORMANCE ISSUE)
+  -----------------------------------------------------------------------
+  All role checks call:
+    get(/databases/$(database)/documents/users/$(request.auth.uid))
+
+  This costs 1 Firestore read per security rule evaluation. On a page with
+  10 concurrent listeners, you may be charged 10 extra reads per second.
+
+  RECOMMENDED FIX:
+    Migrate roles to Firebase Auth Custom Claims:
+      await admin.auth().setCustomUserClaims(uid, { role: "maintenance" });
+
+    Then replace all _userDoc().role calls with:
+      request.auth.token.role
+
+    And replace all isActive() calls with:
+      request.auth.token.ativo == true
+
+    This eliminates all extra Firestore reads from security rules entirely.
+
+
+  ⚠ WARNING 2 — NO FIELD COUNT LIMIT
+  ------------------------------------
+  Firestore security rules cannot limit the number of fields in a document.
+  A malicious client could write documents with thousands of extra fields.
+
+  RECOMMENDED FIX:
+    Enforce field allow-lists in Cloud Functions (CF) before writes,
+    or validate on the client before calling addDoc/updateDoc.
+
+
+  ⚠ WARNING 3 — SERVER TIMESTAMP VALIDATION IS PARTIALLY ENFORCED
+  -----------------------------------------------------------------
+  Rules check `request.resource.data.createdAt == request.time` on creation.
+  However, request.time is the server evaluation time — if the SDK clock is
+  skewed by a few milliseconds, this check may fail.
+
+  RECOMMENDED FIX:
+    If you see legitimate write failures, loosen the check:
+      request.resource.data.createdAt is timestamp
+    instead of strict equality, and enforce canonical timestamps in CF.
+
+
+  ⚠ WARNING 4 — AUTO-CREATED WOs FROM INSPECTIONS BYPASS SOME CHECKS
+  --------------------------------------------------------------------
+  db-frota.js and db-maquinas.js auto-create work_orders via non-blocking
+  promises (fire-and-forget). These writes bypass the UI validation layer.
+  If Firestore rules reject them (e.g., wrong status enum), the failure is
+  silent from the user's perspective.
+
+  RECOMMENDED FIX:
+    Move auto-WO creation to Cloud Functions triggered by inspection
+    document creation. Functions run with service account (bypass rules)
+    and can be monitored via Cloud Logging.
+
+
+  ⚠ WARNING 5 — DOCUMENTS ARE COPIES, NOT REFERENCES
+  ---------------------------------------------------
+  documents/{docId}.sourceData is a full snapshot of the WO/PO at generation
+  time. A user could manually craft a document with falsified sourceData.
+
+  RECOMMENDED FIX:
+    Move document generation to a CF HTTP callable. The function reads the
+    live WO/PO from Firestore server-side and writes the document atomically.
+    Client never touches sourceData directly.
+
+
+  ⚠ WARNING 6 — historico_manutencao IS STILL WRITABLE
+  -----------------------------------------------------
+  Until the `allow create: if isMaintenance()` is changed to `if false`,
+  the legacy collection remains a write target. Plan a hard cutover date.
+
+
+  ⚠ WARNING 7 — NO RATE LIMITING
+  --------------------------------
+  Firestore Security Rules cannot enforce write rate limits per user.
+  A client could create thousands of purchase_orders in a loop.
+
+  RECOMMENDED FIX:
+    Use Firebase App Check to restrict API access to legitimate app clients.
+    Use Cloud Functions with per-user throttle logic for critical write paths.
+
+
+================================================================================
+  APPENDIX B — REQUIRED COMPOSITE INDEXES
+================================================================================
+
+  (These are required for multi-field queries — Firestore rejects them without)
+
+  Collection: work_orders
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ origin ASC + originId ASC + timestampEnvio DESC                        │
+  │ originId ASC + timestampEnvio DESC                                     │
+  │ status ASC + timestampEnvio DESC                                       │
+  │ origem ASC + timestampEnvio DESC          (legacy bridge queries)      │
+  │ timestampEnvio DESC                       (dashboard full scan)        │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  Collection: purchase_orders
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ status ASC + timestampEnvio DESC          (obterPedidosPendentes)      │
+  │ osOrigemId ASC + timestampEnvio DESC      (obterPedidosPorOS)          │
+  │ vehicleId ASC + timestampEnvio DESC       (fleet PO lookup)            │
+  │ timestampEnvio DESC                       (dashboard)                  │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  Collection: documents
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ tipo ASC + emitidoEm DESC                 (type filter + sort)         │
+  │ sourceId ASC + emitidoEm DESC             (backlink lookup)            │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  Collection: machine_inspections
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ machineId ASC + timestampEnvio DESC       (per-machine history)        │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  Collection: checklists_frota
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ header.vehicleId ASC + timestampEnvio DESC                             │
+  │ timestampEnvio DESC                       (dashboard)                  │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  Collection: auditorias_limpeza
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ zonaId ASC + timestampEnvio DESC          (per-zone history)           │
+  │ timestampEnvio DESC                       (dashboard)                  │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  Collection: cleaning_inspections
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ zoneId ASC + timestampEnvio DESC          (per-zone history)           │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  Collection: historico_manutencao
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ dadosEquipamento.id ASC + timestampEnvio DESC  (machine-state-engine)  │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  Collection: fornecedores
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ ativo ASC + nome ASC                      (active supplier list)       │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+  APPENDIX C — MIGRATION NOTES
+================================================================================
+
+  PHASE 1 — IMMEDIATE (no code changes)
+  ───────────────────────────────────────
+  ✔ Deploy these rules as-is.
+  ✔ historico_manutencao: maintenance can still write (legacy forms active).
+  ✔ kpi_cache: admin can write manually (no Cloud Functions yet).
+
+  PHASE 2 — AFTER MIGRATION COMPLETE (code changes required)
+  ───────────────────────────────────────────────────────────
+  When formulario-maquinario.html is fully migrated to write only to
+  work_orders and no longer writes to historico_manutencao:
+
+    Change in SECTION 15:
+      allow create: if false;
+      allow update: if false;
+
+  PHASE 3 — CUSTOM CLAIMS MIGRATION (breaking change)
+  ─────────────────────────────────────────────────────
+  When Admin SDK / Cloud Functions are available:
+
+  1. Run migration script: set custom claims for all users:
+       admin.auth().setCustomUserClaims(uid, { role: perfil.role, ativo: true })
+
+  2. Replace in rules (SECTIONS 1–2):
+       function getRole()  →  request.auth.token.role
+       function isActive() →  request.auth.token.ativo == true
+       function _userDoc() →  (remove entirely)
+
+  3. Keep users collection for profile display only (nome, email, etc.)
+     No longer needed for role resolution.
+
+  4. On user deactivation (desativarUsuario), also revoke the custom claim:
+       admin.auth().setCustomUserClaims(uid, { role: perfil.role, ativo: false })
+     AND revoke all sessions:
+       admin.auth().revokeRefreshTokens(uid)
+
+  PHASE 4 — CLOUD FUNCTIONS FOR CRITICAL WRITES
+  ───────────────────────────────────────────────
+  Move to CF HTTP callables (service account bypasses rules, adds atomicity):
+    - gerarDocumentoServico()   → CF: onDocumentGenerate
+    - gerarDocumentoCompra()    → CF: onDocumentGenerate
+    - criarPedidoFromOS()       → CF: onWorkOrderClose (Firestore trigger)
+    - autoWorkOrderFrota()      → CF: onInspectionCreate (Firestore trigger)
+    - autoWorkOrderMaquina()    → CF: onInspectionCreate (Firestore trigger)
+    - updateMachineState()      → CF: onWorkOrderClose  (Firestore trigger)
+    - updateVehicleState()      → CF: onWorkOrderClose  (Firestore trigger)
+    - Dashboard KPI aggregation → CF: scheduled daily
+
+  Once CF handles these writes:
+    - Remove client-side write permissions for those paths
+    - Set machine_state / vehicle_state:  allow create/update: if false
+    - kpi_cache:                          allow write: if false
+
+
+================================================================================
+  END OF FILE
+================================================================================
