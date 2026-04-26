@@ -1,18 +1,28 @@
 {
-  "name": "html-css",
-  "version": "1.0.0",
-  "description": "A template for HTML and CSS",
-  "main": "index.html",
+  "name": "siga-management",
+  "version": "2.0.0",
+  "type": "module",
   "scripts": {
-    "start": "serve"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "legacy": "serve"
   },
-  "keywords": [
-    "html",
-    "css"
-  ],
-  "author": "Ives van Hoorne",
-  "license": "MIT",
+  "dependencies": {
+    "@firebase/auth": "^1.13.0",
+    "firebase": "^10.7.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.22.0",
+    "recharts": "^3.8.1",
+    "zustand": "^4.5.0"
+  },
   "devDependencies": {
-    "serve": "11.2.0"
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.1",
+    "serve": "11.2.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.1.0"
   }
 }
