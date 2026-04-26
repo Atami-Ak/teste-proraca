@@ -24,7 +24,7 @@ export default function EmployeeRankingPage() {
   useEffect(() => {
     getEmployees(true)
       .then(list => {
-        setEmployees(list.sort((a, b) => b.scorePerformance - a.scorePerformance))
+        setEmployees([...list].sort((a, b) => b.scorePerformance - a.scorePerformance))
       })
       .catch(() => setError('Falha ao carregar dados. Tente novamente.'))
       .finally(() => setLoading(false))
