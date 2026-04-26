@@ -51,6 +51,7 @@ export interface KpiMetric {
 // trend color logic (exported for KpiCard):
 // severity=critical → trend>0 = red (bad), trend<0 = green (good)
 // severity=good     → trend>0 = green, trend<0 = red
+// severity=warning  → trend>0 = green, trend<0 = red  (same as good)
 // severity=neutral  → always gray
 export function trendColor(severity: KpiSeverity, trend: number): string {
   if (severity === 'neutral' || trend === 0) return '#94a3b8'

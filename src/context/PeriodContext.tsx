@@ -1,6 +1,6 @@
 // src/context/PeriodContext.tsx
 
-import { createContext, useContext, useState, useMemo } from 'react'
+import { createContext, useContext, useState, useMemo, useCallback } from 'react'
 import type { Period, DateRange } from '@/types/dashboard'
 import { getPeriodRanges }        from '@/types/dashboard'
 
@@ -16,15 +16,19 @@ interface PeriodContextValue {
 const PeriodContext = createContext<PeriodContextValue | null>(null)
 
 export function PeriodProvider({ children }: { children: React.ReactNode }) {
+  const VALID: Period[] = ['30d', '90d', '6m', '1a']
+
   const [period, setPeriodState] = useState<Period>(() => {
     const stored = localStorage.getItem(STORAGE_KEY)
-    return (stored as Period | null) ?? '30d'
+    return stored !== null && (VALID as string[]).includes(stored)
+      ? (stored as Period)
+      : '30d'
   })
 
-  function setPeriod(p: Period) {
+  const setPeriod = useCallback((p: Period) => {
     localStorage.setItem(STORAGE_KEY, p)
     setPeriodState(p)
-  }
+  }, [])
 
   const ranges = useMemo(() => getPeriodRanges(period), [period])
 
