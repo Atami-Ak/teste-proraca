@@ -17,6 +17,7 @@ const SCORE_COLOR: Record<string, string> = {
 export default function EmployeeRankingPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading,   setLoading]   = useState(true)
+  const [error,     setError]     = useState<string | null>(null)
   const [deptFilter, setDept]     = useState('')
   const [statusFilter, setStatus] = useState('')
 
@@ -25,6 +26,7 @@ export default function EmployeeRankingPage() {
       .then(list => {
         setEmployees(list.sort((a, b) => b.scorePerformance - a.scorePerformance))
       })
+      .catch(() => setError('Falha ao carregar dados. Tente novamente.'))
       .finally(() => setLoading(false))
   }, [])
 
@@ -41,12 +43,16 @@ export default function EmployeeRankingPage() {
     })
   }, [employees, deptFilter, statusFilter])
 
-  const avgScore   = ranked.length > 0 ? Math.round(ranked.reduce((s, e) => s + e.scorePerformance, 0) / ranked.length) : 0
+  const avgScore   = ranked.length > 0 ? Math.round(ranked.reduce((acc, e) => acc + e.scorePerformance, 0) / ranked.length) : 0
   const excelentes = ranked.filter(e => e.statusPerformance === 'excelente' || e.statusPerformance === 'muito_bom').length
   const criticos   = ranked.filter(e => e.statusPerformance === 'critico').length
 
   if (loading) {
     return <div className={s.page}><p style={{ color: 'var(--text-3)' }}>Carregando ranking…</p></div>
+  }
+
+  if (error) {
+    return <div className={s.page}><p style={{ color: 'var(--danger)' }}>{error}</p></div>
   }
 
   return (

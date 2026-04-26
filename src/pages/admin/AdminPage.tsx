@@ -63,7 +63,7 @@ export default function AdminPage() {
               <div className={s.cardIcon}>{card.icon}</div>
               <div className={s.cardTitle}>{card.title}</div>
               <div className={s.cardDesc}>{card.desc}</div>
-              {card.soon && <span className={s.comingSoon}>Em breve — integração com Dashboard</span>}
+              {card.soon && <span className={s.comingSoon}>Em breve</span>}
             </>
           )
 

@@ -32,6 +32,7 @@
 .cardPlaceholder {
   opacity: 0.55;
   cursor: default;
+  transition: none;
 }
 .cardPlaceholder:hover { transform: none; box-shadow: var(--shadow-xs); border-color: var(--border-light); }
 
