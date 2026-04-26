@@ -54,10 +54,10 @@ const InspecaoObraPage      = lazy(() => import('@/pages/obras/InspecaoObraPage'
 const EmpreiteirasPage      = lazy(() => import('@/pages/empreiteiras/EmpreiteirasPage'))
 const EmpreiteiraDetailPage = lazy(() => import('@/pages/empreiteiras/EmpreiteiraDetailPage'))
 
-// ── Admin & Ranking (pages not yet created) ───────────
-// @ts-ignore
+// ── Admin & Ranking ───────────────────────────────────
+// @ts-expect-error — created in Phase 2, Task 5
 const EmployeeRankingPage   = lazy(() => import('@/pages/employees/EmployeeRankingPage'))
-// @ts-ignore
+// @ts-expect-error — created in Phase 2, Task 6
 const AdminPage             = lazy(() => import('@/pages/admin/AdminPage'))
 
 // ── Shared loading fallback ────────────────────────────
@@ -140,10 +140,10 @@ export default function App() {
         <Route path="colaboradores"                        element={<Lazy page={<EmployeeDashboardPage />} />} />
         <Route path="colaboradores/lista"                  element={<Lazy page={<EmployeeListPage />} />} />
         <Route path="colaboradores/novo"                   element={<Lazy page={<EmployeeFormPage />} />} />
+        <Route path="colaboradores/ranking"                element={<Lazy page={<EmployeeRankingPage />} />} />
         <Route path="colaboradores/:id"                    element={<Lazy page={<EmployeeProfilePage />} />} />
         <Route path="colaboradores/:id/editar"             element={<Lazy page={<EmployeeFormPage />} />} />
         <Route path="colaboradores/:id/avaliacao"          element={<Lazy page={<EmployeeEvaluationFormPage />} />} />
-        <Route path="colaboradores/ranking"               element={<Lazy page={<EmployeeRankingPage />} />} />
 
         {/* ── Obras & Empreiteiras module ── */}
         <Route path="obras"                                      element={<Lazy page={<ObrasPage />} />} />
@@ -155,13 +155,9 @@ export default function App() {
         <Route path="empreiteiras"                               element={<Lazy page={<EmpreiteirasPage />} />} />
         <Route path="empreiteiras/:empreiteiraId"                element={<Lazy page={<EmpreiteiraDetailPage />} />} />
 
-        {/* ── Admin (admin-only) ── */}
+        {/* ── Admin-only routes ── */}
         <Route element={<ProtectedRoute requiredRole="admin" />}>
-          <Route path="admin" element={<Lazy page={<AdminPage />} />} />
-        </Route>
-
-        {/* ── Dashboard (admin-only legacy iframe) ── */}
-        <Route element={<ProtectedRoute requiredRole="admin" />}>
+          <Route path="admin"     element={<Lazy page={<AdminPage />} />} />
           <Route path="dashboard" element={<LegacyPage src="/dashboard/dashboard.html" label="Painel de Gestão" />} />
         </Route>
 
