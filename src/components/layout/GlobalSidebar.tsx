@@ -227,7 +227,6 @@ export default function GlobalSidebar({ mobileOpen, onMobileClose }: Props) {
             {group.label && (
               <div className={s.groupLabel} aria-hidden="true">{group.label}</div>
             )}
-            {gi > 0 && !group.label && <div className={s.groupDivider} />}
 
             {group.items.map(({ to, icon, label, end }) => (
               <NavLink
