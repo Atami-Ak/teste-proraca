@@ -1,4 +1,4 @@
-import { useState }            from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { useStore }            from '@/store/useStore'
 import GlobalSidebar           from './GlobalSidebar'
@@ -11,6 +11,10 @@ export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const isAtivosModule = location.pathname.startsWith('/ativos')
+
+  useEffect(() => {
+    if (isAtivosModule) setMobileOpen(false)
+  }, [isAtivosModule])
 
   if (!authReady) {
     return (

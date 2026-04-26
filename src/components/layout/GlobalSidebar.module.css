@@ -1,0 +1,353 @@
+/* ═══════════════════════════════════════════════════════════
+   GlobalSidebar — Pro Raça Rações
+   Collapsed: 68px icon-only  |  Hover/Open: 248px full labels
+   ═══════════════════════════════════════════════════════════ */
+
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: var(--sidebar-w, 68px);
+  background: var(--sidebar-bg, #081C3A);
+  display: flex;
+  flex-direction: column;
+  z-index: 200;
+  transition: width var(--t-slow, 0.28s ease);
+  overflow: hidden;
+  box-shadow: 2px 0 24px rgba(5,46,22,0.35);
+}
+
+/* Thin top accent line — brand identity */
+.sidebar::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--brand-accent, #2F6BFF), transparent);
+  pointer-events: none;
+}
+
+/* Desktop hover expand */
+@media (hover: hover) and (min-width: 901px) {
+  .sidebar:hover { width: var(--sidebar-w-exp, 248px); }
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  height: 62px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--sidebar-border, rgba(255,255,255,0.07));
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  text-decoration: none;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Brand mark — Pro Raça Rações */
+.logoMark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #ea580c 0%, #052e16 100%);
+  color: #fff;
+  font-weight: 900;
+  font-size: 0.95rem;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(234,88,12,0.4);
+}
+
+.logoText {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: opacity var(--t-slow, 0.28s), max-width var(--t-slow, 0.28s);
+  max-width: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (min-width: 901px) {
+  .sidebar:hover .logoText { max-width: 180px; opacity: 1; pointer-events: auto; }
+}
+.sidebar.mobileOpen .logoText { max-width: 180px; opacity: 1; pointer-events: auto; }
+
+.logoName {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #F8FAFC;
+  letter-spacing: 2px;
+  line-height: 1.1;
+}
+.logoSub {
+  font-size: 0.55rem;
+  color: rgba(148,163,184,0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-top: 1px;
+}
+
+/* Mobile close btn */
+.mobileCloseBtn {
+  display: none;
+  background: none;
+  border: none;
+  color: rgba(148,163,184,0.6);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--r-sm, 6px);
+  align-items: center;
+  flex-shrink: 0;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.mobileCloseBtn:hover { background: var(--sidebar-hover); color: #F8FAFC; }
+@media (max-width: 900px) { .mobileCloseBtn { display: flex; } }
+
+/* ── Nav ── */
+.nav {
+  flex: 1;
+  padding: 10px 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.nav::-webkit-scrollbar       { width: 3px; }
+.nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 3px; }
+
+.navGroup { margin-bottom: 4px; }
+
+/* Group labels */
+.groupLabel {
+  font-size: 0.55rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.1px;
+  color: rgba(234,88,12,0.75);
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: 0;
+  height: 0;
+  padding: 0;
+  transition: opacity var(--t-base), height var(--t-base), padding var(--t-base);
+}
+
+@media (hover: hover) and (min-width: 901px) {
+  .sidebar:hover .groupLabel {
+    opacity: 1;
+    height: auto;
+    padding: 12px 18px 5px;
+  }
+}
+.sidebar.mobileOpen .groupLabel { opacity: 1; height: auto; padding: 12px 18px 5px; }
+
+.groupDivider {
+  border: none;
+  border-top: 1px solid var(--sidebar-border, rgba(255,255,255,0.06));
+  margin: 6px 14px;
+}
+
+/* ── Nav item ── */
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px 9px 16px;
+  margin: 1px 8px;
+  border-radius: var(--r-md, 10px);
+  color: var(--sidebar-text, #94A3B8);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: var(--fw-med, 500);
+  position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+
+.item:hover {
+  background: var(--sidebar-hover, rgba(255,255,255,0.06));
+  color: #F8FAFC;
+}
+
+/* Active state */
+.active {
+  background: var(--sidebar-active-bg, rgba(47,107,255,0.15));
+  color: var(--sidebar-active-color, #2F6BFF);
+  font-weight: var(--fw-semi, 600);
+}
+
+.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 18%;
+  bottom: 18%;
+  width: 3px;
+  background: var(--brand-accent, #2F6BFF);
+  border-radius: 0 3px 3px 0;
+}
+
+.icon {
+  font-size: 1.05rem;
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity var(--t-slow), max-width var(--t-slow);
+  max-width: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (min-width: 901px) {
+  .sidebar:hover .label { max-width: 180px; opacity: 1; pointer-events: auto; }
+}
+.sidebar.mobileOpen .label { max-width: 180px; opacity: 1; pointer-events: auto; }
+
+/* Tooltip — icon-only state */
+@media (hover: hover) and (min-width: 901px) {
+  .item::after {
+    content: attr(data-tip);
+    position: absolute;
+    left: calc(var(--sidebar-w, 68px) + 10px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: #052e16;
+    color: #F8FAFC;
+    border: 1px solid rgba(234,88,12,0.25);
+    padding: 5px 12px;
+    border-radius: var(--r-md, 10px);
+    font-size: 0.78rem;
+    font-weight: var(--fw-semi, 600);
+    white-space: nowrap;
+    box-shadow: var(--shadow-lg);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.1s;
+    z-index: 999;
+  }
+  .sidebar:not(:hover) .item:hover::after { opacity: 1; }
+}
+
+/* Bottom nav (smaller items) */
+.bottomNav { padding: 0 0 6px; flex-shrink: 0; }
+.itemSm    { padding-top: 7px !important; padding-bottom: 7px !important; }
+.itemSm .icon { font-size: 0.9rem !important; }
+
+/* ── User footer ── */
+.footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--sidebar-border, rgba(255,255,255,0.07));
+  padding: 10px;
+}
+
+.userRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px;
+  border-radius: var(--r-md, 10px);
+  overflow: hidden;
+  cursor: default;
+  transition: background var(--t-fast);
+}
+.userRow:hover { background: var(--sidebar-hover); }
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #ea580c 0%, #052e16 100%);
+  color: white;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(234,88,12,0.35);
+}
+
+.userMeta {
+  overflow: hidden;
+  transition: opacity var(--t-slow), max-width var(--t-slow);
+  max-width: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+@media (hover: hover) and (min-width: 901px) {
+  .sidebar:hover .userMeta { max-width: 180px; opacity: 1; pointer-events: auto; }
+}
+.sidebar.mobileOpen .userMeta { max-width: 180px; opacity: 1; pointer-events: auto; }
+
+.userName {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #F8FAFC;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.userRole {
+  display: block;
+  font-size: 0.57rem;
+  color: rgba(148,163,184,0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-top: 1px;
+}
+
+.logoutBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(148,163,184,0.5);
+  font-size: 1rem;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: color 0.15s, background 0.15s;
+  margin-left: auto;
+  opacity: 0;
+  pointer-events: none;
+}
+.logoutBtn:hover { color: #F87171; background: rgba(248,113,113,0.12); }
+@media (hover: hover) and (min-width: 901px) {
+  .sidebar:hover .logoutBtn { opacity: 1; pointer-events: auto; }
+}
+.sidebar.mobileOpen .logoutBtn { opacity: 1; pointer-events: auto; }
+
+/* ── Mobile ── */
+@media (max-width: 900px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: 268px !important;
+    transition: transform var(--t-slow, 0.28s ease);
+    box-shadow: none;
+  }
+  .sidebar.mobileOpen {
+    transform: translateX(0);
+    box-shadow: 8px 0 40px rgba(5,46,22,0.5);
+  }
+}
