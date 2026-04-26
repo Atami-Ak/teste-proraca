@@ -17,6 +17,8 @@
   flex: 1;
   min-width: 0;
   width: 100%;
+  max-width: 1600px;
+  margin-inline: auto;
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
