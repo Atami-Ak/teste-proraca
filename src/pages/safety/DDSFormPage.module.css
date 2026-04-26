@@ -1,0 +1,243 @@
+/* DDSFormPage */
+
+.page {
+  padding: 24px 32px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.btnBack {
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  color: var(--text-3, #8898AA);
+  cursor: pointer;
+  padding: 4px 0;
+}
+.btnBack:hover { color: var(--text, #1B2430); }
+.pageTitle { font-size: 1.3rem; font-weight: 800; color: var(--text, #1B2430); margin: 0; }
+
+/* Grid */
+.formGrid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.formCol { display: flex; flex-direction: column; gap: 16px; }
+
+/* Card */
+.card {
+  background: var(--bg-card, #fff);
+  border: 1.5px solid var(--border, #D9E1EC);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.cardTitle {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text, #1B2430);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.presCount {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #166534;
+  background: rgba(22,101,52,0.08);
+  padding: 2px 10px;
+  border-radius: 20px;
+}
+
+/* Fields */
+.fieldRow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-2, #4A5568);
+}
+.input {
+  padding: 9px 12px;
+  border: 1.5px solid var(--border, #D9E1EC);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--text, #1B2430);
+  background: var(--bg-card, #fff);
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.input:focus { border-color: #166534; }
+.textarea {
+  padding: 9px 12px;
+  border: 1.5px solid var(--border, #D9E1EC);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--text, #1B2430);
+  background: var(--bg-card, #fff);
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  resize: vertical;
+}
+.textarea:focus { border-color: #166534; }
+
+/* Attendance */
+.addColabRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+}
+.btnAdd {
+  width: 36px; height: 36px;
+  background: #166534;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  align-self: end;
+}
+.btnAdd:hover { background: #14532d; }
+
+.bulkSign {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-2, #4A5568);
+  cursor: pointer;
+}
+.bulkSign input { cursor: pointer; }
+
+.emptyColab {
+  padding: 16px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-3, #8898AA);
+  background: var(--bg, #F5F7FA);
+  border-radius: 8px;
+}
+
+.colabList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.colabRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: var(--bg, #F5F7FA);
+  border-radius: 7px;
+}
+.colabCheck {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  flex: 1;
+}
+.colabInfo { display: flex; flex-direction: column; gap: 1px; }
+.colabNome  { font-size: 0.85rem; font-weight: 600; color: var(--text, #1B2430); }
+.colabFuncao{ font-size: 0.72rem; color: var(--text-3, #8898AA); }
+
+.btnRemove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-3, #8898AA);
+  font-size: 1.1rem;
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+.btnRemove:hover { color: #dc2626; background: rgba(220,38,38,0.08); }
+
+.assinSummary {
+  font-size: 0.78rem;
+  color: #166534;
+  font-weight: 600;
+  padding: 6px 10px;
+  background: rgba(22,101,52,0.06);
+  border-radius: 6px;
+}
+
+/* Submit */
+.submitRow {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 10px;
+}
+.btnDraft {
+  padding: 11px;
+  background: transparent;
+  border: 1.5px solid var(--border, #D9E1EC);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-2, #4A5568);
+  cursor: pointer;
+  transition: border-color 0.18s;
+}
+.btnDraft:hover { border-color: #94a3b8; }
+.btnDraft:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btnSubmit {
+  padding: 11px;
+  background: #166534;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.18s;
+}
+.btnSubmit:hover { background: #14532d; }
+.btnSubmit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Loading */
+.loadingWrap { display: flex; justify-content: center; padding: 60px; }
+.spinner {
+  width: 22px; height: 22px;
+  border: 3px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Responsive */
+@media (max-width: 860px) {
+  .formGrid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .page { padding: 16px; }
+  .fieldRow { grid-template-columns: 1fr; }
+  .addColabRow { grid-template-columns: 1fr 1fr auto; }
+}
