@@ -55,9 +55,7 @@ const EmpreiteirasPage      = lazy(() => import('@/pages/empreiteiras/Empreiteir
 const EmpreiteiraDetailPage = lazy(() => import('@/pages/empreiteiras/EmpreiteiraDetailPage'))
 
 // ── Admin & Ranking ───────────────────────────────────
-// @ts-expect-error — created in Phase 2, Task 5
 const EmployeeRankingPage   = lazy(() => import('@/pages/employees/EmployeeRankingPage'))
-// @ts-expect-error — created in Phase 2, Task 6
 const AdminPage             = lazy(() => import('@/pages/admin/AdminPage'))
 
 // ── Shared loading fallback ────────────────────────────
