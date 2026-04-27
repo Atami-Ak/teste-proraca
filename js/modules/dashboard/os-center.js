@@ -55,6 +55,11 @@ export function iniciarOSCenter(rawWorkOrders, perfil, mostrarToast) {
   // "Nova O.S" button inside OS panel
   const btnNova = document.getElementById("btn-nova-os-panel");
   btnNova?.addEventListener("click", () => _abrirCriarModal());
+
+  // Listen for pre-filled OS creation from fleet/cleaning panels
+  document.addEventListener("siga:criar-os", (e) => {
+    _abrirCriarModalPrefill(e.detail || {});
+  });
 }
 
 // ============================================================
@@ -496,6 +501,29 @@ function _abrirCriarModal() {
 function _fecharCriarModal() {
   document.getElementById("modal-criar-os")?.classList.remove("visible");
   materiais = []; // Reset on close
+}
+
+function _abrirCriarModalPrefill(data) {
+  _abrirCriarModal();
+  // Pre-fill form fields after the reset settles (next animation frame)
+  requestAnimationFrame(() => {
+    if (data.tipo) {
+      const el = document.getElementById("modal-os-tipo");
+      if (el) { el.value = data.tipo; _mostrarSecaoModalTipo(data.tipo); }
+    }
+    if (data.origin) {
+      const el = document.getElementById("modal-os-origem");
+      if (el) el.value = data.origin;
+    }
+    if (data.originNome) {
+      const el = document.getElementById("modal-os-origin-nome");
+      if (el) el.value = data.originNome;
+    }
+    if (data.titulo) {
+      const el = document.getElementById("modal-os-titulo");
+      if (el) el.value = data.titulo;
+    }
+  });
 }
 
 function _configurarCriarOSModal() {

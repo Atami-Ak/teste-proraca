@@ -1,0 +1,158 @@
+.page {
+  padding: 28px 32px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.back {
+  font-size: 0.82rem; font-weight: 700; color: #3b82f6;
+  text-decoration: none;
+}
+.back:hover { text-decoration: underline; }
+
+.notFound {
+  padding: 60px; text-align: center; color: #94a3b8;
+  display: flex; flex-direction: column; gap: 12px; align-items: center;
+}
+
+/* Vehicle header */
+.vehicleHeader {
+  display: flex; align-items: flex-start; gap: 14px;
+  background: white; border: 1px solid #e2e8f0;
+  border-radius: 14px; padding: 20px;
+}
+
+.vehicleIcon { font-size: 2.2rem; line-height: 1; padding-top: 2px; }
+
+.vehicleInfo { flex: 1; min-width: 0; }
+
+.plate    { margin: 0 0 2px; font-size: 1.4rem; font-weight: 900; color: #0f172a; font-family: monospace; letter-spacing: 1px; }
+.model    { margin: 0 0 1px; font-size: 0.88rem; font-weight: 600; color: #334155; }
+.category { margin: 0 0 1px; font-size: 0.72rem; font-weight: 500; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.4px; }
+.driver   { margin: 0; font-size: 0.78rem; font-weight: 600; color: #64748b; }
+
+.headerRight {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+}
+
+.statusBadge {
+  font-size: 0.78rem; font-weight: 700;
+  padding: 4px 12px; border-radius: 20px;
+}
+
+.btnInspect {
+  background: var(--brand-accent, #2F6BFF); color: white;
+  padding: 7px 14px; border-radius: var(--r-md, 10px);
+  font-size: 0.8rem; font-weight: 700;
+  text-decoration: none; transition: background 0.15s;
+  white-space: nowrap;
+}
+.btnInspect:hover { background: #c2410c; }
+
+/* Alerts */
+.alerts { display: flex; flex-direction: column; gap: 8px; }
+
+.alertRed {
+  background: #fee2e2; border: 1px solid #fca5a5;
+  border-radius: 9px; padding: 10px 14px;
+  color: #dc2626; font-size: 0.85rem; font-weight: 700;
+}
+.alertYellow {
+  background: #fefce8; border: 1px solid #fde047;
+  border-radius: 9px; padding: 10px 14px;
+  color: #854d0e; font-size: 0.85rem; font-weight: 700;
+}
+
+/* KPI grid */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.kpiCard {
+  background: white; border: 1px solid #e2e8f0;
+  border-radius: 10px; padding: 14px 16px;
+  text-align: center;
+}
+
+.kpiValue { font-size: 1.4rem; font-weight: 900; color: #0f172a; line-height: 1.1; }
+.kpiLabel { font-size: 0.65rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 3px; }
+
+/* Loading */
+.loading { text-align: center; padding: 40px; color: #94a3b8; font-size: 0.9rem; }
+
+/* Timeline section */
+.timelineSection {
+  background: white; border: 1px solid #e2e8f0;
+  border-radius: 14px; overflow: hidden;
+}
+
+.sectionHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-bottom: 1px solid #f1f5f9;
+}
+.sectionTitle { font-size: 0.88rem; font-weight: 800; color: #1e293b; }
+
+.empty {
+  padding: 40px; text-align: center;
+  color: #94a3b8; font-size: 0.88rem; font-style: italic;
+}
+
+/* Timeline entries */
+.timeline { display: flex; flex-direction: column; }
+
+.tlItem {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 13px 20px;
+  border-bottom: 1px solid #f8fafc;
+  transition: background 0.12s;
+}
+.tlItem:last-child { border-bottom: none; }
+.tlItem:hover { background: #fafbfc; }
+
+.tlInspection { border-left: 3px solid #e2e8f0; }
+.tlWo         { border-left: 3px solid #fbbf24; }
+.tlInspection:has(.tlDotNc) { border-left-color: #fca5a5; }
+.tlInspection:has(.tlDotOk) { border-left-color: #86efac; }
+
+.tlDot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #e2e8f0; flex-shrink: 0; margin-top: 3px;
+}
+.tlDotOk { background: #22c55e; }
+.tlDotNc { background: #ef4444; }
+
+.tlBody { flex: 1; min-width: 0; }
+
+.tlTitle {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  font-size: 0.85rem; font-weight: 600; color: #1e293b;
+  margin-bottom: 3px;
+}
+
+.tlBadge {
+  font-size: 0.68rem; font-weight: 700;
+  padding: 2px 8px; border-radius: 12px;
+  background: #f1f5f9; color: #64748b;
+}
+.badgeOk { background: #dcfce7; color: #16a34a; }
+.badgeNc { background: #fee2e2; color: #dc2626; }
+
+.priorityHigh {
+  font-size: 0.65rem; font-weight: 700;
+  color: #dc2626; background: #fee2e2;
+  padding: 2px 7px; border-radius: 10px;
+}
+
+.tlMeta {
+  font-size: 0.73rem; color: #64748b;
+}
+
+@media (max-width: 720px) {
+  .page         { padding: 20px 16px 48px; }
+  .kpiGrid      { grid-template-columns: repeat(3, 1fr); }
+  .vehicleHeader { flex-wrap: wrap; }
+  .headerRight  { flex-direction: row; align-items: center; width: 100%; justify-content: space-between; }
+}

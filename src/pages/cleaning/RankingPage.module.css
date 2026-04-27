@@ -1,0 +1,272 @@
+.page {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.backBtn {
+  background: none; border: none;
+  color: var(--brand-accent, #2F6BFF); font-size: 0.85rem;
+  cursor: pointer; padding: 0 0 4px;
+  display: block;
+}
+
+.backBtn:hover { text-decoration: underline; }
+
+.title    { font-size: 1.4rem; font-weight: 700; color: #0f172a; letter-spacing: -0.5px; }
+.subtitle { color: #64748b; font-size: 0.875rem; }
+
+.periodToggle {
+  display: flex;
+  gap: 4px;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 10px;
+  align-self: flex-start;
+}
+
+.periodBtn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: #64748b;
+  background: transparent;
+}
+
+.periodActive {
+  background: #fff;
+  color: #1e293b;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* ── Section ── */
+.section { display: flex; flex-direction: column; gap: 16px; }
+
+.sectionTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* ── Podium ── */
+.podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px 0 0;
+}
+
+.podiumSlot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  max-width: 180px;
+}
+
+.podiumFirst { order: -1; }
+
+.podiumMedal { font-size: 2rem; line-height: 1; }
+
+.podiumName {
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: #0f172a;
+  text-align: center;
+}
+
+.podiumCargo {
+  font-size: 0.72rem;
+  color: #64748b;
+  text-align: center;
+}
+
+.podiumZone {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.podiumPlatform {
+  width: 100%;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  margin-top: 8px;
+}
+
+.podiumScore {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.podiumInsp {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.8);
+}
+
+.podiumEmpty { display: flex; flex-direction: column; align-items: center; gap: 0; }
+
+/* ── Leaderboard ── */
+.leaderboard {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.leaderRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.leaderRow:last-child { border-bottom: none; }
+
+.leaderRank {
+  width: 30px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #94a3b8;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.leaderInfo { flex: 1; min-width: 0; }
+.leaderName  { display: block; font-weight: 600; font-size: 0.875rem; color: #1e293b; }
+.leaderCargo { font-size: 0.75rem; color: #94a3b8; }
+.leaderZone  { display: block; font-size: 0.72rem; color: var(--brand-accent, #2F6BFF); }
+
+.leaderRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 90px;
+}
+
+.leaderScore { font-weight: 700; font-size: 1rem; }
+
+.leaderBar {
+  width: 90px;
+  height: 4px;
+  background: #f1f5f9;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.leaderBarFill { height: 100%; border-radius: 2px; }
+
+.leaderPerfBadge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.leaderInsp { font-size: 0.72rem; color: #94a3b8; }
+.leaderNoData { font-size: 0.8rem; color: #94a3b8; }
+
+/* ── Zone grid ── */
+.zoneGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.zoneRankCard {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.zoneRankHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zoneRankPos {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #94a3b8;
+  width: 24px;
+  flex-shrink: 0;
+}
+
+.zoneRankIcon { font-size: 1.3rem; flex-shrink: 0; }
+
+.zoneRankInfo { flex: 1; min-width: 0; }
+.zoneRankName { display: block; font-weight: 600; font-size: 0.875rem; color: #1e293b; }
+.zoneRankTeam { font-size: 0.72rem; color: #94a3b8; }
+
+.zoneRankScore {
+  font-weight: 700;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.zoneNoData { font-size: 0.85rem; color: #94a3b8; }
+
+.zoneRankBar {
+  height: 4px;
+  background: #f1f5f9;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.zoneRankBarFill { height: 100%; border-radius: 2px; }
+
+.zoneRankInsp { font-size: 0.72rem; color: #94a3b8; }
+
+/* ── States ── */
+.loading {
+  padding: 40px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.empty {
+  padding: 24px;
+  text-align: center;
+  color: #94a3b8;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 700px) {
+  .page { padding: 16px; gap: 20px; }
+  .header { flex-direction: column; }
+  .zoneGrid { grid-template-columns: 1fr; }
+  .podium { gap: 6px; }
+  .podiumMedal { font-size: 1.5rem; }
+}

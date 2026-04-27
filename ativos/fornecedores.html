@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>SIGA — Fornecedores</title>
+    <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/sidebar.css" />
+    <link rel="stylesheet" href="../css/ativos.css" />
+    <style>
+      /* Page layout */
+      .page-title-row {
+        display: flex; align-items: center; justify-content: space-between;
+        flex-wrap: wrap; gap: 10px; margin-bottom: 18px; padding-top: 20px;
+      }
+      .page-title { margin: 0; font-size: 1.2rem; font-weight: 800; color: #0f4c75; }
+
+      /* Cat context bar */
+      .cat-context {
+        display: flex; align-items: center; gap: 10px;
+        background: #eff6ff; border: 1px solid #bfdbfe;
+        border-radius: 10px; padding: 10px 16px; margin-bottom: 18px;
+        font-size: 0.87rem; color: #1e40af; font-weight: 600;
+      }
+      .cat-context-icon { font-size: 1.3rem; }
+
+      /* Filter row */
+      .filter-row {
+        display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;
+        align-items: flex-end;
+      }
+      .filter-group { display: flex; flex-direction: column; gap: 4px; }
+      .filter-label { font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+      .filter-input, .filter-select {
+        border: 1.5px solid #e2e8f0; border-radius: 8px;
+        padding: 7px 11px; font-size: 0.88rem; font-family: inherit;
+        background: white; color: #1e293b; outline: none;
+        transition: border-color 0.15s;
+      }
+      .filter-input:focus, .filter-select:focus { border-color: #3b82f6; }
+      .filter-input { min-width: 220px; }
+
+      /* Toolbar */
+      .list-toolbar {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .result-count { font-size: 0.82rem; color: #64748b; font-weight: 600; }
+
+      /* Supplier cards grid */
+      .suppliers-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 14px;
+      }
+
+      .supplier-card {
+        background: white; border: 1px solid #e2e8f0; border-radius: 12px;
+        padding: 18px; display: flex; flex-direction: column; gap: 10px;
+        transition: box-shadow 0.15s, transform 0.15s;
+        cursor: pointer;
+      }
+      .supplier-card:hover {
+        box-shadow: 0 4px 16px rgba(0,0,0,0.09);
+        transform: translateY(-1px);
+      }
+      .supplier-card.inactive { opacity: 0.55; }
+
+      .sc-header {
+        display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+      }
+      .sc-name { font-size: 1rem; font-weight: 800; color: #0f172a; line-height: 1.2; }
+      .sc-contact { font-size: 0.78rem; color: #64748b; margin-top: 2px; }
+
+      .sc-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+
+      .badge {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 3px 9px; border-radius: 20px;
+        font-size: 0.7rem; font-weight: 700; white-space: nowrap;
+      }
+      .badge-compra   { background: #dbeafe; color: #1d4ed8; }
+      .badge-servico  { background: #dcfce7; color: #15803d; }
+      .badge-ambos    { background: #f3e8ff; color: #7c3aed; }
+      .badge-inactive { background: #f1f5f9; color: #64748b; }
+
+      .sc-cats {
+        font-size: 0.75rem; color: #64748b;
+        display: flex; flex-wrap: wrap; gap: 4px;
+      }
+      .sc-cat-tag {
+        background: #f8fafc; border: 1px solid #e2e8f0;
+        border-radius: 6px; padding: 2px 7px;
+        font-size: 0.72rem; color: #475569;
+      }
+
+      .sc-info { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: #64748b; }
+      .sc-info-row { display: flex; align-items: center; gap: 6px; }
+
+      .sc-actions {
+        display: flex; gap: 8px; padding-top: 4px;
+        border-top: 1px solid #f1f5f9;
+      }
+      .btn-sc-action {
+        flex: 1; padding: 7px; border-radius: 7px; border: 1.5px solid #e2e8f0;
+        font-size: 0.78rem; font-weight: 600; cursor: pointer;
+        background: none; font-family: inherit; transition: background 0.13s;
+      }
+      .btn-sc-action.edit:hover  { background: #eff6ff; border-color: #93c5fd; color: #1d4ed8; }
+      .btn-sc-action.del:hover   { background: #fef2f2; border-color: #fca5a5; color: #dc2626; }
+
+      /* Empty state */
+      .empty-state {
+        text-align: center; padding: 60px 20px;
+        color: #94a3b8; font-size: 0.9rem;
+      }
+      .empty-state-icon { font-size: 2.5rem; margin-bottom: 12px; }
+      .empty-state h3 { font-size: 1rem; color: #64748b; margin: 0 0 6px; }
+
+      /* ── Modal ── */
+      .modal-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 500; backdrop-filter: blur(2px);
+      }
+      .modal-overlay.hidden { display: none; }
+      .modal-panel {
+        background: white; border-radius: 16px; width: min(560px, 95vw);
+        max-height: 90vh; overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        animation: modal-in 0.18s ease;
+      }
+      @keyframes modal-in {
+        from { opacity: 0; transform: scale(0.95) translateY(8px); }
+        to   { opacity: 1; transform: scale(1)    translateY(0);   }
+      }
+      .modal-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 20px 22px 16px; border-bottom: 1px solid #f1f5f9;
+      }
+      .modal-title  { font-size: 1rem; font-weight: 800; color: #0f172a; }
+      .modal-close  {
+        background: none; border: none; font-size: 1.4rem; cursor: pointer;
+        color: #94a3b8; line-height: 1; padding: 2px 6px; border-radius: 6px;
+      }
+      .modal-close:hover { background: #f1f5f9; color: #374151; }
+      .modal-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; }
+      .modal-footer {
+        display: flex; justify-content: flex-end; gap: 10px;
+        padding: 14px 22px; border-top: 1px solid #f1f5f9;
+      }
+
+      /* Form elements */
+      .form-group { display: flex; flex-direction: column; gap: 5px; }
+      .form-label { font-size: 0.78rem; font-weight: 700; color: #374151; }
+      .req { color: #ef4444; }
+      .form-input, .form-select, .form-textarea {
+        border: 1.5px solid #e2e8f0; border-radius: 8px;
+        padding: 8px 12px; font-size: 0.88rem; font-family: inherit;
+        outline: none; transition: border-color 0.15s;
+        background: white; color: #1e293b;
+      }
+      .form-input:focus, .form-select:focus, .form-textarea:focus {
+        border-color: #3b82f6;
+      }
+      .form-textarea { resize: vertical; min-height: 72px; }
+      .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+      /* Cat checkboxes in modal */
+      .cats-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 6px; max-height: 180px; overflow-y: auto;
+        padding: 4px;
+      }
+      .cat-check-label {
+        display: flex; align-items: center; gap: 7px;
+        padding: 6px 9px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+        font-size: 0.8rem; font-weight: 600; cursor: pointer;
+        transition: background 0.12s, border-color 0.12s; color: #374151;
+      }
+      .cat-check-label:hover { background: #f8fafc; }
+      .cat-check-label input[type="checkbox"] { accent-color: #3b82f6; }
+      .cat-check-label.checked { background: #eff6ff; border-color: #93c5fd; color: #1d4ed8; }
+
+      /* Buttons */
+      .btn { padding: 9px 20px; border-radius: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; border: none; font-family: inherit; transition: background 0.14s; }
+      .btn-primary { background: #0f4c75; color: white; }
+      .btn-primary:hover { background: #0a3d60; }
+      .btn-secondary { background: #f1f5f9; color: #374151; border: 1.5px solid #e2e8f0; }
+      .btn-secondary:hover { background: #e2e8f0; }
+
+      @media (max-width: 640px) {
+        .suppliers-grid { grid-template-columns: 1fr; }
+        .form-row { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- HEADER (hidden by sidebar CSS) -->
+    <header class="main-header">
+      <div class="header-left">
+        <div>
+          <h1 class="logo-h1">SIGA</h1>
+          <span class="logo-sub">Fornecedores</span>
+        </div>
+      </div>
+      <div class="user-info">
+        <span id="header-user-name" style="font-size:.85rem;font-weight:700;">—</span>
+        <div class="avatar" id="header-avatar">?</div>
+      </div>
+    </header>
+
+    <!-- NAV (hidden by sidebar CSS) -->
+    <nav class="main-nav">
+      <a href="../index.html"        class="nav-item">🏠 Início</a>
+      <a href="ativos.html"          class="nav-item">🏷️ Ativos</a>
+      <a href="manutencao.html"      class="nav-item">🔧 Manutenções</a>
+      <a href="inventario.html"      class="nav-item">📋 Inventário</a>
+      <a href="fornecedores.html"    class="nav-item active">🏢 Fornecedores</a>
+    </nav>
+
+    <!-- MAIN -->
+    <main class="ativos-container">
+
+      <div class="page-title-row">
+        <h2 class="page-title">🏢 Fornecedores</h2>
+        <button class="btn btn-primary" onclick="openModal()">+ Novo Fornecedor</button>
+      </div>
+
+      <!-- Category context banner (shown when ?cat= is present) -->
+      <div id="cat-context" class="cat-context" style="display:none;">
+        <span class="cat-context-icon" id="ctx-icon">📎</span>
+        <span>Fornecedores da categoria: <strong id="ctx-name">—</strong></span>
+        <a href="fornecedores.html" style="margin-left:auto;font-size:.78rem;color:#3b82f6;font-weight:700;">Ver todos</a>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-row">
+        <div class="filter-group">
+          <span class="filter-label">Pesquisar</span>
+          <input type="text" id="f-search" class="filter-input"
+                 placeholder="Nome, contato…" autocomplete="off" />
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Tipo</span>
+          <select id="f-type" class="filter-select">
+            <option value="">Todos</option>
+            <option value="purchase">🛒 Compras</option>
+            <option value="service">🔧 Serviços</option>
+            <option value="both">🏢 Ambos</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Status</span>
+          <select id="f-active" class="filter-select">
+            <option value="">Todos</option>
+            <option value="true">Ativo</option>
+            <option value="false">Inativo</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="list-toolbar">
+        <span class="result-count" id="result-count">Carregando...</span>
+      </div>
+
+      <!-- Grid -->
+      <div id="suppliers-grid" class="suppliers-grid">
+        <!-- Populated by JS -->
+      </div>
+
+    </main>
+
+    <!-- ══ SUPPLIER FORM MODAL ══ -->
+    <div id="form-modal" class="modal-overlay hidden"
+         onclick="if(event.target===this)closeModal()">
+      <div class="modal-panel">
+
+        <div class="modal-header">
+          <span class="modal-title" id="modal-title">Novo Fornecedor</span>
+          <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+
+        <div class="modal-body">
+
+          <div class="form-group">
+            <label class="form-label">Nome <span class="req">*</span></label>
+            <input type="text" id="f-name" class="form-input" placeholder="Razão social ou nome fantasia" />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Tipo <span class="req">*</span></label>
+              <select id="f-ftype" class="form-select">
+                <option value="purchase">🛒 Compras</option>
+                <option value="service">🔧 Serviços</option>
+                <option value="both">🏢 Compras + Serviços</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">CNPJ</label>
+              <input type="text" id="f-cnpj" class="form-input" placeholder="00.000.000/0001-00" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Contato</label>
+              <input type="text" id="f-contact" class="form-input" placeholder="Nome do responsável" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Telefone</label>
+              <input type="text" id="f-phone" class="form-input" placeholder="(00) 00000-0000" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">E-mail</label>
+            <input type="email" id="f-email" class="form-input" placeholder="contato@empresa.com" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Categorias que atende</label>
+            <div id="cats-grid" class="cats-grid">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Observações</label>
+            <textarea id="f-notes" class="form-textarea"
+                      placeholder="Condições de pagamento, prazo de entrega, etc."></textarea>
+          </div>
+
+          <div class="form-group" style="flex-direction:row;align-items:center;gap:10px;">
+            <input type="checkbox" id="f-active-chk" checked style="accent-color:#0f4c75;" />
+            <label for="f-active-chk" class="form-label" style="margin:0;cursor:pointer;">Fornecedor ativo</label>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-primary"   id="save-btn" onclick="saveSupplier()">Salvar</button>
+        </div>
+
+      </div>
+    </div>
+
+    <script type="module" src="../js/core/sidebar.js"></script>
+    <script type="module" src="../js/core/maintenance-sidebar.js"></script>
+    <script type="module" src="../js/modules/app-fornecedores.js"></script>
+  </body>
+</html>

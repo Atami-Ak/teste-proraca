@@ -29,6 +29,7 @@ export const OS_TIPOS = {
 
 export const OS_STATUS = {
   open: "Aberta",
+  pending_approval: "Aguardando Aprovação",
   in_progress: "Em Andamento",
   waiting_parts: "Aguardando Peças",
   completed: "Concluída",

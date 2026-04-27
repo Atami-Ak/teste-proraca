@@ -1,0 +1,345 @@
+.page {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Header ── */
+.header { display: flex; flex-direction: column; gap: 4px; }
+
+.backBtn {
+  background: none;
+  border: none;
+  color: var(--brand-accent, #2F6BFF);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0 0 4px;
+}
+
+.backBtn:hover { text-decoration: underline; }
+
+.title    { font-size: 1.4rem; font-weight: 700; color: #0f172a; letter-spacing: -0.5px; }
+.subtitle { color: #64748b; font-size: 0.875rem; }
+
+/* ── Filters ── */
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filterSelect {
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #1e293b;
+  background: #fff;
+  cursor: pointer;
+  outline: none;
+}
+
+.filterSelect:focus { border-color: var(--brand-accent, #2F6BFF); }
+
+.clearBtn {
+  padding: 8px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: #dc2626;
+  cursor: pointer;
+}
+
+.filterCount {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin-left: auto;
+}
+
+/* ── List ── */
+.list { display: flex; flex-direction: column; gap: 8px; }
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.card:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  border-color: #c7d2fe;
+}
+
+.cardLeft { flex-shrink: 0; }
+
+.cardBody { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cardEmployee { font-weight: 600; font-size: 0.9rem; color: #0f172a; }
+
+.cardBadge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.cardMeta {
+  display: flex;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.cardArrow {
+  color: #cbd5e1;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+/* ── States ── */
+.loading { padding: 40px; text-align: center; color: #94a3b8; }
+
+.empty {
+  padding: 40px;
+  text-align: center;
+  color: #94a3b8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.emptyIcon { font-size: 2rem; }
+
+.errorBanner {
+  padding: 12px 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 0.875rem;
+}
+
+/* ── Modal ── */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+  margin: auto;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.modalTitle  { font-size: 1.1rem; font-weight: 700; color: #0f172a; }
+.modalSub    { font-size: 0.8rem; color: #94a3b8; margin-top: 2px; }
+
+.closeBtn {
+  background: #f1f5f9;
+  border: none;
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  color: #475569;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeBtn:hover { background: #e2e8f0; }
+
+.modalScoreRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.modalBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.modalMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.82rem;
+  color: #475569;
+  margin-top: 6px;
+}
+
+/* ── Modal sections ── */
+.modalSection { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; }
+.modalSection:last-child { border-bottom: none; }
+
+.modalSectionTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 12px;
+}
+
+/* ── Senso grid ── */
+.sensoGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.sensoCard {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-top: 3px solid;
+  border-radius: 8px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.sensoName  { font-size: 0.7rem; color: #64748b; font-weight: 500; }
+.sensoScore { font-size: 1.1rem; font-weight: 700; }
+.sensoWarn  { font-size: 0.65rem; color: #ea580c; }
+
+.sensoBar {
+  width: 100%;
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.sensoBarFill { height: 100%; border-radius: 2px; }
+
+/* ── Issues ── */
+.issueList { display: flex; flex-direction: column; gap: 8px; }
+
+.issueCard {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.issueHeader { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.issueBadge {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.criticalBadge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #dc2626;
+  background: #fef2f2;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.linkedWO {
+  font-size: 0.72rem;
+  color: var(--brand-accent, #2F6BFF);
+  background: #eef2ff;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.issueDesc { font-size: 0.82rem; color: #475569; }
+
+.issuePhoto {
+  max-height: 100px;
+  border-radius: 6px;
+  object-fit: cover;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.issuePhoto:hover { opacity: 0.85; }
+
+/* ── Notes ── */
+.notesText { font-size: 0.875rem; color: #475569; line-height: 1.5; }
+
+/* ── Lightbox ── */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  cursor: zoom-out;
+  padding: 20px;
+}
+
+.lightboxImg {
+  max-width: 100%;
+  max-height: 90vh;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .page { padding: 16px; gap: 16px; }
+  .sensoGrid { grid-template-columns: repeat(3, 1fr); }
+  .filters { flex-direction: column; align-items: stretch; }
+  .filterCount { margin-left: 0; }
+}

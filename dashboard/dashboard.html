@@ -7,6 +7,32 @@
     <link rel="stylesheet" href="../css/global.css" />
     <link rel="stylesheet" href="../css/os.css" />
     <link rel="stylesheet" href="../css/dashboard.css" />
+    <style>
+      /* ── Approval queue ─────────────────────────────────────── */
+      .fila-aprov-item {
+        display:flex; flex-direction:column; gap:8px;
+        padding:12px 14px; border-radius:8px;
+        background:#fffbeb; border:1px solid #fde68a;
+        margin-bottom:8px; transition:opacity .3s,transform .3s;
+      }
+      .fila-aprov-item.critico { background:#fef2f2; border-color:#fecaca; }
+      .fila-aprov-item.fade-out { opacity:0; transform:translateX(-20px); pointer-events:none; }
+      .fila-aprov-num  { font-size:.72rem; font-weight:800; color:#92400e; }
+      .fila-aprov-item.critico .fila-aprov-num { color:#991b1b; }
+      .fila-aprov-titulo { font-size:.87rem; font-weight:700; color:#0f172a; margin:2px 0; }
+      .fila-aprov-meta  { font-size:.72rem; color:#64748b; }
+      .fila-aprov-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+      .btn-aprovar  { background:#dcfce7; color:#166534; border:1px solid #86efac; padding:5px 12px; border-radius:6px; font-size:.8rem; font-weight:700; cursor:pointer; }
+      .btn-aprovar:hover  { background:#bbf7d0; }
+      .btn-rejeitar { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; padding:5px 12px; border-radius:6px; font-size:.8rem; font-weight:700; cursor:pointer; }
+      .btn-rejeitar:hover { background:#fecaca; }
+      .fila-reject-area { display:none; gap:6px; margin-top:2px; align-items:flex-start; }
+      .fila-reject-area.visible { display:flex; }
+      .fila-reject-area textarea { flex:1; border:1.5px solid #fca5a5; border-radius:6px; padding:6px 8px; font-size:.8rem; resize:vertical; min-height:44px; outline:none; }
+      .fila-reject-area textarea:focus { border-color:#dc2626; }
+      .fila-reject-confirm { background:#dc2626; color:white; border:none; padding:6px 10px; border-radius:6px; font-size:.78rem; font-weight:700; cursor:pointer; white-space:nowrap; }
+      .fila-reject-confirm:hover { background:#b91c1c; }
+    </style>
   </head>
   <body class="dash-body">
 
@@ -147,7 +173,7 @@
 
               <div class="quick-actions-row">
                 <button class="quick-btn primary" id="btn-fab-nova-os-overview">➕ Nova O.S</button>
-                <a href="../compras/compra-detalhe.html?modo=criar" class="quick-btn success">🛒 Novo Pedido</a>
+                <button class="quick-btn success" id="btn-fab-novo-pedido-overview">🛒 Novo Pedido</button>
                 <a href="#" class="quick-btn outline" data-panel-link="os">📋 Ver O.S</a>
                 <a href="#" class="quick-btn outline" data-panel-link="documentos">📄 Documentos</a>
                 <a href="#" class="quick-btn outline" data-panel-link="frota">🚛 Frota</a>
@@ -246,6 +272,9 @@
               </div>
             </div>
 
+            <!-- OS approval queue — populated by dashboard-core.js based on role -->
+            <div id="fila-os-wrapper" style="margin-bottom:16px;"></div>
+
             <!-- Filter bar -->
             <div class="filter-bar">
               <button class="filter-btn os-filter-btn active" data-filter="all">
@@ -335,7 +364,7 @@
             <div class="panel-header">
               <h2 class="panel-title">🛒 Pedidos de Compra</h2>
               <div class="panel-cta-group">
-                <a href="../compras/compra-detalhe.html?modo=criar" class="quick-btn primary">➕ Novo Pedido</a>
+                <button class="quick-btn primary" id="btn-novo-pedido-panel">➕ Novo Pedido</button>
                 <a href="../compras/compras.html" class="quick-btn outline">Ver Todos →</a>
               </div>
             </div>
@@ -389,6 +418,9 @@
                 </div>
               </div>
             </div>
+
+            <!-- Approval queue — populated by dashboard-core.js based on role -->
+            <div id="fila-po-wrapper" style="margin-top:16px;"></div>
 
           </div><!-- /panel-compras -->
 
@@ -818,6 +850,73 @@
 
       </div><!-- /modal-container -->
     </div><!-- /modal-criar-os -->
+
+    <!-- ============================================================
+         GLOBAL: CREATE PO MODAL
+    ============================================================ -->
+    <div class="modal-overlay" id="modal-criar-po">
+      <div class="modal-container" style="max-width:520px;">
+
+        <div class="modal-header">
+          <span class="modal-title">🛒 Novo Pedido de Compra</span>
+          <button class="modal-close" id="modal-criar-po-close">✕</button>
+        </div>
+
+        <form id="form-criar-po" novalidate>
+          <div class="modal-body">
+
+            <div class="modal-field">
+              <label>Título *</label>
+              <input type="text" id="po-titulo" placeholder="Descreva brevemente o pedido" required />
+            </div>
+
+            <div class="modal-fields-row">
+              <div class="modal-field">
+                <label>Categoria *</label>
+                <select id="po-categoria" required>
+                  <option value="">Selecione...</option>
+                  <option value="peca">Peça / Componente</option>
+                  <option value="equipamento">Equipamento</option>
+                  <option value="servico">Serviço</option>
+                  <option value="operacional">Material Operacional</option>
+                </select>
+              </div>
+              <div class="modal-field">
+                <label>Urgência</label>
+                <select id="po-urgencia">
+                  <option value="normal">Normal</option>
+                  <option value="urgente">Urgente</option>
+                  <option value="critico">🔴 Crítico</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="modal-section-title">📦 Itens do Pedido</div>
+            <div id="po-itens-lista"></div>
+            <button type="button" class="btn-add-mat" id="po-btn-add-item">+ Adicionar Item</button>
+
+            <div class="modal-cost-row" style="margin-top:12px;">
+              <div class="modal-cost-item">
+                <div class="modal-cost-label">💰 Total Estimado</div>
+                <div class="modal-cost-value" id="po-display-total" style="color:#0f4c75;">R$ 0,00</div>
+              </div>
+            </div>
+
+            <div class="modal-field" style="margin-top:12px;">
+              <label>Justificativa</label>
+              <textarea id="po-justificativa" placeholder="Motivo do pedido, urgência, impacto..." rows="2"></textarea>
+            </div>
+
+          </div><!-- /modal-body -->
+
+          <div class="modal-footer">
+            <button type="button" class="quick-btn outline" id="modal-criar-po-cancel">Cancelar</button>
+            <button type="submit" class="quick-btn primary" id="modal-criar-po-save">Salvar Pedido</button>
+          </div>
+        </form>
+
+      </div><!-- /modal-container -->
+    </div><!-- /modal-criar-po -->
 
     <!-- TOAST -->
     <div id="toast" class="toast"></div>

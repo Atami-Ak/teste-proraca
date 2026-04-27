@@ -1,0 +1,222 @@
+.page {
+  padding: 28px 32px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Header */
+.header {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; gap: 16px; flex-wrap: wrap;
+}
+
+.title    { margin: 0 0 4px; font-size: 1.4rem; font-weight: 800; color: #0f172a; }
+.subtitle { margin: 0; font-size: 0.85rem; color: #64748b; font-weight: 600; }
+
+/* Progress pill */
+.progressPill {
+  display: flex; flex-direction: column; gap: 4px;
+  min-width: 180px;
+}
+.progressBar {
+  height: 6px; border-radius: 3px;
+  background: linear-gradient(90deg, #3b82f6 var(--pct, 0%), #e2e8f0 var(--pct, 0%));
+}
+.progressText { font-size: 0.72rem; font-weight: 700; color: #64748b; }
+
+/* Draft banner */
+.draftBanner {
+  background: #fefce8; border: 1px solid #fde047;
+  border-radius: 8px; padding: 10px 14px;
+  font-size: 0.82rem; font-weight: 600; color: #854d0e;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.draftBanner button {
+  background: none; border: 1px solid #b45309; color: #b45309;
+  border-radius: 6px; padding: 3px 10px; font-size: 0.75rem;
+  font-weight: 700; cursor: pointer;
+}
+
+/* Accordion */
+.accordion {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+}
+.accordionOpen { border-color: #3b82f6; }
+
+.accordionHeader {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  padding: 14px 18px; background: white; border: none;
+  cursor: pointer; text-align: left; font-size: 0.9rem;
+  font-weight: 700; color: #1e293b; transition: background 0.14s;
+}
+.accordionOpen .accordionHeader { background: #eff6ff; color: #1d4ed8; }
+.accordionHeader:hover { background: #f8fafc; }
+
+.accIcon    { font-size: 1.05rem; }
+.accLabel   { flex: 1; }
+.accDone    { color: #16a34a; font-size: 0.85rem; font-weight: 900; }
+.accChevron { color: #94a3b8; font-size: 0.85rem; }
+
+.accordionBody {
+  padding: 18px;
+  border-top: 1px solid #f1f5f9;
+}
+
+/* Form grid */
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.fullWidth { grid-column: 1 / -1; }
+
+.fieldGroup {
+  display: flex; flex-direction: column; gap: 5px;
+}
+.fieldGroup label {
+  font-size: 0.78rem; font-weight: 700; color: #374151;
+}
+
+.input, .textarea {
+  padding: 8px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  background: white;
+  transition: border-color 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+.input:focus, .textarea:focus { outline: none; border-color: #3b82f6; }
+.textarea { resize: vertical; }
+
+/* Inspection type radio */
+.radioRow {
+  display: flex; gap: 8px;
+}
+
+.radioCard {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 10px; border-radius: 9px;
+  border: 2px solid #e2e8f0; background: white;
+  font-size: 0.88rem; font-weight: 700; color: #64748b;
+  cursor: pointer; transition: all 0.15s;
+}
+.radioCard input { display: none; }
+.radioCardActive { border-color: #3b82f6; background: #eff6ff; color: #1d4ed8; }
+
+/* Checkbox */
+.checkboxLabel {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.83rem; font-weight: 600; color: #374151; cursor: pointer;
+}
+
+.termLabel { align-items: flex-start; }
+.termLabel input { margin-top: 2px; flex-shrink: 0; }
+
+/* Vehicle selector */
+.vehicleSelector { display: flex; flex-direction: column; gap: 10px; }
+
+.vehicleSearch {
+  padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+  font-size: 0.875rem; background: white;
+}
+.vehicleSearch:focus { outline: none; border-color: #3b82f6; }
+
+.vehicleList {
+  display: flex; flex-direction: column; gap: 4px;
+  max-height: 340px; overflow-y: auto;
+}
+
+.vehicleOption {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 9px;
+  border: 1.5px solid #e2e8f0; background: white;
+  cursor: pointer; text-align: left;
+  transition: background 0.12s, border-color 0.12s;
+  font-family: inherit;
+}
+.vehicleOption:hover { background: #f8fafc; border-color: #cbd5e1; }
+.vehicleSelected { background: #eff6ff !important; border-color: #3b82f6 !important; }
+
+.vIcon  { font-size: 1.2rem; flex-shrink: 0; }
+.vPlate { font-family: monospace; font-weight: 800; color: #0f172a; font-size: 0.9rem; flex-shrink: 0; }
+.vModel { flex: 1; font-size: 0.82rem; font-weight: 600; color: #334155; }
+.vCat   { font-size: 0.7rem; color: #94a3b8; flex-shrink: 0; }
+.vDriver{ font-size: 0.72rem; color: #64748b; flex-shrink: 0; }
+
+/* No vehicle message */
+.noVehicle {
+  text-align: center; padding: 24px;
+  color: #94a3b8; font-size: 0.88rem; font-style: italic;
+}
+
+/* Advanced lighting toggle */
+.advLightToggle {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 0.82rem; font-weight: 600; color: #374151;
+  cursor: pointer; margin-bottom: 14px;
+  padding: 7px 12px; border-radius: 7px;
+  border: 1px dashed #e2e8f0; background: #f8fafc;
+}
+.advLightToggle:has(input:checked) { background: #eff6ff; border-color: #3b82f6; color: #1d4ed8; }
+
+/* Maintenance levels */
+.levelRow {
+  display: flex; gap: 6px;
+}
+.levelBtn {
+  flex: 1; text-align: center;
+  padding: 6px 8px; border-radius: 7px;
+  border: 1.5px solid #e2e8f0; background: white;
+  font-size: 0.8rem; font-weight: 700; color: #64748b;
+  cursor: pointer; transition: all 0.13s;
+}
+.levelBtn input { display: none; }
+.levelActive { background: #f0fdf4; }
+
+/* Error box */
+.errorBox {
+  background: #fee2e2; border: 1px solid #fca5a5;
+  border-radius: 10px; padding: 14px 18px;
+  color: #dc2626; font-size: 0.85rem;
+}
+.errorBox strong { display: block; margin-bottom: 8px; font-size: 0.88rem; }
+.errorBox ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+
+/* Submit row */
+.submitRow {
+  display: flex; justify-content: flex-end; gap: 10px; padding-top: 8px;
+}
+
+.btnCancel {
+  padding: 10px 22px; border-radius: 8px;
+  font-size: 0.9rem; font-weight: 700;
+  background: white; color: #64748b;
+  border: 1.5px solid #e2e8f0; cursor: pointer;
+  transition: background 0.15s;
+}
+.btnCancel:hover { background: #f8fafc; }
+.btnCancel:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btnSubmit {
+  padding: 10px 28px; border-radius: 8px;
+  font-size: 0.9rem; font-weight: 700;
+  background: #16a34a; color: white;
+  border: none; cursor: pointer;
+  transition: background 0.15s;
+}
+.btnSubmit:hover  { background: #15803d; }
+.btnSubmit:disabled { background: #86efac; cursor: not-allowed; }
+
+@media (max-width: 720px) {
+  .page    { padding: 20px 16px 48px; }
+  .formGrid { grid-template-columns: 1fr; }
+  .vehicleList { max-height: 260px; }
+}

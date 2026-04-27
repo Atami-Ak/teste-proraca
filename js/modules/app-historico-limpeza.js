@@ -2,6 +2,8 @@
  * app-historico-limpeza.js — Cleaning Inspection History (SIGA v2)
  *
  * Displays all inspections from cleaning_inspections (+ legacy auditorias_limpeza).
+ * Each card shows: employee name (prominent), zone, inspector, reprovados/críticos count.
+ * Filter #filter-employee shows zone in parentheses: "João Silva (Estoque/Expedição)".
  * Supports filters: zone, status, employee.
  * Detail modal shows section breakdown + issues + photos.
  */
@@ -26,16 +28,16 @@ const params      = new URLSearchParams(location.search);
 const zoneIdParam = params.get("zona_id");
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
-const listaEl       = document.getElementById("lista-inspecoes");
-const resultCount   = document.getElementById("result-count");
-const filterZone    = document.getElementById("filter-zone");
-const filterStatus  = document.getElementById("filter-status");
-const filterEmp     = document.getElementById("filter-employee");
-const btnClear      = document.getElementById("btn-clear-filters");
-const modal         = document.getElementById("modal-detalhes");
-const modalBody     = document.getElementById("modal-body-content");
-const modalTitle    = document.getElementById("mod-title");
-const btnFecha      = document.getElementById("btn-fechar-modal");
+const listaEl      = document.getElementById("lista-inspecoes");
+const resultCount  = document.getElementById("result-count");
+const filterZone   = document.getElementById("filter-zone");
+const filterStatus = document.getElementById("filter-status");
+const filterEmp    = document.getElementById("filter-employee");
+const btnClear     = document.getElementById("btn-clear-filters");
+const modal        = document.getElementById("modal-detalhes");
+const modalBody    = document.getElementById("modal-body-content");
+const modalTitle   = document.getElementById("mod-title");
+const btnFecha     = document.getElementById("btn-fechar-modal");
 
 // ── All inspections (loaded once) ─────────────────────────────────────────────
 let allInspecoes = [];
@@ -72,6 +74,12 @@ function empName(empId) {
   return emp ? emp.nome : empId || "—";
 }
 
+/** Returns the primary zone name for an employee from the catalog */
+function empZoneName(empId) {
+  const zone = catalogoZonas.find(z => (z.responsaveis || []).includes(empId));
+  return zone ? zone.nome : null;
+}
+
 // ── Populate filters ──────────────────────────────────────────────────────────
 function populateFilters() {
   // Zone options from catalog
@@ -82,11 +90,12 @@ function populateFilters() {
     filterZone.appendChild(opt);
   });
 
-  // Employee options from catalog
+  // Employee options from catalog — show zone in parentheses
   equipeLimpeza.forEach(e => {
-    const opt = document.createElement("option");
+    const zName = empZoneName(e.id);
+    const opt   = document.createElement("option");
     opt.value       = e.id;
-    opt.textContent = e.nome;
+    opt.textContent = zName ? `${e.nome} (${zName})` : e.nome;
     filterEmp.appendChild(opt);
   });
 
@@ -106,13 +115,15 @@ function renderList(inspecoes) {
   listaEl.innerHTML = "";
 
   inspecoes.forEach(insp => {
-    const score    = insp.score ?? 0;
-    const col      = scoreColor(score);
-    const brd      = scoreBorderColor(score);
-    const meta     = STATUS_LIMPEZA[insp.status || scoreToStatus(score)] || STATUS_LIMPEZA.attention;
-    const zName    = insp.zoneName || zoneName(insp.zoneId);
-    const eName    = insp.employeeName || empName(insp.employeeId);
-    const issueLen = (insp.issues || []).length;
+    const score        = insp.score ?? 0;
+    const col          = scoreColor(score);
+    const brd          = scoreBorderColor(score);
+    const meta         = STATUS_LIMPEZA[insp.status || scoreToStatus(score)] || STATUS_LIMPEZA.attention;
+    const zName        = insp.zoneName || zoneName(insp.zoneId);
+    const eName        = insp.employeeName || empName(insp.employeeId);
+    const issues       = insp.issues || [];
+    const reprovCount  = issues.length;
+    const critCount    = issues.filter(i => i.severity === "critical").length;
 
     const card = document.createElement("div");
     card.className = "insp-card";
@@ -122,15 +133,20 @@ function renderList(inspecoes) {
         <span class="sr-pct" style="color:${col};">%</span>
       </div>
       <div class="insp-body">
-        <div class="insp-zone-name">${zName}</div>
-        <div class="insp-meta">
-          👷 ${eName} &nbsp;·&nbsp; 📅 ${fmtDate(insp.timestampEnvio)}
+        <div class="insp-employee-name" style="font-weight:700;font-size:.92rem;color:#1e293b;">${eName}</div>
+        <div class="insp-zone-name" style="font-size:.78rem;color:#475569;margin-top:1px;">${zName}</div>
+        <div class="insp-meta" style="margin-top:4px;">
+          📅 ${fmtDate(insp.timestampEnvio)}
           ${insp.inspectorName ? `&nbsp;·&nbsp; 🔍 ${insp.inspectorName}` : ""}
         </div>
         <span class="insp-badge" style="background:${meta.bg};color:${meta.color};border-color:${meta.border};">
           ${meta.label}
         </span>
-        ${issueLen > 0 ? `<div class="insp-issues">⚠️ ${issueLen} problema(s) registrado(s)</div>` : ""}
+        ${reprovCount > 0 ? `
+          <div class="insp-issues" style="margin-top:4px;font-size:.75rem;">
+            ⚠️ ${reprovCount} item(ns) reprovado(s)
+            ${critCount > 0 ? `<span style="color:#dc2626;font-weight:700;margin-left:6px;">· 🔴 ${critCount} crítico(s)</span>` : ""}
+          </div>` : ""}
       </div>
     `;
     card.addEventListener("click", () => abrirModal(insp));
@@ -172,6 +188,7 @@ function abrirModal(insp) {
   const zName  = insp.zoneName || zoneName(insp.zoneId);
   const eName  = insp.employeeName || empName(insp.employeeId);
   const issues = insp.issues || [];
+  const critCount = issues.filter(i => i.severity === "critical").length;
 
   modalTitle.textContent = `📋 Inspeção — ${zName}`;
 
@@ -180,16 +197,20 @@ function abrirModal(insp) {
   if (insp.sections && insp.sections.length) {
     insp.sections.forEach(sec => {
       const secCol = scoreColor(sec.score ?? 0);
+      const secScore = sec.score ?? "—";
+      const lowWarn  = typeof sec.score === "number" && sec.score < 60
+        ? `<span style="color:#ea580c;font-size:.72rem;margin-left:6px;">⚠️ &lt;60%</span>`
+        : "";
       sectionsHtml += `
         <div class="mod-section-title">
           ${sec.nome}
-          <span style="float:right;font-size:.8rem;color:${secCol};font-weight:900;">${sec.score ?? "—"}%</span>
+          <span style="float:right;font-size:.8rem;color:${secCol};font-weight:900;">${secScore}%${lowWarn}</span>
         </div>`;
 
       if (sec.items && sec.items.length) {
         sec.items.forEach(item => {
-          const sg     = item.scoreGiven ?? null;
-          const rowCls = sg === null ? "na" : sg === 0 ? "fail" : "pass";
+          const sg      = item.scoreGiven ?? null;
+          const rowCls  = sg === null ? "na" : sg === 0 ? "fail" : "pass";
           const scoreDisp = sg === null ? "N/A"
             : item.tipo === "passfail"
               ? (sg === 5 ? "✅" : "❌")
@@ -213,11 +234,14 @@ function abrirModal(insp) {
   if (issues.length) {
     issuesHtml = `
       <div class="mod-issues-section">
-        <div class="mod-section-title">⚠️ Problemas Registados (${issues.length})</div>
+        <div class="mod-section-title">
+          ⚠️ Itens Reprovados (${issues.length})
+          ${critCount > 0 ? `<span style="color:#dc2626;font-size:.75rem;margin-left:8px;">· 🔴 ${critCount} crítico(s)</span>` : ""}
+        </div>
         ${issues.map(iss => `
           <div class="mod-issue-item">
-            <strong>${iss.actionType === "structural" ? "🔧 Estrutural" : iss.actionType === "material" ? "🛒 Material" : "🧹 Limpeza"}</strong>
-            ${iss.severity === "critical" ? " · <span style='color:#dc2626;font-weight:700;'>CRÍTICO</span>" : ""}
+            <strong>${iss.actionType === "structural" ? "🏗️ Estrutural" : iss.actionType === "material" ? "📦 Material" : "🧹 Limpeza"}</strong>
+            ${iss.severity === "critical" ? " · <span style='color:#dc2626;font-weight:700;'>🔴 CRÍTICO</span>" : ""}
             <br>${iss.description || "—"}
             ${iss.photoUrl ? `<br><a href="${iss.photoUrl}" target="_blank"><img src="${iss.photoUrl}" style="margin-top:6px;width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;"></a>` : ""}
           </div>`).join("")}
@@ -227,21 +251,30 @@ function abrirModal(insp) {
   modalBody.innerHTML = `
     <div class="mod-info-grid">
       <div class="mod-info-box">
+        <strong>Funcionário Avaliado</strong>
+        <span style="font-weight:700;color:#1e293b;">${eName}</span>
+      </div>
+      <div class="mod-info-box">
         <strong>Zona</strong>
         <span>${zName}</span>
+      </div>
+      <div class="mod-info-box">
+        <strong>Inspetor</strong>
+        <span>${insp.inspectorName || "—"}</span>
       </div>
       <div class="mod-info-box">
         <strong>Data</strong>
         <span>${fmtDate(insp.timestampEnvio)}</span>
       </div>
-      <div class="mod-info-box">
-        <strong>Funcionário Avaliado</strong>
-        <span>${eName}</span>
-      </div>
       <div class="mod-info-box" style="border-color:${meta.border};background:${meta.bg};">
         <strong>Score Final</strong>
         <span style="color:${col};font-size:1.2rem;">${score}% &nbsp; ${meta.label}</span>
       </div>
+      ${issues.length > 0 ? `
+        <div class="mod-info-box" style="border-color:#fecaca;background:#fef2f2;">
+          <strong>Reprovações</strong>
+          <span style="color:#dc2626;">${issues.length} item(ns)${critCount > 0 ? ` · 🔴 ${critCount} crítico(s)` : ""}</span>
+        </div>` : ""}
     </div>
 
     ${sectionsHtml}

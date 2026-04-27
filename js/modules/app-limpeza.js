@@ -4,7 +4,9 @@
  * Renders:
  *  - KPI bar (avg score, inspections, open actions, critical zones, compliance)
  *  - Zone grid with live scores + status + last inspection
- *  - Employee + zone rankings
+ *  - Employee ranking (ALL employees, with zone shown; no-inspection → "⚫ Sem avaliação")
+ *  - Zone ranking with status badge
+ *  - Champion cards (weekly + monthly) showing zone of the champion
  *  - Critical alert banner
  */
 
@@ -30,9 +32,9 @@ if (perfil?.nome) {
 }
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
-const gridZonas     = document.getElementById("grid-zonas");
-const alertBanner   = document.getElementById("alert-banner");
-const zonesLoading  = document.getElementById("zones-loading");
+const gridZonas    = document.getElementById("grid-zonas");
+const alertBanner  = document.getElementById("alert-banner");
+const zonesLoading = document.getElementById("zones-loading");
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fmtDate(ts) {
@@ -52,6 +54,42 @@ function scoreBorder(score) {
   if (score >= 75) return "#fde68a";
   if (score >= 50) return "#fed7aa";
   return "#fecaca";
+}
+
+/** Returns zone names for a given employeeId */
+function getEmpZones(employeeId) {
+  return catalogoZonas
+    .filter(z => (z.responsaveis || []).includes(employeeId))
+    .map(z => `${z.icone} ${z.nome}`);
+}
+
+/**
+ * Merges performance data with the full employee catalog so ALL employees
+ * appear in rankings, even those with zero inspections in the period.
+ */
+function mergeWithAllEmployees(empPerf) {
+  const byId = {};
+  empPerf.forEach(e => { byId[e.employeeId] = e; });
+
+  return equipeLimpeza.map(emp => {
+    const perf  = byId[emp.id];
+    const zones = getEmpZones(emp.id);
+
+    if (perf) return { ...perf, zones };
+
+    return {
+      employeeId:       emp.id,
+      employeeName:     emp.nome,
+      totalInspections: 0,
+      scoreSum:         0,
+      averageScore:     0,
+      failures:         0,
+      criticalIssues:   0,
+      latestTs:         0,
+      status:           "no_data",
+      zones,
+    };
+  });
 }
 
 // ── Phase 1 — Render zone cards from catalog ─────────────────────────────────
@@ -105,7 +143,6 @@ function renderZonesSkeleton() {
 
 // ── Phase 2 — Enrich with live data ──────────────────────────────────────────
 async function enrichZones(zonaPerf) {
-  // Build map zoneId → performance data
   const perfMap = {};
   zonaPerf.forEach(z => { perfMap[z.zoneId] = z; });
 
@@ -115,11 +152,9 @@ async function enrichZones(zonaPerf) {
     const col   = score !== null ? scoreColor(score)  : "#94a3b8";
     const brd   = score !== null ? scoreBorder(score) : "#e2e8f0";
 
-    // Top bar
     const topbar = document.getElementById(`topbar-${zona.id}`);
     if (topbar) topbar.style.background = col;
 
-    // Score ring
     const ring = document.getElementById(`ring-${zona.id}`);
     if (ring) {
       ring.style.borderColor = brd;
@@ -129,7 +164,6 @@ async function enrichZones(zonaPerf) {
         : `<span class="score-num" style="color:#cbd5e1;">—</span><span class="score-pct" style="color:#cbd5e1;">%</span>`;
     }
 
-    // Last inspection
     const lastEl = document.getElementById(`last-${zona.id}`);
     if (lastEl && perf?.latestTs) {
       const statusMeta = STATUS_LIMPEZA[perf.latestStatus] || STATUS_LIMPEZA.attention;
@@ -160,7 +194,6 @@ function renderKPIs(inspecoes, zonaPerf) {
     ? Math.round((conformes / zonaPerf.length) * 100)
     : 0;
 
-  // Count open actions (inspections with issues and no linked WO)
   const openActions = inspecoes
     .filter(i => (i.timestampEnvio || 0) >= thirtyDaysAgo)
     .reduce((s, i) => s + (i.issues || []).filter(iss => !iss.linkedWOId).length, 0);
@@ -170,19 +203,19 @@ function renderKPIs(inspecoes, zonaPerf) {
     if (el) { el.textContent = val; if (color) el.style.color = color; }
   };
 
-  set("kpi-avg-score",    `${avgScore}%`,      scoreColor(avgScore));
-  set("kpi-total-insp",   totalInsp,            "#1e40af");
-  set("kpi-open-actions", openActions,          openActions > 0 ? "#d97706" : "#16a34a");
-  set("kpi-critical-zones", critZones,          critZones > 0 ? "#dc2626" : "#16a34a");
-  set("kpi-compliance",   `${compliance}%`,     scoreColor(compliance));
+  set("kpi-avg-score",      `${avgScore}%`,   scoreColor(avgScore));
+  set("kpi-total-insp",     totalInsp,         "#1e40af");
+  set("kpi-open-actions",   openActions,       openActions > 0 ? "#d97706" : "#16a34a");
+  set("kpi-critical-zones", critZones,         critZones > 0 ? "#dc2626" : "#16a34a");
+  set("kpi-compliance",     `${compliance}%`,  scoreColor(compliance));
 }
 
 // ── Alert Banner ──────────────────────────────────────────────────────────────
 function renderAlerts(zonaPerf) {
   if (!alertBanner) return;
-  const criticals  = zonaPerf.filter(z => (z.latestScore ?? 100) < 50);
-  const attention  = zonaPerf.filter(z => { const s = z.latestScore ?? 100; return s >= 50 && s < 75; });
-  const htmlParts  = [];
+  const criticals = zonaPerf.filter(z => (z.latestScore ?? 100) < 50);
+  const attention = zonaPerf.filter(z => { const s = z.latestScore ?? 100; return s >= 50 && s < 75; });
+  const htmlParts = [];
 
   if (criticals.length) {
     htmlParts.push(`
@@ -217,32 +250,54 @@ function renderAlerts(zonaPerf) {
 }
 
 // ── Employee Ranking ──────────────────────────────────────────────────────────
-function renderEmployeeRanking(ranking) {
+function renderEmployeeRanking(allEmps) {
   const el = document.getElementById("ranking-funcionarios");
   if (!el) return;
 
-  if (!ranking.length) {
+  if (!allEmps.length) {
     el.innerHTML = `<p style="text-align:center;color:#94a3b8;font-size:.85rem;padding:16px;">Sem dados de funcionários.</p>`;
     return;
   }
 
-  const statusBadge = (status) =>
-    status === "top"              ? `<span class="rank-badge top">🟢 Top</span>`
-    : status === "needs_improvement" ? `<span class="rank-badge mid">🟡 Melhorar</span>`
-    : status === "critical"          ? `<span class="rank-badge low">🔴 Crítico</span>`
-    : "";
-
   const posClass = (i) => i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : "other";
   const medals   = ["🥇","🥈","🥉"];
 
-  el.innerHTML = ranking.slice(0, 6).map((emp, i) => `
-    <div class="ranking-item">
-      <div class="rank-pos ${posClass(i)}">${medals[i] || i + 1}</div>
-      <div class="rank-name" title="${emp.employeeName}">${emp.employeeName}</div>
-      ${statusBadge(emp.status)}
-      <div class="rank-score" style="color:${scoreColor(emp.averageScore)};">${emp.averageScore}%</div>
-    </div>
-  `).join("");
+  // Employees WITH inspections first (capped at 6 total display slots)
+  const withData    = allEmps.filter(e => e.totalInspections > 0);
+  const withoutData = allEmps.filter(e => e.totalInspections === 0);
+  const display     = [...withData, ...withoutData].slice(0, 6);
+
+  el.innerHTML = display.map((emp, i) => {
+    const noData    = emp.totalInspections === 0;
+    const zoneHtml  = emp.zones?.length
+      ? `<div class="rank-zone" style="font-size:.68rem;color:#64748b;margin-top:2px;">📍 ${emp.zones[0]}</div>`
+      : "";
+
+    const badgeHtml = noData
+      ? `<span class="rank-badge no-data" style="background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;">⚫ Sem avaliação</span>`
+      : emp.status === "top"
+        ? `<span class="rank-badge top">🟢 Top</span>`
+        : emp.status === "needs_improvement"
+          ? `<span class="rank-badge mid">🟡 Melhorar</span>`
+          : emp.status === "critical"
+            ? `<span class="rank-badge low">🔴 Crítico</span>`
+            : "";
+
+    const scoreHtml = noData
+      ? `<div class="rank-score" style="color:#94a3b8;">—</div>`
+      : `<div class="rank-score" style="color:${scoreColor(emp.averageScore)};">${emp.averageScore}%</div>`;
+
+    return `
+      <div class="ranking-item">
+        <div class="rank-pos ${noData ? "other" : posClass(i)}">${noData ? "—" : (medals[i] || i + 1)}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="rank-name" title="${emp.employeeName}">${emp.employeeName}</div>
+          ${zoneHtml}
+        </div>
+        ${badgeHtml}
+        ${scoreHtml}
+      </div>`;
+  }).join("");
 }
 
 // ── Zone Ranking ──────────────────────────────────────────────────────────────
@@ -255,7 +310,6 @@ function renderZoneRanking(zonaPerf) {
     return;
   }
 
-  // Enrich with catalog names/icons
   const enriched = zonaPerf.map(z => {
     const cat = catalogoZonas.find(c => c.id === z.zoneId);
     return { ...z, zoneName: cat ? `${cat.icone} ${cat.nome}` : z.zoneName || z.zoneId };
@@ -277,10 +331,7 @@ function renderZoneRanking(zonaPerf) {
 // ── Ranking computation (weekly / monthly) ────────────────────────────────────
 /**
  * Computes employee ranking for a given lookback window.
- * Uses real employeeName from inspection records (NOT employee IDs).
- * @param {Array}  inspecoes  — all inspection records
- * @param {number} days       — lookback window in days (7 or 30)
- * @returns {Array} sorted desc by averageScore
+ * Only returns employees WITH inspections (used for champion cards).
  */
 export function computeRanking(inspecoes, days) {
   const cutoff = Date.now() - days * 24 * 3600_000;
@@ -314,9 +365,9 @@ function renderChampionCard(cardId, champion, badgeLabel, medalEmoji) {
   const el = document.getElementById(cardId);
   if (!el) return;
 
-  // Keep existing badge + medal, replace content area only
+  const badge = el.querySelector(".champion-badge")?.outerHTML || "";
+
   if (!champion) {
-    const badge = el.querySelector(".champion-badge").outerHTML;
     el.innerHTML = `
       ${badge}
       <div class="champion-medal">${medalEmoji}</div>
@@ -324,16 +375,17 @@ function renderChampionCard(cardId, champion, badgeLabel, medalEmoji) {
     return;
   }
 
-  const badge = el.querySelector(".champion-badge").outerHTML;
+  const zoneHtml = champion.topZone
+    ? `<div class="champion-zone" style="font-size:.75rem;color:#64748b;margin-top:2px;">📍 ${champion.topZone}</div>`
+    : "";
+
   el.innerHTML = `
     ${badge}
     <div class="champion-medal">${medalEmoji}</div>
     <div class="champion-name">${champion.name}</div>
+    ${zoneHtml}
     <div class="champion-score">${champion.averageScore}%</div>
-    <div class="champion-meta">
-      📋 ${champion.totalInspections} inspeção(ões)
-      ${champion.topZone ? ` · 📍 ${champion.topZone}` : ""}
-    </div>`;
+    <div class="champion-meta">📋 ${champion.totalInspections} inspeção(ões)</div>`;
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
@@ -350,14 +402,17 @@ async function iniciarPainelLimpeza() {
     enrichZones(zonaPerf);
     renderKPIs(inspecoes, zonaPerf);
     renderAlerts(zonaPerf);
-    renderEmployeeRanking(empPerf);
+
+    // Merge all employees (including those with zero inspections)
+    const allEmps = mergeWithAllEmployees(empPerf);
+    renderEmployeeRanking(allEmps);
     renderZoneRanking(zonaPerf);
 
-    // Champion cards (use raw inspecoes so we can slice by date)
+    // Champion cards use only employees with inspections
     const weekRanking  = computeRanking(inspecoes, 7);
     const monthRanking = computeRanking(inspecoes, 30);
-    renderChampionCard("champion-weekly",  weekRanking[0]  || null, "🔥 Destaque Semanal",  "🥇");
-    renderChampionCard("champion-monthly", monthRanking[0] || null, "⭐ Destaque Mensal",    "🏆");
+    renderChampionCard("champion-weekly",  weekRanking[0]  || null, "🔥 Destaque Semanal", "🥇");
+    renderChampionCard("champion-monthly", monthRanking[0] || null, "⭐ Destaque Mensal",   "🏆");
 
   } catch (err) {
     console.error("[Limpeza] Erro ao carregar painel:", err);

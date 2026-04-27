@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>SIGA — Manutenções</title>
+    <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/sidebar.css" />
+    <link rel="stylesheet" href="../css/ativos.css" />
+    <style>
+      .main-header {
+        display: flex; align-items: center; justify-content: space-between;
+        background: linear-gradient(135deg, #0f4c75, #3282b8);
+        color: white; padding: 14px 20px;
+        box-shadow: 0 4px 12px rgba(15,76,117,0.25);
+      }
+      .header-left { display: flex; align-items: center; gap: 12px; }
+      .logo-h1 { margin: 0; font-size: 1.5rem; letter-spacing: 1px; }
+      .logo-sub { font-size: .78rem; color: #cbd5e1; display: block; }
+      .user-info { display: flex; align-items: center; gap: 10px; }
+      .avatar {
+        background: white; color: #0f4c75;
+        width: 34px; height: 34px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 900; font-size: 1.05rem;
+      }
+      .main-nav {
+        display: flex; gap: 10px; padding: 12px 20px;
+        background: white; overflow-x: auto; white-space: nowrap;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      .main-nav::-webkit-scrollbar { height: 4px; }
+      .main-nav::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+      .nav-item {
+        padding: 8px 16px; text-decoration: none; color: #475569;
+        font-weight: 600; font-size: .9rem; border-radius: 8px;
+        background: #f1f5f9; border: 1px solid #e2e8f0; transition: .2s;
+        display: flex; align-items: center; gap: 7px;
+      }
+      .nav-item:hover { background: #e2e8f0; }
+      .nav-item.active { background: #0f4c75; color: white; border-color: #0f4c75; box-shadow: 0 3px 8px rgba(15,76,117,0.3); }
+      .page-title-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; padding-top: 20px; }
+      .page-title { margin: 0; font-size: 1.25rem; font-weight: 800; color: #0f4c75; }
+    </style>
+  </head>
+  <body>
+
+    <header class="main-header">
+      <div class="header-left">
+        <div>
+          <h1 class="logo-h1">SIGA</h1>
+          <span class="logo-sub">Manutenções</span>
+        </div>
+      </div>
+      <div class="user-info">
+        <span id="header-user-name" style="font-size:.85rem;font-weight:700;">—</span>
+        <div class="avatar" id="header-avatar">?</div>
+      </div>
+    </header>
+
+    <nav class="main-nav">
+      <a href="../index.html"     class="nav-item">🏠 Início</a>
+      <a href="ativos.html"       class="nav-item">🏷️ Ativos</a>
+      <a href="manutencao.html"   class="nav-item active">🔧 Manutenções</a>
+      <a href="inventario.html"   class="nav-item">📋 Inventário</a>
+      <a href="categorias.html"   class="nav-item">⚙️ Categorias</a>
+      <a href="../os/os.html"     class="nav-item">📋 O.S</a>
+    </nav>
+
+    <main class="ativos-container">
+
+      <div class="page-title-row">
+        <h2 class="page-title">🔧 Manutenções</h2>
+        <button class="btn btn-primary" onclick="openNewMaintModal()">
+          + Nova Manutenção
+        </button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-bar">
+        <div class="stat-card s-total">
+          <span class="stat-count" id="ms-total">—</span>
+          <span class="stat-label">Total</span>
+        </div>
+        <div class="stat-card" style="border-top:3px solid #fde68a;">
+          <span class="stat-count" id="ms-pend" style="color:#92400e;">—</span>
+          <span class="stat-label">⏳ Pendentes</span>
+        </div>
+        <div class="stat-card" style="border-top:3px solid #bfdbfe;">
+          <span class="stat-count" id="ms-and" style="color:#1e40af;">—</span>
+          <span class="stat-label">🔄 Em Andamento</span>
+        </div>
+        <div class="stat-card" style="border-top:3px solid #86efac;">
+          <span class="stat-count" id="ms-conc" style="color:#166534;">—</span>
+          <span class="stat-label">✅ Concluídas</span>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters-section">
+        <div class="filter-group wide">
+          <span class="filter-label">Pesquisar</span>
+          <input type="text" id="mf-search" class="filter-input"
+                 placeholder="Ativo, descrição ou técnico..." />
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Tipo</span>
+          <select id="mf-type" class="filter-select">
+            <option value="">Todos</option>
+            <option value="preventiva">Preventiva</option>
+            <option value="corretiva">Corretiva</option>
+            <option value="inspecao">Inspeção</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Status</span>
+          <select id="mf-status" class="filter-select">
+            <option value="">Todos</option>
+            <option value="pendente">Pendente</option>
+            <option value="andamento">Em Andamento</option>
+            <option value="concluida">Concluída</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="list-toolbar">
+        <span class="result-count" id="maint-count">Carregando...</span>
+      </div>
+
+      <!-- List -->
+      <div class="maint-list" id="maint-list">
+        <div class="skeleton skel-row" style="border-radius:10px;margin-bottom:8px;"></div>
+        <div class="skeleton skel-row" style="border-radius:10px;margin-bottom:8px;"></div>
+        <div class="skeleton skel-row" style="border-radius:10px;margin-bottom:8px;"></div>
+      </div>
+
+    </main>
+
+    <!-- NEW / EDIT MAINTENANCE MODAL -->
+    <div id="maint-modal" class="modal-overlay hidden modal-center"
+         onclick="if(event.target===this)closeMaintModal()">
+      <div class="modal-panel" style="max-width:560px;">
+        <div class="modal-header">
+          <div class="modal-title-area">
+            <div class="modal-subtitle" id="mm-mode-label">Nova Manutenção</div>
+            <div class="modal-title" id="mm-asset-title">Selecione um ativo</div>
+          </div>
+          <button class="modal-close" onclick="closeMaintModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <div style="display:flex;flex-direction:column;gap:14px;">
+
+            <div class="form-group">
+              <label class="form-label">Ativo <span class="req">*</span></label>
+              <select id="mm-asset" class="form-select">
+                <option value="">Selecione o ativo...</option>
+              </select>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="form-group">
+                <label class="form-label">Tipo <span class="req">*</span></label>
+                <select id="mm-type" class="form-select">
+                  <option value="preventiva">🔵 Preventiva</option>
+                  <option value="corretiva">🔴 Corretiva</option>
+                  <option value="inspecao">🟢 Inspeção</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Status <span class="req">*</span></label>
+                <select id="mm-status" class="form-select">
+                  <option value="pendente">⏳ Pendente</option>
+                  <option value="andamento">🔄 Em Andamento</option>
+                  <option value="concluida">✅ Concluída</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Descrição <span class="req">*</span></label>
+              <textarea id="mm-desc" class="form-textarea" rows="3"
+                        placeholder="Descreva o serviço..."></textarea>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="form-group">
+                <label class="form-label">Data Prevista</label>
+                <input type="date" id="mm-sched-date" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Data de Conclusão</label>
+                <input type="date" id="mm-complete-date" class="form-input" />
+              </div>
+            </div>
+
+            <div id="mm-cat-hint" style="display:none;font-size:.82rem;font-weight:600;color:#854d0e;background:#fefce8;border:1px solid #fde68a;border-radius:6px;padding:8px 12px;line-height:1.5;"></div>
+
+            <div class="form-group">
+              <label class="form-label" id="mm-tech-label">Técnico Responsável</label>
+              <input type="text" id="mm-tech" class="form-input"
+                     placeholder="Nome do técnico..." />
+            </div>
+
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeMaintModal()">Cancelar</button>
+          <button class="btn btn-primary" id="mm-save-btn" onclick="saveMaint()">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DETAIL MODAL -->
+    <div id="detail-modal" class="modal-overlay hidden modal-center"
+         onclick="if(event.target===this)closeDetailModal()">
+      <div class="modal-panel" style="max-width:560px;">
+        <div class="modal-header">
+          <div class="modal-title-area">
+            <div class="modal-subtitle" id="dm-badges" style="display:flex;gap:6px;"></div>
+            <div class="modal-title" id="dm-asset-name">—</div>
+          </div>
+          <button class="modal-close" onclick="closeDetailModal()">×</button>
+        </div>
+        <div class="modal-body" id="dm-body"></div>
+        <div class="modal-footer">
+          <button class="btn btn-danger btn-sm" id="dm-delete-btn">Excluir</button>
+          <button class="btn btn-secondary" onclick="closeDetailModal()">Fechar</button>
+          <button class="btn btn-primary" id="dm-edit-btn">Editar</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="../js/core/sidebar.js"></script>
+    <script type="module" src="../js/core/maintenance-sidebar.js"></script>
+    <script type="module" src="../js/modules/app-ativos-manutencao.js"></script>
+    <script>
+      function closeMaintModal()  { document.getElementById("maint-modal").classList.add("hidden"); }
+      function closeDetailModal() { document.getElementById("detail-modal").classList.add("hidden"); }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,104 @@
+.page   { display: flex; flex-direction: column; }
+.loader { padding: 80px; text-align: center; color: var(--text-3, #8898AA); }
+
+/* ── Hero ── */
+.hero         { position: relative; overflow: hidden; }
+.heroBg       { position: absolute; inset: 0; background: linear-gradient(135deg, var(--brand-deep, #052e16) 0%, var(--brand-main, #166534) 100%); }
+.heroContent  { position: relative; z-index: 1; padding: 24px 32px 28px; display: flex; flex-direction: column; gap: 16px; }
+
+.heroTop      { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.backBtn      { padding: 7px 14px; border: 1px solid rgba(255,255,255,0.25); border-radius: var(--r-md,10px); background: rgba(255,255,255,0.1); color:#fff; font-size:0.85rem; cursor:pointer; transition:background var(--t-fast); }
+.backBtn:hover{ background: rgba(255,255,255,0.2); }
+.heroActions  { display: flex; gap: 8px; }
+.toggleBtn, .obraBtn { padding: 8px 16px; border-radius: var(--r-md,10px); font-size:0.85rem; font-weight:600; cursor:pointer; transition:all var(--t-fast); }
+.toggleBtn    { border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: #fff; }
+.toggleBtn:hover { background: rgba(255,255,255,0.2); }
+.obraBtn      { border: none; background: var(--brand-accent,#ea580c); color: #fff; box-shadow: 0 2px 8px rgba(234,88,12,0.4); }
+.obraBtn:hover{ background: var(--brand-accent2,#c2410c); }
+
+.heroMain     { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
+.heroName     { margin: 0; font-size: 1.6rem; font-weight: 800; color: #fff; }
+.heroCnpj     { font-size: 0.8rem; color: rgba(255,255,255,0.6); margin-top: 4px; }
+.heroSpecs    { font-size: 0.85rem; color: rgba(255,255,255,0.7); margin-top: 6px; }
+.heroScoreBlock { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.heroScoreValue { font-size: 3rem; font-weight: 900; line-height: 1; }
+.heroScoreLabel { font-size: 0.75rem; color: rgba(255,255,255,0.6); }
+.heroBadge    { padding: 4px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
+
+.heroStats    { display: flex; gap: 0; flex-wrap: wrap; background: rgba(0,0,0,0.15); border-radius: var(--r-md,10px); }
+.heroStat     { padding: 12px 20px; display: flex; flex-direction: column; gap: 3px; }
+.heroStatDiv  { width: 1px; background: rgba(255,255,255,0.12); margin: 8px 0; }
+.heroStatVal  { font-size: 1.1rem; font-weight: 800; color: #fff; }
+.heroStatLbl  { font-size: 0.7rem; color: rgba(255,255,255,0.55); text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* ── Body ── */
+.body { padding: 24px 32px 48px; display: flex; flex-direction: column; gap: 20px; }
+
+/* ── Cards ── */
+.card {
+  background: var(--bg-card,#fff);
+  border: 1px solid var(--border-light,#EBF0F7);
+  border-radius: var(--r-lg,14px); padding: 20px 24px;
+  box-shadow: var(--shadow-xs); display: flex; flex-direction: column; gap: 14px;
+}
+.cardTitle { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--brand-main,#166534); }
+.obsBox    { font-size: 0.875rem; color: var(--text-2,#4B5A6A); background: var(--bg,#F5F7FA); border-radius: var(--r-md,10px); padding: 12px; line-height: 1.5; }
+.noData    { font-size: 0.875rem; color: var(--text-3,#8898AA); font-style: italic; }
+
+/* Contact */
+.contactGrid  { display: flex; gap: 16px; flex-wrap: wrap; }
+.contactItem  { font-size: 0.875rem; color: var(--text-2,#4B5A6A); display: flex; align-items: center; gap: 6px; }
+
+/* Avaliação breakdown */
+.avalHeader  { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.avalScore   { display: flex; align-items: baseline; gap: 4px; }
+.avalScoreVal{ font-size: 2.5rem; font-weight: 900; line-height: 1; }
+.avalScoreSub{ font-size: 1rem; color: var(--text-3,#8898AA); }
+.avalRecom   { font-size: 1rem; font-weight: 700; }
+
+.criteriosBlock { display: flex; flex-direction: column; gap: 8px; }
+.criterioRow    { display: flex; align-items: center; gap: 8px; }
+.criterioLabel  { font-size: 0.8rem; color: var(--text-2,#4B5A6A); width: 190px; flex-shrink: 0; }
+.criterioTrack  { flex: 1; height: 6px; background: var(--border-light,#EBF0F7); border-radius: 3px; overflow: hidden; }
+.criterioFill   { height: 100%; border-radius: 3px; transition: width 0.4s; }
+.criterioNota   { font-size: 0.85rem; font-weight: 700; width: 32px; text-align: right; }
+
+.justBox { font-size: 0.875rem; color: var(--text-2,#4B5A6A); background: var(--bg,#F5F7FA); border-radius: var(--r-md,10px); padding: 12px; line-height: 1.5; border-left: 3px solid var(--brand-accent,#ea580c); }
+
+/* Histórico */
+.histList  { display: flex; flex-direction: column; gap: 8px; }
+.histItem  {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+  border-radius: var(--r-md,10px); cursor: pointer;
+  border: 1px solid var(--border-light,#EBF0F7);
+  transition: box-shadow var(--t-fast), transform var(--t-fast);
+}
+.histItem:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.histScore { width: 48px; height: 48px; border-radius: 50%; border: 2px solid; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 800; flex-shrink: 0; }
+.histMeta  { flex: 1; }
+.histObra  { font-weight: 600; font-size: 0.875rem; color: var(--text,#1B2430); }
+.histDate  { font-size: 0.78rem; color: var(--text-3,#8898AA); margin-top: 2px; }
+.histRecom { font-size: 1.2rem; }
+
+/* Obras list */
+.obrasList { display: flex; flex-direction: column; gap: 6px; }
+.obraItem  {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+  border-radius: var(--r-md,10px); cursor: pointer;
+  border: 1px solid var(--border-light,#EBF0F7);
+  transition: background var(--t-fast);
+}
+.obraItem:hover { background: rgba(22,101,52,0.04); }
+.obraMeta  { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.obraCod   { font-family: monospace; font-size: 0.72rem; color: var(--brand-accent,#ea580c); background: rgba(234,88,12,0.08); padding: 1px 5px; border-radius: 3px; display: inline-block; }
+.obraNome  { font-size: 0.875rem; font-weight: 600; color: var(--text,#1B2430); }
+.obraStatus{ font-size: 0.78rem; font-weight: 600; text-transform: capitalize; }
+.obraPct   { font-size: 0.82rem; color: var(--text-3,#8898AA); }
+.obraNota  { font-size: 0.9rem; font-weight: 800; }
+
+@media (max-width: 640px) {
+  .heroContent { padding: 16px; }
+  .body { padding: 16px 16px 40px; }
+  .heroStats { flex-direction: column; }
+  .heroStatDiv { display: none; }
+}

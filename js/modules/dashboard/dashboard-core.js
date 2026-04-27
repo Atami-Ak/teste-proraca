@@ -12,6 +12,8 @@
 
 import { checkAuth, hasRole, logout, ROLES, ROLE_LABELS } from "../../core/db-auth.js";
 import { carregarDashboard, formatarMoeda, formatarHoras } from "../../core/db-dashboard.js";
+import { criarPedidoCompra, atualizarPedido, PO_CATEGORIAS } from "../../core/db-compras.js";
+import { atualizarOS, adicionarLog } from "../../core/db-os.js";
 import { statusMigracao, migrarHistoricoParaWorkOrders } from "../../core/db-bridge.js";
 
 import { iniciarOSCenter }          from "./os-center.js";
@@ -29,6 +31,9 @@ if (!perfil) throw new Error("Unreachable — checkAuth already redirected");
 if (perfil.role === ROLES.ADMIN) {
   document.body.classList.add("is-admin");
 }
+
+// Users that can see and act on approval queues
+const isPrivileged = [ROLES.ADMIN, "purchasing"].includes(perfil.role);
 
 // ============================================================
 // TOAST (exported for sub-modules via callback)
@@ -177,6 +182,7 @@ async function withTimeout(promise, ms, label) {
 btnRefresh?.addEventListener("click", () => carregarTudo());
 carregarTudo();
 if (perfil.role === ROLES.ADMIN) iniciarAdminSection();
+_configurarModalNovoPedido();
 
 async function carregarTudo() {
   if (btnRefresh) {
@@ -198,6 +204,8 @@ async function carregarTudo() {
     renderPanelOS(dados);
     renderPanelCompras(dados);
     atualizarBadgesSidebar(dados);
+    _renderFilaAprovacaoPO(dados.rawPurchaseOrders || []);
+    _renderFilaAprovacaoOS(dados.rawWorkOrders || []);
 
     // Sub-modules receive data
     iniciarMachineryCenter(dados.rawWorkOrders, mostrarToast, perfil);
@@ -622,6 +630,386 @@ async function iniciarAdminSection() {
     }
   } catch (e) {
     statusEls.forEach((el) => { el.textContent = "Erro ao verificar migração."; });
+  }
+}
+
+// ============================================================
+// APPROVAL QUEUE — PURCHASE ORDERS
+// ============================================================
+function _renderFilaAprovacaoPO(rawPOs) {
+  const wrapper = document.getElementById("fila-po-wrapper");
+  if (!wrapper) return;
+
+  if (!isPrivileged) {
+    wrapper.innerHTML = "";
+    return;
+  }
+
+  const pendentes = rawPOs.filter((p) => p.status === "pending");
+  if (!pendentes.length) {
+    wrapper.innerHTML = "";
+    return;
+  }
+
+  wrapper.innerHTML = `
+    <div class="dash-card">
+      <div class="dash-card-header">
+        <h3 class="dash-card-title">⏳ Fila de Aprovação — Pedidos (${pendentes.length})</h3>
+      </div>
+      <div class="dash-card-body" id="fila-po-lista">
+        ${pendentes.map(_filaPoItemHtml).join("")}
+      </div>
+    </div>
+  `;
+
+  document.getElementById("fila-po-lista")?.addEventListener("click", _onFilaPoClick);
+}
+
+function _filaPoItemHtml(po) {
+  const num   = po.documentoNumero || po.id.substring(0, 8).toUpperCase();
+  const cat   = PO_CATEGORIAS[po.categoria] || po.categoria || "—";
+  const urgCls = po.urgencia === "critico" ? "critico" : "";
+  const urgLabel = po.urgencia === "critico" ? "🔴 Crítico" : po.urgencia === "urgente" ? "🟡 Urgente" : "Normal";
+  const total = formatarMoeda(po.totalEstimado || 0);
+  const data  = new Date(po.timestampEnvio || po.criadoEm || 0).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+
+  return `
+    <div class="fila-aprov-item ${urgCls}" data-po-id="${po.id}">
+      <div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:3px;">
+          <span class="fila-aprov-num">#${num}</span>
+          <span class="badge-sm" style="font-size:.65rem;">${urgLabel}</span>
+        </div>
+        <div class="fila-aprov-titulo">${po.titulo || po.title || "Sem título"}</div>
+        <div class="fila-aprov-meta">📂 ${cat} · 💰 ${total} · 👤 ${po.solicitante || "—"} · 📅 ${data}</div>
+      </div>
+      <div class="fila-aprov-actions">
+        <button class="btn-aprovar"  data-po-action="approve"       data-po-id="${po.id}">✅ Aprovar</button>
+        <button class="btn-rejeitar" data-po-action="reject-toggle" data-po-id="${po.id}">❌ Rejeitar</button>
+      </div>
+      <div class="fila-reject-area" id="reject-area-po-${po.id}">
+        <textarea placeholder="Motivo da rejeição (obrigatório)..." id="reject-reason-po-${po.id}"></textarea>
+        <button class="fila-reject-confirm" data-po-action="reject-confirm" data-po-id="${po.id}">Confirmar</button>
+      </div>
+    </div>
+  `;
+}
+
+async function _onFilaPoClick(e) {
+  const action = e.target.dataset.poAction;
+  const poId   = e.target.dataset.poId;
+  if (!action || !poId) return;
+
+  if (action === "approve") {
+    await _aprovPO(poId);
+  } else if (action === "reject-toggle") {
+    const area = document.getElementById(`reject-area-po-${poId}`);
+    if (area) area.classList.toggle("visible");
+  } else if (action === "reject-confirm") {
+    const reason = document.getElementById(`reject-reason-po-${poId}`)?.value.trim();
+    if (!reason) { mostrarToast("Informe o motivo da rejeição.", "aviso"); return; }
+    await _rejeitarPO(poId, reason);
+  }
+}
+
+async function _aprovPO(poId) {
+  try {
+    await atualizarPedido(poId, { status: "approved", aprovadoEm: Date.now(), aprovadoPor: perfil.nome });
+    _fadeOutFilaItem(`[data-po-id="${poId}"]`);
+    if (dadosGlobais) {
+      const idx = dadosGlobais.rawPurchaseOrders.findIndex((p) => p.id === poId);
+      if (idx >= 0) dadosGlobais.rawPurchaseOrders[idx].status = "approved";
+    }
+    _atualizarBadgePO();
+    mostrarToast("Pedido aprovado!", "sucesso");
+  } catch (err) {
+    console.error(err);
+    mostrarToast("Erro ao aprovar pedido.", "erro");
+  }
+}
+
+async function _rejeitarPO(poId, reason) {
+  try {
+    await atualizarPedido(poId, { status: "cancelled", motivoRejeicao: reason, rejeitadoEm: Date.now(), rejeitadoPor: perfil.nome });
+    _fadeOutFilaItem(`[data-po-id="${poId}"]`);
+    if (dadosGlobais) {
+      const idx = dadosGlobais.rawPurchaseOrders.findIndex((p) => p.id === poId);
+      if (idx >= 0) dadosGlobais.rawPurchaseOrders[idx].status = "cancelled";
+    }
+    _atualizarBadgePO();
+    mostrarToast("Pedido rejeitado.", "aviso");
+  } catch (err) {
+    console.error(err);
+    mostrarToast("Erro ao rejeitar pedido.", "erro");
+  }
+}
+
+// ============================================================
+// APPROVAL QUEUE — SERVICE OS
+// ============================================================
+function _renderFilaAprovacaoOS(rawWOs) {
+  const wrapper = document.getElementById("fila-os-wrapper");
+  if (!wrapper) return;
+
+  if (!isPrivileged) {
+    wrapper.innerHTML = "";
+    return;
+  }
+
+  const pendentes = rawWOs.filter((w) => w.status === "pending_approval" && w.type === "service");
+  if (!pendentes.length) {
+    wrapper.innerHTML = "";
+    return;
+  }
+
+  wrapper.innerHTML = `
+    <div class="dash-card">
+      <div class="dash-card-header">
+        <h3 class="dash-card-title">⏳ OS Aguardando Aprovação (${pendentes.length})</h3>
+      </div>
+      <div class="dash-card-body" id="fila-os-lista">
+        ${pendentes.map(_filaOsItemHtml).join("")}
+      </div>
+    </div>
+  `;
+
+  document.getElementById("fila-os-lista")?.addEventListener("click", _onFilaOsClick);
+}
+
+function _filaOsItemHtml(os) {
+  const num  = os.numero || os.id.substring(0, 8).toUpperCase();
+  const data = new Date(os.timestampEnvio || os.createdAt || 0).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+
+  return `
+    <div class="fila-aprov-item" data-os-id="${os.id}">
+      <div>
+        <span class="fila-aprov-num">#${num}</span>
+        <div class="fila-aprov-titulo">${os.title || "Sem título"}</div>
+        <div class="fila-aprov-meta">🛠️ Serviço · 📂 ${os.sector || "—"} · 👤 ${os.solicitante || "—"} · 📅 ${data}</div>
+      </div>
+      <div class="fila-aprov-actions">
+        <button class="btn-aprovar"  data-os-action="approve"       data-os-id="${os.id}">✅ Aprovar</button>
+        <button class="btn-rejeitar" data-os-action="reject-toggle" data-os-id="${os.id}">❌ Rejeitar</button>
+      </div>
+      <div class="fila-reject-area" id="reject-area-os-${os.id}">
+        <textarea placeholder="Motivo da rejeição (obrigatório)..." id="reject-reason-os-${os.id}"></textarea>
+        <button class="fila-reject-confirm" data-os-action="reject-confirm" data-os-id="${os.id}">Confirmar</button>
+      </div>
+    </div>
+  `;
+}
+
+async function _onFilaOsClick(e) {
+  const action = e.target.dataset.osAction;
+  const osId   = e.target.dataset.osId;
+  if (!action || !osId) return;
+
+  if (action === "approve") {
+    await _aprovOS(osId);
+  } else if (action === "reject-toggle") {
+    const area = document.getElementById(`reject-area-os-${osId}`);
+    if (area) area.classList.toggle("visible");
+  } else if (action === "reject-confirm") {
+    const reason = document.getElementById(`reject-reason-os-${osId}`)?.value.trim();
+    if (!reason) { mostrarToast("Informe o motivo da rejeição.", "aviso"); return; }
+    await _rejeitarOS(osId, reason);
+  }
+}
+
+async function _aprovOS(osId) {
+  try {
+    await atualizarOS(osId, { status: "open" });
+    await adicionarLog(osId, "OS aprovada — status → Aberta", perfil.nome, "✅");
+    _fadeOutFilaItem(`[data-os-id="${osId}"]`);
+    if (dadosGlobais) {
+      const idx = dadosGlobais.rawWorkOrders.findIndex((w) => w.id === osId);
+      if (idx >= 0) dadosGlobais.rawWorkOrders[idx].status = "open";
+    }
+    mostrarToast("OS aprovada!", "sucesso");
+  } catch (err) {
+    console.error(err);
+    mostrarToast("Erro ao aprovar OS.", "erro");
+  }
+}
+
+async function _rejeitarOS(osId, reason) {
+  try {
+    await atualizarOS(osId, { status: "cancelled", motivoRejeicao: reason });
+    await adicionarLog(osId, `OS rejeitada — ${reason}`, perfil.nome, "❌");
+    _fadeOutFilaItem(`[data-os-id="${osId}"]`);
+    if (dadosGlobais) {
+      const idx = dadosGlobais.rawWorkOrders.findIndex((w) => w.id === osId);
+      if (idx >= 0) dadosGlobais.rawWorkOrders[idx].status = "cancelled";
+    }
+    mostrarToast("OS rejeitada.", "aviso");
+  } catch (err) {
+    console.error(err);
+    mostrarToast("Erro ao rejeitar OS.", "erro");
+  }
+}
+
+function _fadeOutFilaItem(selector) {
+  const item = document.querySelector(`.fila-aprov-item${selector}`);
+  if (!item) return;
+  item.classList.add("fade-out");
+  setTimeout(() => item.remove(), 350);
+}
+
+function _atualizarBadgePO() {
+  if (!dadosGlobais) return;
+  const pendentes = (dadosGlobais.rawPurchaseOrders || []).filter((p) => p.status === "pending").length;
+  const badge = document.getElementById("badge-po-pendentes");
+  if (badge) {
+    badge.textContent = pendentes;
+    badge.classList.toggle("hidden", pendentes === 0);
+  }
+}
+
+// ============================================================
+// INLINE PO CREATION MODAL (Problem 3)
+// ============================================================
+let _poItens = [];
+
+function _configurarModalNovoPedido() {
+  document.getElementById("btn-fab-novo-pedido-overview")?.addEventListener("click", _abrirModalNovoPedido);
+  document.getElementById("btn-novo-pedido-panel")?.addEventListener("click", _abrirModalNovoPedido);
+
+  document.getElementById("modal-criar-po-close")?.addEventListener("click", _fecharModalNovoPedido);
+  document.getElementById("modal-criar-po-cancel")?.addEventListener("click", _fecharModalNovoPedido);
+  document.getElementById("modal-criar-po")?.addEventListener("click", (e) => {
+    if (e.target.id === "modal-criar-po") _fecharModalNovoPedido();
+  });
+
+  document.getElementById("po-btn-add-item")?.addEventListener("click", () => _adicionarItemPO());
+
+  document.getElementById("form-criar-po")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    await _salvarNovoPedido();
+  });
+}
+
+function _abrirModalNovoPedido() {
+  _poItens = [];
+  const modal = document.getElementById("modal-criar-po");
+  if (!modal) return;
+  document.getElementById("form-criar-po")?.reset();
+  const lista = document.getElementById("po-itens-lista");
+  if (lista) lista.innerHTML = "";
+  _adicionarItemPO(); // first empty row
+  _recalcularTotalPO();
+  modal.classList.add("visible");
+}
+
+function _fecharModalNovoPedido() {
+  document.getElementById("modal-criar-po")?.classList.remove("visible");
+  _poItens = [];
+}
+
+function _adicionarItemPO(desc = "", qty = 1, unit = 0) {
+  const idx = _poItens.length;
+  _poItens.push({ desc, qty, unit, total: 0 });
+
+  const lista = document.getElementById("po-itens-lista");
+  if (!lista) return;
+
+  const row = document.createElement("div");
+  row.className = "modal-mat-row";
+  row.dataset.idx = idx;
+  row.innerHTML = `
+    <input type="text"   class="mat-desc"  placeholder="Descrição" value="${desc}" />
+    <input type="number" class="mat-qty"   placeholder="Qtd" min="1" value="${qty}" />
+    <input type="number" class="mat-unit"  placeholder="Unit R$" min="0" step="0.01" value="${unit > 0 ? unit : ""}" />
+    <input type="text"   class="mat-total" readonly placeholder="0,00" />
+    <button type="button" class="btn-mat-remove" title="Remover">✕</button>
+  `;
+
+  row.querySelector(".mat-qty").addEventListener("input",  () => _atualizarItemPO(row, idx));
+  row.querySelector(".mat-unit").addEventListener("input", () => _atualizarItemPO(row, idx));
+  row.querySelector(".btn-mat-remove").addEventListener("click", () => {
+    row.remove();
+    _poItens[idx] = null;
+    _recalcularTotalPO();
+  });
+
+  lista.appendChild(row);
+  _atualizarItemPO(row, idx);
+}
+
+function _atualizarItemPO(row, idx) {
+  const qty  = parseFloat(row.querySelector(".mat-qty").value)  || 0;
+  const unit = parseFloat(row.querySelector(".mat-unit").value) || 0;
+  const tot  = qty * unit;
+  row.querySelector(".mat-total").value = tot.toFixed(2).replace(".", ",");
+  if (_poItens[idx] !== null) {
+    _poItens[idx] = { desc: row.querySelector(".mat-desc").value, qty, unit, total: tot };
+  }
+  _recalcularTotalPO();
+}
+
+function _recalcularTotalPO() {
+  const total = _poItens.filter(Boolean).reduce((s, i) => s + (i.total || 0), 0);
+  const el = document.getElementById("po-display-total");
+  if (el) el.textContent = formatarMoeda(total);
+}
+
+function _coletarItensPO() {
+  return _poItens
+    .filter(Boolean)
+    .filter((i) => i.desc && i.qty > 0)
+    .map((i) => ({
+      descricao: i.desc,
+      quantidade: i.qty,
+      precoUnitario: i.unit,
+      precoTotal: i.total,
+    }));
+}
+
+async function _salvarNovoPedido() {
+  const titulo    = document.getElementById("po-titulo")?.value.trim();
+  const categoria = document.getElementById("po-categoria")?.value;
+  const urgencia  = document.getElementById("po-urgencia")?.value || "normal";
+  const justific  = document.getElementById("po-justificativa")?.value.trim();
+
+  if (!titulo || !categoria) {
+    mostrarToast("Preencha Título e Categoria.", "erro");
+    return;
+  }
+
+  const itens = _coletarItensPO();
+  const total = itens.reduce((s, i) => s + (i.precoTotal || 0), 0);
+
+  const payload = {
+    titulo,
+    categoria,
+    urgencia,
+    justificativa: justific,
+    items: itens,
+    totalEstimado: total,
+    solicitante: perfil.nome,
+    criadoPor: perfil.nome,
+    status: "pending",
+  };
+
+  const btnSave = document.getElementById("modal-criar-po-save");
+  if (btnSave) { btnSave.disabled = true; btnSave.textContent = "Salvando..."; }
+
+  try {
+    const novoId = await criarPedidoCompra(payload);
+    const novoPO = { id: novoId, ...payload, timestampEnvio: Date.now() };
+
+    if (dadosGlobais) {
+      dadosGlobais.rawPurchaseOrders = [novoPO, ...(dadosGlobais.rawPurchaseOrders || [])];
+      _renderFilaAprovacaoPO(dadosGlobais.rawPurchaseOrders);
+      _atualizarBadgePO();
+    }
+
+    _fecharModalNovoPedido();
+    mostrarToast("Pedido de Compra criado!", "sucesso");
+  } catch (err) {
+    console.error(err);
+    mostrarToast("Erro ao criar pedido.", "erro");
+  } finally {
+    if (btnSave) { btnSave.disabled = false; btnSave.textContent = "Salvar Pedido"; }
   }
 }
 

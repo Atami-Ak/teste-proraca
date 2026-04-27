@@ -1,0 +1,187 @@
+.root { display: flex; flex-direction: column; gap: 8px; }
+
+/* Section accordion */
+.section {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.sectionHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px;
+  background: #f8fafc;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1e293b;
+  transition: background 0.14s;
+}
+.sectionHeader:hover { background: #f1f5f9; }
+
+.sectionIcon  { font-size: 1rem; }
+.sectionLabel { flex: 1; }
+
+.progress {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #94a3b8;
+  background: #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.progressDone { color: #16a34a; background: #dcfce7; }
+.progressNc   { color: #dc2626; background: #fee2e2; }
+
+.chevron { color: #94a3b8; transition: transform 0.2s; }
+.chevronUp { transform: rotate(180deg); }
+
+/* Items */
+.itemList { display: flex; flex-direction: column; }
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 14px;
+  border-top: 1px solid #f8fafc;
+  transition: background 0.12s;
+  flex-wrap: wrap;
+}
+.row:hover { background: #fafbfc; }
+.rowC  { background: #f0fdf4; }
+.rowNc { background: #fff7f7; }
+
+.rowLabel {
+  flex: 1;
+  font-size: 0.83rem;
+  color: #334155;
+  font-weight: 500;
+  min-width: 160px;
+  line-height: 1.4;
+  padding-top: 2px;
+}
+
+.required {
+  color: #dc2626;
+  margin-left: 3px;
+  font-size: 0.75rem;
+}
+
+/* Radio group */
+.radioGroup {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.radioLabel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1.5px solid #e2e8f0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  background: white;
+  color: #64748b;
+}
+.radioLabel:has(input:checked) { }
+.radioLabel input { display: none; }
+
+.radioC  { background: #f0fdf4; border-color: #16a34a; color: #16a34a; }
+.radioNC { background: #fee2e2; border-color: #dc2626; color: #dc2626; }
+
+/* NC detail block */
+.ncDetails {
+  width: 100%;
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ncNotes {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid #fca5a5;
+  border-radius: 8px;
+  font-size: 0.83rem;
+  resize: vertical;
+  font-family: inherit;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+.ncNotes:focus { outline: none; border-color: #dc2626; }
+
+/* Photo handling */
+.photoSection { display: flex; flex-direction: column; gap: 6px; }
+
+.photoBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1.5px dashed #fca5a5;
+  border-radius: 7px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #dc2626;
+  cursor: pointer;
+  background: white;
+  transition: background 0.14s;
+  align-self: flex-start;
+}
+.photoBtn:hover { background: #fff7f7; }
+
+.photoList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.photoThumb {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+.photoThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.removePhoto {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 0.65rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.photoRequired {
+  font-size: 0.7rem;
+  color: #dc2626;
+  font-weight: 600;
+}
+.photoOk { color: #16a34a; }

@@ -1,249 +1,582 @@
-// firestore.rules — SIGA Security Rules
+// ═══════════════════════════════════════════════════════════════════════════
+// firestore.rules — SIGA v2.0 · Pro Raça Rações
+// ═══════════════════════════════════════════════════════════════════════════
 //
-// Role-based access control using custom claims OR Firestore user profile.
-// Strategy: read role from users/{uid}.role in Firestore (no custom claims needed).
+// CONTROLE DE ACESSO BASEADO EM PAPEL (RBAC)
+// O papel do usuário fica em users/{uid}.role no Firestore.
+// Sem Custom Claims necessários.
 //
-// Roles: admin | maintenance | operations | purchasing
+// ── Papéis suportados ───────────────────────────────────────────────────────
+//   admin       → acesso total (CRUD em tudo)
+//   supervisor  → leitura total + escrita em ativos, manutenção, fornecedores,
+//                 categorias, inventário, ordens, compras, documentos
+//   operador    → leitura total + escrita operacional (criação de ordens,
+//                 inspeções, inventário, ativos com restrições)
+//   visualizador→ somente leitura
 //
-// HOW TO DEPLOY:
+// ── Papéis legados (retrocompatibilidade com módulos HTML) ──────────────────
+//   maintenance → equivale a supervisor
+//   operations  → equivale a operador
+//   purchasing  → equivale a supervisor (foco em compras/fornecedores)
+//
+// ── NOTAS IMPORTANTES ───────────────────────────────────────────────────────
+//   • users: leitura pública permitida para o fluxo de login por código de
+//     acesso (a query por accessCode ocorre ANTES da autenticação Firebase).
+//     Este é um sistema interno sem URL pública — risco aceitável.
+//   • isActive() checa o campo "active" (boolean). Ausência do campo = ativo.
+//   • O campo é "active" no código React/TS, NÃO "ativo".
+//
+// ── DEPLOY ──────────────────────────────────────────────────────────────────
 //   firebase deploy --only firestore:rules
 //
-// HOW TO TEST (Firebase Emulator):
+// ── TESTE LOCAL ─────────────────────────────────────────────────────────────
 //   firebase emulators:start --only firestore
-//   npm run test:rules
+// ═══════════════════════════════════════════════════════════════════════════
 
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ===================================================================
-    // HELPER FUNCTIONS
-    // ===================================================================
+    // ═══════════════════════════════════════════════════════════════════════
+    // FUNÇÕES AUXILIARES
+    // ═══════════════════════════════════════════════════════════════════════
 
-    /** Returns true if the request is from an authenticated user. */
+    // Usuário tem sessão Firebase ativa?
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    /** Fetches the caller's role from their users document. */
+    // Lê o documento de perfil do usuário autenticado.
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Retorna o papel do usuário (string).
     function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+      return getUserData().role;
     }
 
-    /** Returns true if the user's account is marked active. */
+    // Usuário está ativo? Ausência do campo "active" é tratada como ativo.
+    // IMPORTANTE: o campo no Firestore é "active" (booleano), não "ativo".
     function isActive() {
-      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-      return userData.ativo == true;
+      let data = getUserData();
+      return !('active' in data) || data.active != false;
     }
 
-    /** Generic authenticated + active check. */
+    // Usuário está autenticado E ativo?
     function isAuthAndActive() {
       return isAuthenticated() && isActive();
     }
 
+    // ── Verificações de papel ────────────────────────────────────────────────
+
+    // Somente admin.
     function isAdmin() {
       return isAuthAndActive() && getUserRole() == 'admin';
     }
 
-    function isMaintenance() {
-      return isAuthAndActive() && getUserRole() in ['admin', 'maintenance'];
+    // Supervisor ou acima (inclui admin, maintenance, purchasing).
+    function isSupervisor() {
+      return isAuthAndActive() && getUserRole() in [
+        'admin', 'supervisor', 'maintenance', 'purchasing'
+      ];
     }
 
-    function isOperations() {
-      return isAuthAndActive() && getUserRole() in ['admin', 'operations'];
+    // Operador ou acima (inclui supervisor).
+    function isOperador() {
+      return isAuthAndActive() && getUserRole() in [
+        'admin', 'supervisor', 'operador',
+        'maintenance', 'operations', 'purchasing'
+      ];
     }
 
-    function isPurchasing() {
-      return isAuthAndActive() && getUserRole() in ['admin', 'purchasing'];
-    }
-
-    /** Any valid role can read shared data. */
+    // Qualquer papel válido pode ler dados compartilhados.
     function isAnyRole() {
-      return isAuthAndActive() && getUserRole() in ['admin', 'maintenance', 'operations', 'purchasing'];
+      return isAuthAndActive() && getUserRole() in [
+        'admin', 'supervisor', 'operador', 'visualizador',
+        'maintenance', 'operations', 'purchasing'
+      ];
     }
 
-    // ===================================================================
-    // USERS COLLECTION
-    // ===================================================================
+    // ═══════════════════════════════════════════════════════════════════════
+    // USERS
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // LEITURA PÚBLICA INTENCIONAL:
+    //   O fluxo de login busca o documento pelo campo "accessCode" ANTES de
+    //   o usuário estar autenticado no Firebase Auth. Sem essa permissão, o
+    //   login por código de acesso nunca funciona.
+    //   Sistema interno → risco aceitável.
+    //
     match /users/{userId} {
-      // Users can read their own profile; admins can read all.
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      // Leitura aberta: necessária para o login por accessCode (pré-auth).
+      allow read: if true;
 
-      // Only admins can create/update user profiles (role, ativo, etc.).
-      // Exception: allow updating lastLogin for own account.
-      allow update: if isAuthenticated() && (
-        isAdmin() ||
-        (request.auth.uid == userId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLogin']))
-      );
-
+      // Criação e exclusão: apenas admin.
       allow create: if isAdmin();
       allow delete: if isAdmin();
+
+      // Update:
+      //   • Admin altera qualquer campo.
+      //   • O próprio usuário pode atualizar somente campos de sessão.
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        (request.auth.uid == userId &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['lastLogin', 'lastSeen']))
+      );
     }
 
-    // ===================================================================
-    // HISTORICO_MANUTENCAO (legacy collection — read-only after migration)
-    // ===================================================================
-    match /historico_manutencao/{docId} {
-      // Everyone can read legacy records (needed by bridge queries).
-      allow read: if isAnyRole();
-
-      // Only maintenance and admin can create new legacy records.
-      // (New code should write to work_orders; this allows legacy forms.)
-      allow create: if isMaintenance();
-
-      // Updates allowed only by maintenance/admin (status changes).
-      allow update: if isMaintenance();
-
-      // Hard deletes: admin only.
+    // ═══════════════════════════════════════════════════════════════════════
+    // PATRIMÔNIO — Categorias de Ativos
+    // ═══════════════════════════════════════════════════════════════════════
+    match /asset_categories/{catId} {
+      allow read:   if isAnyRole();
+      allow create: if isSupervisor();
+      allow update: if isSupervisor();
       allow delete: if isAdmin();
     }
 
-    // ===================================================================
-    // WORK_ORDERS (unified WO system)
-    // ===================================================================
+    // ═══════════════════════════════════════════════════════════════════════
+    // PATRIMÔNIO — Ativos
+    // ═══════════════════════════════════════════════════════════════════════
+    match /assets/{assetId} {
+      allow read:   if isAnyRole();
+
+      // Operadores registram ativos.
+      allow create: if isOperador();
+
+      // Supervisor altera qualquer campo.
+      // Operador não pode trocar categoria, código ou prefixo.
+      allow update: if isSupervisor() || (
+        isOperador() &&
+        !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['categoryId', 'code', 'codePrefix'])
+      );
+
+      // Exclusão é destrutiva → somente admin.
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PATRIMÔNIO — Manutenção de Ativos
+    // ═══════════════════════════════════════════════════════════════════════
+    match /asset_maintenance/{maintId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      allow update: if isOperador();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PATRIMÔNIO — Fornecedores de Ativos
+    // ═══════════════════════════════════════════════════════════════════════
+    match /asset_suppliers/{suppId} {
+      allow read:   if isAnyRole();
+      allow create: if isSupervisor();
+      allow update: if isSupervisor();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PATRIMÔNIO — Sessões de Inventário
+    // ═══════════════════════════════════════════════════════════════════════
+    match /inventory_sessions/{sessionId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      allow update: if isOperador();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // OPERAÇÕES — Ordens de Serviço (work_orders)
+    // ═══════════════════════════════════════════════════════════════════════
     match /work_orders/{woId} {
-      // All authenticated users can read work orders.
-      allow read: if isAnyRole();
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
 
-      // Maintenance and operations can create WOs.
-      allow create: if isMaintenance() || isOperations();
+      // Supervisor altera status/prioridade; operador atualiza outros campos.
+      allow update: if isSupervisor() || (
+        isOperador() &&
+        !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['status', 'prioridade', 'priority'])
+      );
 
-      // Status updates: maintenance + admin.
-      // Restrict field-level: operations can add notes but not change status.
-      allow update: if isMaintenance() ||
-        (isOperations() && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'prioridade']));
-
-      // Delete: admin only.
       allow delete: if isAdmin();
     }
 
-    // ===================================================================
-    // PURCHASE_ORDERS
-    // ===================================================================
+    // ═══════════════════════════════════════════════════════════════════════
+    // COMPRAS — Pedidos de Compra (purchase_orders)
+    // ═══════════════════════════════════════════════════════════════════════
     match /purchase_orders/{poId} {
-      // All roles can read POs.
-      allow read: if isAnyRole();
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
 
-      // Any role can create a PO (maintenance creates from WO; operations can request).
-      allow create: if isAnyRole();
+      // Supervisor aprova/rejeita; operador atualiza campos não-sensíveis.
+      allow update: if isSupervisor() || (
+        isOperador() &&
+        !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['status', 'aprovadoPor', 'rejeitadoPor', 'approvedBy'])
+      );
 
-      // Approval workflow: only purchasing + admin can change status to approved/rejected.
-      // Others can update non-status fields (e.g., attach a supplier).
-      allow update: if isPurchasing() ||
-        (isAnyRole() && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'aprovadoPor', 'rejeitadoPor']));
-
-      // Delete: admin only.
       allow delete: if isAdmin();
     }
 
-    // ===================================================================
-    // DOCUMENTS (SRV + PO formal documents)
-    // ===================================================================
-    match /documents/{docId} {
-      // All roles can read documents.
-      allow read: if isAnyRole();
+    // ═══════════════════════════════════════════════════════════════════════
+    // DOCUMENTOS — Documentos de OS/Compras gerados pelo React (order_documents)
+    // ═══════════════════════════════════════════════════════════════════════
+    match /order_documents/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      // Documento gerado é imutável; supervisor corrige se necessário.
+      allow update: if isSupervisor();
+      allow delete: if isAdmin();
+    }
 
-      // Documents are created by the system (via WO/PO generation flows).
-      // Allow maintenance + purchasing to create.
-      allow create: if isMaintenance() || isPurchasing();
-
-      // Documents should be immutable once created. Allow admin corrections only.
+    // ═══════════════════════════════════════════════════════════════════════
+    // DOCUMENTOS — Documentos formais de compras (purchase_document) [legacy]
+    // ═══════════════════════════════════════════════════════════════════════
+    match /purchase_document/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isSupervisor();
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 
-    // ===================================================================
-    // CLEANING_INSPECTIONS (new v2 collection — structured 5S audits)
-    // ===================================================================
+    // ═══════════════════════════════════════════════════════════════════════
+    // DOCUMENTOS — Documentos formais SRV + PO (módulo os/) [legacy]
+    // ═══════════════════════════════════════════════════════════════════════
+    match /documents/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isSupervisor();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // OPERAÇÕES — Relatórios de Serviço [legacy]
+    // ═══════════════════════════════════════════════════════════════════════
+    match /service_report/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      // Relatório fechado: supervisor corrige; operador não altera.
+      allow update: if isSupervisor();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // OPERAÇÕES — Histórico de Manutenção [legacy]
+    // ═══════════════════════════════════════════════════════════════════════
+    match /historico_manutencao/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      allow update: if isOperador();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // FACILITIES — Inspeções de Limpeza (cleaning_inspections) [principal]
+    // ═══════════════════════════════════════════════════════════════════════
     match /cleaning_inspections/{docId} {
-      // All authenticated users can read cleaning inspections.
-      allow read: if isAnyRole();
-
-      // Operations and maintenance can create inspections (and admin).
-      allow create: if isOperations() || isMaintenance();
-
-      // Allow linking WO IDs back to issues after creation.
-      allow update: if isOperations() || isMaintenance();
-
-      // Admin-only delete.
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      allow update: if isOperador();
       allow delete: if isAdmin();
     }
 
-    // ===================================================================
-    // AUDITORIAS_LIMPEZA (legacy — kept for backward compatibility)
-    // ===================================================================
+    // ═══════════════════════════════════════════════════════════════════════
+    // FACILITIES — Limpeza singular [alias legado]
+    // ═══════════════════════════════════════════════════════════════════════
+    match /cleaning_inspection/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      allow update: if isOperador();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // FACILITIES — Auditorias de Limpeza [legacy HTML]
+    // ═══════════════════════════════════════════════════════════════════════
     match /auditorias_limpeza/{docId} {
-      // All roles can read cleaning audits.
-      allow read: if isAnyRole();
-
-      // Operations and maintenance can create audits.
-      allow create: if isOperations() || isMaintenance();
-
-      // Allow same roles to update (e.g., correct a score).
-      allow update: if isOperations() || isMaintenance();
-
-      // Admin-only delete.
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      allow update: if isOperador();
       allow delete: if isAdmin();
     }
 
-    // ===================================================================
-    // MACHINE_STATE (current status per machine — updated by inspections)
-    // ===================================================================
-    match /machine_state/{machineId} {
-      allow read: if isAnyRole();
-      allow create: if isMaintenance() || isOperations();
-      allow update: if isMaintenance() || isOperations();
-      allow delete: if isAdmin();
-    }
-
-    // ===================================================================
-    // MACHINE_INSPECTIONS (inspection records from maquinario module)
-    // ===================================================================
-    match /machine_inspections/{docId} {
-      allow read: if isAnyRole();
-      allow create: if isMaintenance() || isOperations();
-      allow update: if isMaintenance();
-      allow delete: if isAdmin();
-    }
-
-    // ===================================================================
-    // CHECKLISTS_FROTA
-    // ===================================================================
+    // ═══════════════════════════════════════════════════════════════════════
+    // FROTA — Checklists de Inspeção de Veículos
+    // ═══════════════════════════════════════════════════════════════════════
     match /checklists_frota/{docId} {
-      allow read: if isAnyRole();
-      allow create: if isOperations() || isMaintenance();
-      allow update: if isOperations() || isMaintenance();
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      // Atualização inclui backlinks para WO/PO após submissão.
+      allow update: if isOperador();
       allow delete: if isAdmin();
     }
 
-    // ===================================================================
-    // FORNECEDORES (suppliers)
-    // ===================================================================
+    // ═══════════════════════════════════════════════════════════════════════
+    // FROTA — Estado dos Veículos (KPI cache por veículo)
+    // ═══════════════════════════════════════════════════════════════════════
+    match /vehicle_state/{vehicleId} {
+      allow read:   if isAnyRole();
+      // setDoc com merge:true → cobre create e update.
+      allow create: if isOperador();
+      allow update: if isOperador();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // MAQUINÁRIO — Estado das Máquinas
+    // ═══════════════════════════════════════════════════════════════════════
+    match /machine_state/{machineId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      allow update: if isOperador();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // MAQUINÁRIO — Inspeções de Máquinas
+    // ═══════════════════════════════════════════════════════════════════════
+    match /machine_inspections/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      // Supervisor valida/corrige inspeções.
+      allow update: if isSupervisor();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // FORNECEDORES — Coleção legacy (módulos HTML compras/ativos)
+    // ═══════════════════════════════════════════════════════════════════════
     match /fornecedores/{docId} {
-      // All roles can read suppliers (needed when creating POs).
-      allow read: if isAnyRole();
-
-      // Only purchasing + admin can manage the supplier database.
-      allow create: if isPurchasing();
-      allow update: if isPurchasing();
+      allow read:   if isAnyRole();
+      allow create: if isSupervisor();
+      allow update: if isSupervisor();
       allow delete: if isAdmin();
     }
 
-    // ===================================================================
-    // KPI_CACHE (optional: pre-aggregated dashboard data)
-    // Only written by Cloud Functions in Phase 2; read-only on client.
-    // ===================================================================
-    match /kpi_cache/{docId} {
-      allow read: if isAnyRole();
-      // Only Cloud Functions (service account) should write here.
-      // Until CF is active, allow admin to manually write.
+    // ═══════════════════════════════════════════════════════════════════════
+    // OBRAS — Registro de Obras Terceirizadas
+    // ═══════════════════════════════════════════════════════════════════════
+    match /obras/{obraId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      allow update: if isOperador();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // OBRAS — Empreiteiras Cadastradas
+    // ═══════════════════════════════════════════════════════════════════════
+    match /empreiteiras/{empId} {
+      allow read:   if isAnyRole();
+      allow create: if isSupervisor();
+      allow update: if isSupervisor();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // OBRAS — Inspeções de Obra
+    // ═══════════════════════════════════════════════════════════════════════
+    match /inspecoes_obra/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      // Supervisor pode aprovar/validar inspeções
+      allow update: if isOperador();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // OBRAS — Avaliações Finais de Empreiteiras
+    // ═══════════════════════════════════════════════════════════════════════
+    match /avaliacoes_empreiteira/{docId} {
+      allow read:   if isAnyRole();
+      // Avaliação final exige nível supervisor
+      allow create: if isSupervisor();
+      allow update: if isSupervisor();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SEGURANÇA — DDS (Diálogo Diário de Segurança)
+    // ═══════════════════════════════════════════════════════════════════════
+    match /safety_dds/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      allow update: if isOperador();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SEGURANÇA — DDI (Inspeção Diária de Segurança)
+    // ═══════════════════════════════════════════════════════════════════════
+    match /safety_ddi/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      allow update: if isOperador();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SEGURANÇA — Fichas de EPI por Colaborador
+    // ═══════════════════════════════════════════════════════════════════════
+    match /employee_epi/{fichaId} {
+      allow read:   if isAnyRole();
+      allow create: if isSupervisor();
+      allow update: if isOperador();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SEGURANÇA — Inspeções de EPI
+    // ═══════════════════════════════════════════════════════════════════════
+    match /epi_inspections/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      allow update: if isSupervisor();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SEGURANÇA — Ocorrências e Incidentes
+    // ═══════════════════════════════════════════════════════════════════════
+    match /safety_occurrences/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      // Qualquer operador pode atualizar (para fechar/investigar ocorrências).
+      allow update: if isOperador();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SEGURANÇA — Permissões de Trabalho
+    // ═══════════════════════════════════════════════════════════════════════
+    match /work_permits/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      // Aprovação de permissão exige supervisor.
+      allow update: if isOperador();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SEGURANÇA — Ações e Planos de Ação de Segurança
+    // ═══════════════════════════════════════════════════════════════════════
+    match /safety_actions/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      allow update: if isOperador();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SEGURANÇA — KPI de Segurança (snapshots mensais)
+    // ═══════════════════════════════════════════════════════════════════════
+    match /safety_kpi/{docId} {
+      allow read:  if isAnyRole();
       allow write: if isAdmin();
     }
 
-    // ===================================================================
-    // CATCH-ALL — deny everything not explicitly allowed
-    // ===================================================================
+    // ═══════════════════════════════════════════════════════════════════════
+    // COLABORADORES — Master record de funcionários
+    // ═══════════════════════════════════════════════════════════════════════
+    match /employees/{empId} {
+      allow read:   if isAnyRole();
+      // Supervisor cria e atualiza. Operador pode atualizar contadores (safety integration).
+      allow create: if isSupervisor();
+      allow update: if isSupervisor() || (
+        isOperador() &&
+        !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['nome', 'matricula', 'cpf', 'rg', 'cargo', 'departamento', 'nivelAcesso'])
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // COLABORADORES — Histórico de Eventos (timeline)
+    // ═══════════════════════════════════════════════════════════════════════
+    match /employee_history/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // COLABORADORES — Avaliações de Desempenho
+    // ═══════════════════════════════════════════════════════════════════════
+    match /employee_evaluations/{docId} {
+      allow read:   if isAnyRole();
+      // Avaliação exige supervisor
+      allow create: if isSupervisor();
+      allow update: if isSupervisor();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // COLABORADORES — Advertências
+    // ═══════════════════════════════════════════════════════════════════════
+    match /employee_warnings/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isSupervisor();
+      // Atualização para resolver advertência
+      allow update: if isSupervisor();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // COLABORADORES — Reconhecimentos
+    // ═══════════════════════════════════════════════════════════════════════
+    match /employee_recognitions/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isSupervisor();
+      allow update: if isSupervisor();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // COLABORADORES — Notas do Supervisor
+    // ═══════════════════════════════════════════════════════════════════════
+    match /employee_supervisor_notes/{docId} {
+      allow read:   if isSupervisor();
+      allow create: if isSupervisor();
+      allow update: if isSupervisor();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // COLABORADORES — Histórico de Departamentos / Movimentações
+    // ═══════════════════════════════════════════════════════════════════════
+    match /employee_department_history/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isSupervisor();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // COLABORADORES — Cache de Dashboard RH
+    // ═══════════════════════════════════════════════════════════════════════
+    match /employee_dashboard_cache/{docId} {
+      allow read:  if isAnyRole();
+      allow write: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // KPI CACHE — Dados pré-agregados para o dashboard
+    // Escrita apenas por admin ou Cloud Function (service account).
+    // ═══════════════════════════════════════════════════════════════════════
+    match /kpi_cache/{docId} {
+      allow read:  if isAnyRole();
+      allow write: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CATCH-ALL — Nega tudo que não foi explicitamente permitido acima.
+    // ═══════════════════════════════════════════════════════════════════════
     match /{document=**} {
       allow read, write: if false;
     }

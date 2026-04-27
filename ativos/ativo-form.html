@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>SIGA — Cadastro de Ativo</title>
+    <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/sidebar.css" />
+    <link rel="stylesheet" href="../css/ativos.css" />
+    <style>
+      .main-header {
+        display: flex; align-items: center; justify-content: space-between;
+        background: linear-gradient(135deg, #0f4c75, #3282b8);
+        color: white; padding: 14px 20px;
+        box-shadow: 0 4px 12px rgba(15,76,117,0.25);
+      }
+      .header-left { display: flex; align-items: center; gap: 12px; }
+      .logo-h1 { margin: 0; font-size: 1.5rem; letter-spacing: 1px; }
+      .logo-sub { font-size: .78rem; color: #cbd5e1; display: block; }
+      .user-info { display: flex; align-items: center; gap: 10px; }
+      .avatar {
+        background: white; color: #0f4c75;
+        width: 34px; height: 34px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 900; font-size: 1.05rem;
+      }
+      .page-sub-header {
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 12px 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .page-sub-header h2 {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+      }
+      .page-sub-header a {
+        color: #64748b;
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 600;
+        padding: 5px 10px;
+        border-radius: 6px;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+      }
+      .page-sub-header a:hover { background: #e2e8f0; }
+      .sep { color: #cbd5e1; }
+    </style>
+  </head>
+  <body>
+
+    <header class="main-header">
+      <div class="header-left">
+        <div>
+          <h1 class="logo-h1">SIGA</h1>
+          <span class="logo-sub">Gestão de Ativos</span>
+        </div>
+      </div>
+      <div class="user-info">
+        <span id="header-user-name" style="font-size:.85rem;font-weight:700;">—</span>
+        <div class="avatar" id="header-avatar">?</div>
+      </div>
+    </header>
+
+    <div class="page-sub-header">
+      <a href="ativos.html">← Voltar</a>
+      <span class="sep">/</span>
+      <h2 id="page-sub-title">Novo Ativo</h2>
+    </div>
+
+    <main class="form-page" style="padding-top:20px;">
+
+      <!-- SECTION 1: Identificação -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <div class="form-section-num">1</div>
+          <span class="form-section-title">Identificação</span>
+        </div>
+        <div class="form-body">
+
+          <!-- Category selector — comes first to drive dynamic fields -->
+          <div class="form-row">
+            <div class="form-group" style="grid-column:1/-1;">
+              <label class="form-label" for="f-category">
+                Categoria <span class="req">*</span>
+              </label>
+              <select id="f-category" class="form-select">
+                <option value="">Selecione a categoria...</option>
+              </select>
+              <span class="form-hint">A categoria determina o prefixo do código e os campos adicionais.</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="f-name">
+                Nome do Ativo <span class="req">*</span>
+              </label>
+              <input type="text" id="f-name" class="form-input"
+                     placeholder="Ex.: Ar-condicionado Sala A" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Código Gerado</label>
+              <div class="code-display" id="code-preview">Selecione a categoria</div>
+              <span class="form-hint">Gerado automaticamente após salvar.</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- SECTION 2: Localização e Responsável -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <div class="form-section-num">2</div>
+          <span class="form-section-title">Localização e Responsável</span>
+        </div>
+        <div class="form-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="f-location">
+                Setor / Localização <span class="req">*</span>
+              </label>
+              <select id="f-location" class="form-select">
+                <option value="">Selecione...</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="f-location-detail">Detalhe da Localização</label>
+              <input type="text" id="f-location-detail" class="form-input"
+                     placeholder="Ex.: Mesa 3, Parede Norte..." />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="f-responsible">Responsável</label>
+              <input type="text" id="f-responsible" class="form-input"
+                     placeholder="Nome do responsável..." />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="f-acquisition">Data de Aquisição</label>
+              <input type="date" id="f-acquisition" class="form-input" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="f-value">Valor de Aquisição (R$)</label>
+              <input type="number" id="f-value" class="form-input" step="0.01"
+                     placeholder="0,00" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="f-status">Status <span class="req">*</span></label>
+              <select id="f-status" class="form-select">
+                <option value="ativo">🟢 Ativo</option>
+                <option value="manutencao">🔧 Em Manutenção</option>
+                <option value="avariado">🔴 Avariado</option>
+                <option value="inativo">⚫ Inativo</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 3: Dados Específicos da Categoria (Dynamic) -->
+      <div class="form-section" id="dynamic-section" style="display:none;">
+        <div class="form-section-header">
+          <div class="form-section-num">3</div>
+          <span class="form-section-title" id="dynamic-section-title">Dados Técnicos</span>
+        </div>
+        <div class="form-body" id="dynamic-fields">
+          <div class="dyn-placeholder">
+            Selecione uma categoria para ver os campos específicos.
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 4: Observações -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <div class="form-section-num" id="obs-section-num">4</div>
+          <span class="form-section-title">Observações</span>
+        </div>
+        <div class="form-body">
+          <div class="form-group">
+            <label class="form-label" for="f-notes">Notas Gerais</label>
+            <textarea id="f-notes" class="form-textarea" rows="3"
+                      placeholder="Observações adicionais sobre o ativo..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- FOOTER ACTIONS -->
+      <div class="form-footer">
+        <a href="ativos.html" class="btn btn-secondary">Cancelar</a>
+        <button id="btn-save" class="btn btn-primary" onclick="saveAsset()">
+          Salvar Ativo
+        </button>
+      </div>
+
+    </main>
+
+    <!-- Loading overlay -->
+    <div id="save-overlay" class="overlay hidden">
+      <div class="overlay-content">
+        <div class="spinner"></div>
+        <p id="save-msg">Salvando ativo...</p>
+      </div>
+    </div>
+
+    <script type="module" src="../js/core/sidebar.js"></script>
+    <script type="module" src="../js/core/maintenance-sidebar.js"></script>
+    <script type="module" src="../js/modules/app-ativo-form.js"></script>
+  </body>
+</html>

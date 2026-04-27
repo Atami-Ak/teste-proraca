@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>SIGA — Gestão de Ativos</title>
+    <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/sidebar.css" />
+    <link rel="stylesheet" href="../css/ativos.css" />
+    <style>
+      /* ── Shared Header / Nav (same as other pages) ─── */
+      .main-header {
+        display: flex; align-items: center; justify-content: space-between;
+        background: linear-gradient(135deg, #0f4c75, #3282b8);
+        color: white; padding: 14px 20px;
+        box-shadow: 0 4px 12px rgba(15,76,117,0.25);
+      }
+      .header-left { display: flex; align-items: center; gap: 12px; }
+      .logo-h1 { margin: 0; font-size: 1.5rem; letter-spacing: 1px; }
+      .logo-sub { font-size: .78rem; color: #cbd5e1; display: block; }
+      .user-info { display: flex; align-items: center; gap: 10px; }
+      .avatar {
+        background: white; color: #0f4c75;
+        width: 34px; height: 34px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 900; font-size: 1.05rem;
+      }
+      .main-nav {
+        display: flex; gap: 10px; padding: 12px 20px;
+        background: white; overflow-x: auto; white-space: nowrap;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      .main-nav::-webkit-scrollbar { height: 4px; }
+      .main-nav::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+      .nav-item {
+        padding: 8px 16px; text-decoration: none; color: #475569;
+        font-weight: 600; font-size: .9rem; border-radius: 8px;
+        background: #f1f5f9; border: 1px solid #e2e8f0; transition: .2s;
+        display: flex; align-items: center; gap: 7px;
+      }
+      .nav-item:hover { background: #e2e8f0; }
+      .nav-item.active {
+        background: #0f4c75; color: white; border-color: #0f4c75;
+        box-shadow: 0 3px 8px rgba(15,76,117,0.3);
+      }
+      /* ── Page title row ─── */
+      .page-title-row {
+        display: flex; align-items: center; justify-content: space-between;
+        flex-wrap: wrap; gap: 10px; margin-bottom: 18px;
+        padding-top: 20px;
+      }
+      .page-title {
+        margin: 0; font-size: 1.25rem; font-weight: 800; color: #0f4c75;
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- HEADER -->
+    <header class="main-header">
+      <div class="header-left">
+        <div>
+          <h1 class="logo-h1">SIGA</h1>
+          <span class="logo-sub">Gestão de Ativos</span>
+        </div>
+      </div>
+      <div class="user-info">
+        <span id="header-user-name" style="font-size:.85rem;font-weight:700;">—</span>
+        <div class="avatar" id="header-avatar">?</div>
+      </div>
+    </header>
+
+    <!-- NAV -->
+    <nav class="main-nav">
+      <a href="../index.html"               class="nav-item">🏠 Início</a>
+      <a href="ativos.html"                 class="nav-item active">🏷️ Ativos</a>
+      <a href="manutencao.html"             class="nav-item">🔧 Manutenções</a>
+      <a href="inventario.html"             class="nav-item">📋 Inventário</a>
+      <a href="categorias.html"             class="nav-item">⚙️ Categorias</a>
+      <a href="../maquinario/maquinario.html" class="nav-item">⚙️ Maquinário</a>
+      <a href="../os/os.html"               class="nav-item">📋 O.S</a>
+    </nav>
+
+    <!-- MAIN -->
+    <main class="ativos-container">
+
+      <!-- Page title + Add button -->
+      <div class="page-title-row">
+        <h2 class="page-title">🏷️ Ativos Patrimoniais</h2>
+        <a href="ativo-form.html" class="btn btn-primary">
+          + Novo Ativo
+        </a>
+      </div>
+
+      <!-- STATS BAR -->
+      <div class="stats-bar" id="stats-bar">
+        <div class="stat-card s-total">
+          <span class="stat-count" id="s-total">—</span>
+          <span class="stat-label">Total</span>
+        </div>
+        <div class="stat-card s-ativo">
+          <span class="stat-count" id="s-ativo">—</span>
+          <span class="stat-label">🟢 Ativos</span>
+        </div>
+        <div class="stat-card s-mant">
+          <span class="stat-count" id="s-mant">—</span>
+          <span class="stat-label">🔧 Manutenção</span>
+        </div>
+        <div class="stat-card s-avaria">
+          <span class="stat-count" id="s-avaria">—</span>
+          <span class="stat-label">🔴 Avariados</span>
+        </div>
+        <div class="stat-card s-inativo">
+          <span class="stat-count" id="s-inativo">—</span>
+          <span class="stat-label">⚫ Inativos</span>
+        </div>
+      </div>
+
+      <!-- FILTERS -->
+      <div class="filters-section">
+        <div class="filter-group wide">
+          <span class="filter-label">Pesquisar</span>
+          <input type="text" id="f-search" class="filter-input"
+                 placeholder="Código, nome ou responsável..." autocomplete="off" />
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Categoria</span>
+          <select id="f-cat" class="filter-select">
+            <option value="">Todas</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Localização</span>
+          <select id="f-loc" class="filter-select">
+            <option value="">Todas</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Status</span>
+          <select id="f-status" class="filter-select">
+            <option value="">Todos</option>
+            <option value="ativo">Ativo</option>
+            <option value="manutencao">Em Manutenção</option>
+            <option value="avariado">Avariado</option>
+            <option value="inativo">Inativo</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- LIST TOOLBAR -->
+      <div class="list-toolbar">
+        <span class="result-count" id="result-count">Carregando...</span>
+        <div class="toolbar-right">
+          <button id="btn-export" class="btn btn-secondary btn-sm">
+            ↓ Exportar CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <div class="table-wrapper">
+        <table class="assets-table">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Nome</th>
+              <th>Categoria</th>
+              <th>Localização</th>
+              <th>Status</th>
+              <th class="col-actions">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="assets-tbody">
+            <!-- Skeleton loading rows -->
+            <tr><td colspan="6" style="padding:0;">
+              <div class="skeleton skel-row" style="margin:2px 0;"></div>
+              <div class="skeleton skel-row" style="margin:2px 0;"></div>
+              <div class="skeleton skel-row" style="margin:2px 0;"></div>
+              <div class="skeleton skel-row" style="margin:2px 0;"></div>
+              <div class="skeleton skel-row" style="margin:2px 0;"></div>
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </main>
+
+    <!-- ═══════════ ASSET DETAIL MODAL ═══════════ -->
+    <div id="detail-modal" class="modal-overlay hidden"
+         onclick="if(event.target===this)closeDetailModal()">
+      <div class="modal-panel">
+
+        <div class="modal-header">
+          <div class="modal-title-area">
+            <div class="modal-subtitle" id="m-code-cat">—</div>
+            <div class="modal-title" id="m-name">—</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+            <span id="m-status-badge" class="badge badge-ativo">—</span>
+            <button class="modal-close" onclick="closeDetailModal()">×</button>
+          </div>
+        </div>
+
+        <div class="modal-body">
+
+          <div class="detail-grid" id="m-fields-grid">
+            <!-- populated by JS -->
+          </div>
+
+          <!-- Action buttons -->
+          <div class="modal-action-grid" id="m-actions">
+            <button onclick="gotoMaint()" class="btn-modal-action bma-maint">
+              <span class="action-icon">🔧</span>Nova Manutenção
+            </button>
+            <a id="m-edit-link" href="#" class="btn-modal-action bma-edit">
+              <span class="action-icon">✏️</span>Editar
+            </a>
+            <button onclick="confirmDelete()" class="btn-modal-action bma-inv"
+                    style="color:#dc2626;border-color:#fecaca;background:#fef2f2;">
+              <span class="action-icon">🗑️</span>Excluir
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ NEW MAINTENANCE MODAL ═══════════ -->
+    <div id="maint-modal" class="modal-overlay hidden modal-center"
+         onclick="if(event.target===this)closeMaintModal()">
+      <div class="modal-panel" style="max-width:520px;">
+        <div class="modal-header">
+          <div class="modal-title-area">
+            <div class="modal-subtitle">Nova Manutenção</div>
+            <div class="modal-title" id="mm-asset-name">—</div>
+          </div>
+          <button class="modal-close" onclick="closeMaintModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div class="form-group">
+              <label class="form-label">Tipo <span class="req">*</span></label>
+              <select id="mm-type" class="form-select">
+                <option value="preventiva">🔵 Preventiva</option>
+                <option value="corretiva">🔴 Corretiva</option>
+                <option value="inspecao">🟢 Inspeção</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Descrição <span class="req">*</span></label>
+              <textarea id="mm-desc" class="form-textarea" rows="3"
+                        placeholder="Descreva o serviço a ser realizado..."></textarea>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="form-group">
+                <label class="form-label">Data Prevista</label>
+                <input type="date" id="mm-date" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Status Inicial</label>
+                <select id="mm-status" class="form-select">
+                  <option value="pendente">⏳ Pendente</option>
+                  <option value="andamento">🔄 Em Andamento</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Técnico Responsável</label>
+              <input type="text" id="mm-tech" class="form-input"
+                     placeholder="Nome do técnico..." />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeMaintModal()">Cancelar</button>
+          <button class="btn btn-primary" id="mm-save-btn" onclick="saveMaint()">
+            Salvar Manutenção
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="../js/core/sidebar.js"></script>
+    <script type="module" src="../js/core/maintenance-sidebar.js"></script>
+    <script type="module" src="../js/modules/app-ativos.js"></script>
+    <script>
+      function closeDetailModal() {
+        document.getElementById("detail-modal").classList.add("hidden");
+      }
+      function closeMaintModal() {
+        document.getElementById("maint-modal").classList.add("hidden");
+      }
+    </script>
+  </body>
+</html>

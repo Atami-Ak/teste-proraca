@@ -67,13 +67,20 @@ function _renderCleaningPanel(limpeza) {
 
   container.innerHTML = html;
 
-  // Delegate "Create OS" button clicks
+  // Delegate "Create OS" button clicks — open inline modal via custom event
   container.addEventListener("click", (e) => {
     const btn = e.target.closest(".zone-create-os");
     if (!btn) return;
     const { zonaId, zonaScore } = btn.dataset;
-    const url = `../os/os-detalhe.html?modo=criar&origin=manual&originNome=${encodeURIComponent(`Zona 5S: ${zonaId}`)}&titulo=${encodeURIComponent(`Manutenção de Limpeza — ${zonaId} (score ${zonaScore})`)}`;
-    window.open(url, "_blank");
+    document.dispatchEvent(new CustomEvent("siga:criar-os", {
+      bubbles: true,
+      detail: {
+        origin: "cleaning",
+        originNome: `Zona 5S: ${zonaId}`,
+        titulo: `Manutenção 5S — ${zonaId} (score ${zonaScore})`,
+        tipo: "service",
+      },
+    }));
   });
 }
 

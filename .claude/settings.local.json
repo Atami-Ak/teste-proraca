@@ -3,7 +3,13 @@
     "allow": [
       "Bash(grep -E \"\\\\.\\(js|html|css\\)$\")",
       "Bash(xargs grep:*)",
-      "Bash(echo \"\")"
+      "Bash(echo \"\")",
+      "Bash(grep -E \"\\\\.js$\")",
+      "Bash(npx tsc:*)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('scripts',{}\\), indent=2\\)\\)\")",
+      "Read(//c/c/Users/Atami/Desktop/Pro Raça - Sistema/proraca v2.0-pr/teste-pr-main/src/pages/dashboard/**)"
     ]
   }
 }

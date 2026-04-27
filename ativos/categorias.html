@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>SIGA — Categorias de Ativos</title>
+    <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/sidebar.css" />
+    <link rel="stylesheet" href="../css/ativos.css" />
+    <style>
+      .main-header {
+        display: flex; align-items: center; justify-content: space-between;
+        background: linear-gradient(135deg, #0f4c75, #3282b8);
+        color: white; padding: 14px 20px;
+        box-shadow: 0 4px 12px rgba(15,76,117,0.25);
+      }
+      .header-left { display: flex; align-items: center; gap: 12px; }
+      .logo-h1 { margin: 0; font-size: 1.5rem; letter-spacing: 1px; }
+      .logo-sub { font-size: .78rem; color: #cbd5e1; display: block; }
+      .user-info { display: flex; align-items: center; gap: 10px; }
+      .avatar {
+        background: white; color: #0f4c75;
+        width: 34px; height: 34px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 900; font-size: 1.05rem;
+      }
+      .main-nav {
+        display: flex; gap: 10px; padding: 12px 20px;
+        background: white; overflow-x: auto; white-space: nowrap;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      .main-nav::-webkit-scrollbar { height: 4px; }
+      .main-nav::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+      .nav-item {
+        padding: 8px 16px; text-decoration: none; color: #475569;
+        font-weight: 600; font-size: .9rem; border-radius: 8px;
+        background: #f1f5f9; border: 1px solid #e2e8f0; transition: .2s;
+        display: flex; align-items: center; gap: 7px;
+      }
+      .nav-item:hover { background: #e2e8f0; }
+      .nav-item.active { background: #0f4c75; color: white; border-color: #0f4c75; box-shadow: 0 3px 8px rgba(15,76,117,0.3); }
+      .page-title-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; padding-top: 20px; }
+      .page-title { margin: 0; font-size: 1.25rem; font-weight: 800; color: #0f4c75; }
+
+      /* Field type selector */
+      .field-type-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 5px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
+
+      .color-swatch {
+        width: 20px;
+        height: 20px;
+        border-radius: 5px;
+        border: 2px solid rgba(0,0,0,0.1);
+        flex-shrink: 0;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+
+    <header class="main-header">
+      <div class="header-left">
+        <div>
+          <h1 class="logo-h1">SIGA</h1>
+          <span class="logo-sub">Categorias</span>
+        </div>
+      </div>
+      <div class="user-info">
+        <span id="header-user-name" style="font-size:.85rem;font-weight:700;">—</span>
+        <div class="avatar" id="header-avatar">?</div>
+      </div>
+    </header>
+
+    <nav class="main-nav">
+      <a href="../index.html"     class="nav-item">🏠 Início</a>
+      <a href="ativos.html"       class="nav-item">🏷️ Ativos</a>
+      <a href="manutencao.html"   class="nav-item">🔧 Manutenções</a>
+      <a href="inventario.html"   class="nav-item">📋 Inventário</a>
+      <a href="categorias.html"   class="nav-item active">⚙️ Categorias</a>
+      <a href="../os/os.html"     class="nav-item">📋 O.S</a>
+    </nav>
+
+    <main class="ativos-container">
+
+      <div class="page-title-row">
+        <div>
+          <h2 class="page-title">⚙️ Categorias de Ativos</h2>
+          <p style="color:#64748b;font-size:.85rem;margin-top:4px;">
+            Defina as categorias e os campos dinâmicos de cada uma.
+          </p>
+        </div>
+        <button class="btn btn-primary" onclick="openCatModal()">
+          + Nova Categoria
+        </button>
+      </div>
+
+      <!-- Category grid -->
+      <div class="cat-grid" id="cat-grid">
+        <div class="skeleton skel-row" style="border-radius:12px;height:72px;"></div>
+        <div class="skeleton skel-row" style="border-radius:12px;height:72px;"></div>
+        <div class="skeleton skel-row" style="border-radius:12px;height:72px;"></div>
+        <div class="skeleton skel-row" style="border-radius:12px;height:72px;"></div>
+      </div>
+
+    </main>
+
+    <!-- CREATE / EDIT CATEGORY MODAL -->
+    <div id="cat-modal" class="modal-overlay hidden modal-center"
+         onclick="if(event.target===this)closeCatModal()">
+      <div class="modal-panel" style="max-width:600px;">
+        <div class="modal-header">
+          <div class="modal-title-area">
+            <div class="modal-subtitle" id="cat-modal-mode">Nova Categoria</div>
+            <div class="modal-title" id="cat-modal-name">—</div>
+          </div>
+          <button class="modal-close" onclick="closeCatModal()">×</button>
+        </div>
+        <div class="modal-body">
+
+          <!-- Basic info -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
+            <div class="form-group" style="grid-column:1/-1;">
+              <label class="form-label">Nome da Categoria <span class="req">*</span></label>
+              <input type="text" id="cat-name" class="form-input"
+                     placeholder="Ex.: Equipamentos de Segurança" oninput="updateCatModalTitle()" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Prefixo do Código <span class="req">*</span></label>
+              <input type="text" id="cat-prefix" class="form-input"
+                     placeholder="Ex.: SEG" style="text-transform:uppercase;"
+                     oninput="this.value=this.value.toUpperCase()" maxlength="6" />
+              <span class="form-hint">Máximo 6 letras. Ex.: TI → TI-0001</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ícone (Emoji)</label>
+              <input type="text" id="cat-icon" class="form-input"
+                     placeholder="🔧" maxlength="4" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cor</label>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <input type="color" id="cat-color" value="#0f4c75"
+                       style="width:36px;height:36px;border:none;background:none;cursor:pointer;padding:0;" />
+                <span id="cat-color-hex" style="font-size:.85rem;color:#64748b;">#0f4c75</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Maintenance types -->
+          <div style="margin-bottom:18px;">
+            <div class="form-label" style="margin-bottom:8px;">Tipos de Manutenção Aplicáveis</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.875rem;font-weight:600;color:#475569;">
+                <input type="checkbox" id="mt-prev" value="preventiva" style="width:16px;height:16px;" />
+                🔵 Preventiva
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.875rem;font-weight:600;color:#475569;">
+                <input type="checkbox" id="mt-corr" value="corretiva" style="width:16px;height:16px;" />
+                🔴 Corretiva
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.875rem;font-weight:600;color:#475569;">
+                <input type="checkbox" id="mt-insp" value="inspecao" style="width:16px;height:16px;" />
+                🟢 Inspeção
+              </label>
+            </div>
+          </div>
+
+          <!-- Field schema editor -->
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <div class="form-label">Campos Dinâmicos</div>
+              <button class="btn btn-secondary btn-xs" onclick="addField()">+ Campo</button>
+            </div>
+
+            <div class="field-list" id="field-list">
+              <!-- Fields rendered by JS -->
+            </div>
+
+            <div id="field-empty" style="text-align:center;padding:14px;color:#94a3b8;font-size:.85rem;border:1.5px dashed #e2e8f0;border-radius:8px;">
+              Nenhum campo adicionado. Clique em "+ Campo" para adicionar.
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-danger btn-sm" id="cat-delete-btn" style="margin-right:auto;display:none;"
+                  onclick="deleteCurrentCat()">Excluir</button>
+          <button class="btn btn-secondary" onclick="closeCatModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveCat()">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADD FIELD MODAL -->
+    <div id="field-modal" class="modal-overlay hidden modal-center"
+         onclick="if(event.target===this)closeFieldModal()">
+      <div class="modal-panel" style="max-width:420px;">
+        <div class="modal-header">
+          <div class="modal-title-area">
+            <div class="modal-title" id="fm-title">Novo Campo</div>
+          </div>
+          <button class="modal-close" onclick="closeFieldModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div class="form-group">
+              <label class="form-label">Rótulo do Campo <span class="req">*</span></label>
+              <input type="text" id="fm-label" class="form-input"
+                     placeholder="Ex.: Número de Série" />
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="form-group">
+                <label class="form-label">Chave Interna <span class="req">*</span></label>
+                <input type="text" id="fm-key" class="form-input"
+                       placeholder="Ex.: nSerie" />
+                <span class="form-hint">Identificador único, sem espaços.</span>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Tipo <span class="req">*</span></label>
+                <select id="fm-type" class="form-select" onchange="toggleOptionsField()">
+                  <option value="text">Texto</option>
+                  <option value="number">Número</option>
+                  <option value="date">Data</option>
+                  <option value="select">Seleção (dropdown)</option>
+                  <option value="textarea">Texto Longo</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group" id="fm-options-group" style="display:none;">
+              <label class="form-label">Opções (uma por linha)</label>
+              <textarea id="fm-options" class="form-textarea" rows="4"
+                        placeholder="Opção 1&#10;Opção 2&#10;Opção 3"></textarea>
+            </div>
+            <div class="form-group">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.875rem;font-weight:600;color:#475569;">
+                <input type="checkbox" id="fm-required" style="width:16px;height:16px;" />
+                Campo obrigatório
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeFieldModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveField()">Adicionar</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="../js/core/sidebar.js"></script>
+    <script type="module" src="../js/core/maintenance-sidebar.js"></script>
+    <script type="module" src="../js/modules/app-categorias.js"></script>
+    <script>
+      function closeCatModal()   { document.getElementById("cat-modal").classList.add("hidden"); }
+      function closeFieldModal() { document.getElementById("field-modal").classList.add("hidden"); }
+      function toggleOptionsField() {
+        const t = document.getElementById("fm-type").value;
+        document.getElementById("fm-options-group").style.display = t === "select" ? "block" : "none";
+      }
+      function updateCatModalTitle() {
+        const v = document.getElementById("cat-name").value.trim();
+        document.getElementById("cat-modal-name").textContent = v || "Nova Categoria";
+      }
+    </script>
+  </body>
+</html>

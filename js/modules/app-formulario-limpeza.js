@@ -3,11 +3,13 @@
  *
  * Responsibilities:
  *  - Load zone from URL param zona_id
- *  - Render section tabs + scored / pass-fail item panels
+ *  - Render S1–S5 Senso section tabs + scored / pass-fail item panels
+ *  - Badges: 🔴 CRÍTICO | 🏗️ Estrutural | 📦 Material | 📷 Foto obrigatória
  *  - Live score calculation with color-coded circle
- *  - Issue field capture (description + optional photo)
+ *  - Issue field capture (description + optional/mandatory photo)
  *  - requiresPhotoOnFail enforcement before submit
- *  - Submit: salvarInspecaoLimpeza → auto WO (structural) → auto PO (material)
+ *  - Per-section score cap: any Senso < 60% → final status ≤ "🟠 Atenção"
+ *  - Submit: salvarInspecaoLimpeza → auto WO (structural, 24h/7d) → auto PO (material)
  */
 
 import { checkAuth, getCurrentUser } from "../core/db-auth.js";
@@ -94,16 +96,14 @@ function buildPanels() {
   sectionsContainer.innerHTML = "";
 
   zona.sections.forEach((sec, idx) => {
-    // Tab button
     const tab = document.createElement("button");
-    tab.type      = "button";
-    tab.className = `section-tab${idx === 0 ? " active" : ""}`;
+    tab.type         = "button";
+    tab.className    = `section-tab${idx === 0 ? " active" : ""}`;
     tab.textContent  = sec.nome;
     tab.dataset.idx  = idx;
     tab.addEventListener("click", () => goToSection(idx));
     tabsContainer.appendChild(tab);
 
-    // Panel
     const panel = document.createElement("div");
     panel.className = `section-panel${idx === 0 ? " active" : ""}`;
     panel.id        = `panel-${idx}`;
@@ -129,9 +129,9 @@ function buildItemCard(item) {
   card.id        = `item-card-${item.id}`;
 
   const badges = [];
-  if (item.critical)                        badges.push(`<span class="badge-critical">⚠️ Crítico</span>`);
-  if (item.actionType === "structural")     badges.push(`<span class="badge-structural">🔧 Gera O.S.</span>`);
-  if (item.actionType === "material")       badges.push(`<span class="badge-material">🛒 Gera Compra</span>`);
+  if (item.critical)                        badges.push(`<span class="badge-critical">🔴 CRÍTICO</span>`);
+  if (item.actionType === "structural")     badges.push(`<span class="badge-structural">🏗️ Estrutural</span>`);
+  if (item.actionType === "material")       badges.push(`<span class="badge-material">📦 Material</span>`);
   if (item.requiresPhotoOnFail)             badges.push(`<span class="badge-photo">📷 Foto obrigatória</span>`);
 
   const photoLabel = item.requiresPhotoOnFail ? "📷 Anexar foto (obrigatório)" : "📷 Anexar foto (opcional)";
@@ -152,7 +152,6 @@ function buildItemCard(item) {
     </div>
   `;
 
-  // Inject score or pass/fail buttons
   const btnContainer = card.querySelector(`#buttons-${item.id}`);
   if (item.tipo === "score") {
     btnContainer.appendChild(buildScoreButtons(item));
@@ -160,7 +159,6 @@ function buildItemCard(item) {
     btnContainer.appendChild(buildPassFailButtons(item));
   }
 
-  // Photo input handler
   const photoInput = card.querySelector(`#photo-${item.id}`);
   if (photoInput) {
     photoInput.addEventListener("change", e => {
@@ -177,7 +175,6 @@ function buildItemCard(item) {
     });
   }
 
-  // Issue description handler
   const descArea = card.querySelector(`#issue-desc-${item.id}`);
   if (descArea) {
     descArea.addEventListener("input", () => {
@@ -197,9 +194,9 @@ function buildScoreButtons(item) {
 
   for (let v = 0; v <= 5; v++) {
     const btn = document.createElement("button");
-    btn.type         = "button";
-    btn.className    = "score-btn";
-    btn.innerHTML    = labels[v].replace("\n", "<br>");
+    btn.type          = "button";
+    btn.className     = "score-btn";
+    btn.innerHTML     = labels[v].replace("\n", "<br>");
     btn.dataset.value = v;
     btn.addEventListener("click", () => {
       setScore(item, v);
@@ -211,7 +208,6 @@ function buildScoreButtons(item) {
     wrap.appendChild(btn);
   }
 
-  // N/A button
   const naBtn = document.createElement("button");
   naBtn.type      = "button";
   naBtn.className = "score-btn";
@@ -232,20 +228,20 @@ function buildPassFailButtons(item) {
   wrap.className = "passfail-buttons";
 
   const passBtn = document.createElement("button");
-  passBtn.type      = "button";
-  passBtn.className = "pf-btn";
+  passBtn.type        = "button";
+  passBtn.className   = "pf-btn";
   passBtn.textContent = "✅ Conforme";
 
   const failBtn = document.createElement("button");
-  failBtn.type      = "button";
-  failBtn.className = "pf-btn";
+  failBtn.type        = "button";
+  failBtn.className   = "pf-btn";
   failBtn.textContent = "❌ Não Conforme";
 
   const naBtn = document.createElement("button");
-  naBtn.type         = "button";
-  naBtn.className    = "pf-btn";
+  naBtn.type             = "button";
+  naBtn.className        = "pf-btn";
   naBtn.style.gridColumn = "1 / -1";
-  naBtn.textContent  = "— Não se Aplica";
+  naBtn.textContent      = "— Não se Aplica";
 
   passBtn.addEventListener("click", () => {
     setScore(item, 5);
@@ -288,6 +284,7 @@ function setScore(item, value) {
     card.classList.add("answered");
     card.classList.toggle("critical-fail", isFail && item.critical);
   }
+  // Issue fields always shown on fail (any item type)
   if (issueField) {
     issueField.classList.toggle("visible", isFail);
     if (!isFail) {
@@ -325,11 +322,10 @@ function buildScoresMapForCalc() {
   for (const sec of zona.sections) {
     for (const item of sec.items) {
       if (naSet.has(item.id)) {
-        map[item.id] = null;          // N/A → skipped in calcularPontuacao
+        map[item.id] = null;
       } else if (scoresMap[item.id] !== undefined) {
         map[item.id] = scoresMap[item.id];
       }
-      // Unanswered items are simply absent (also skipped)
     }
   }
   return map;
@@ -346,30 +342,40 @@ function updateLiveScore() {
   const answeredCount = Object.keys(scoresMap).length + naSet.size;
 
   if (answeredCount === 0) {
-    scoreNum.textContent             = "0";
-    scoreCircle.style.borderColor    = "#e2e8f0";
-    scoreCircle.style.color          = "#94a3b8";
-    scoreStatusLbl.textContent       = "Aguardando respostas...";
-    scoreStatusLbl.style.color       = "#94a3b8";
-    scoreDetail.textContent          = "Preencha o checklist abaixo";
-    scoreTrackFill.style.width       = "0%";
-    scoreTrackFill.style.background  = "#e2e8f0";
+    scoreNum.textContent            = "0";
+    scoreCircle.style.borderColor   = "#e2e8f0";
+    scoreCircle.style.color         = "#94a3b8";
+    scoreStatusLbl.textContent      = "Aguardando respostas...";
+    scoreStatusLbl.style.color      = "#94a3b8";
+    scoreDetail.textContent         = "Preencha o checklist abaixo";
+    scoreTrackFill.style.width      = "0%";
+    scoreTrackFill.style.background = "#e2e8f0";
     return;
   }
 
-  const { finalScore } = calcularPontuacao(zona, buildScoresMapForCalc());
-  const col  = scoreColor(finalScore);
-  const meta = STATUS_LIMPEZA[scoreToStatus(finalScore)] || STATUS_LIMPEZA.attention;
+  const { finalScore, hasLowSection } = calcularPontuacao(zona, buildScoresMapForCalc());
 
-  scoreNum.textContent             = finalScore;
-  scoreNum.style.color             = col;
-  scoreCircle.style.borderColor    = col + "66";
-  scoreCircle.style.color          = col;
-  scoreStatusLbl.textContent       = meta.label;
-  scoreStatusLbl.style.color       = meta.color;
-  scoreDetail.textContent          = `${answeredCount} item(ns) respondido(s)`;
-  scoreTrackFill.style.width       = `${finalScore}%`;
-  scoreTrackFill.style.background  = col;
+  // Cap status if any section is below 60%
+  let displayStatus = scoreToStatus(finalScore);
+  if (hasLowSection && (displayStatus === "excellent" || displayStatus === "acceptable")) {
+    displayStatus = "attention";
+  }
+
+  const col  = scoreColor(finalScore);
+  const meta = STATUS_LIMPEZA[displayStatus] || STATUS_LIMPEZA.attention;
+  const warningNote = hasLowSection
+    ? ` · ⚠️ Seção < 60%`
+    : "";
+
+  scoreNum.textContent            = finalScore;
+  scoreNum.style.color            = col;
+  scoreCircle.style.borderColor   = col + "66";
+  scoreCircle.style.color         = col;
+  scoreStatusLbl.textContent      = meta.label + warningNote;
+  scoreStatusLbl.style.color      = meta.color;
+  scoreDetail.textContent         = `${answeredCount} item(ns) respondido(s)`;
+  scoreTrackFill.style.width      = `${finalScore}%`;
+  scoreTrackFill.style.background = col;
 }
 
 // ── Progress ──────────────────────────────────────────────────────────────────
@@ -490,10 +496,21 @@ function updateActionsSummary() {
       </div>`);
   }
 
-  structural.forEach(i => {
+  const critStructural = structural.filter(i => i.isCritical);
+  const normStructural = structural.filter(i => !i.isCritical);
+
+  critStructural.forEach(i => {
     parts.push(`
       <div class="action-item action-structural">
-        🔧 <div><strong>O.S. Manutenção será gerada:</strong>
+        🏗️ <div><strong>O.S. Emergencial (24h):</strong>
+        🔴 ${i.description || i.sectionName}</div>
+      </div>`);
+  });
+
+  normStructural.forEach(i => {
+    parts.push(`
+      <div class="action-item action-structural">
+        🏗️ <div><strong>O.S. Manutenção (7 dias):</strong>
         ${i.description || i.sectionName}</div>
       </div>`);
   });
@@ -501,7 +518,7 @@ function updateActionsSummary() {
   material.forEach(i => {
     parts.push(`
       <div class="action-item action-material">
-        🛒 <div><strong>Pedido de Compra será gerado:</strong>
+        📦 <div><strong>Pedido de Compra será gerado:</strong>
         ${i.description || i.sectionName}</div>
       </div>`);
   });
@@ -529,7 +546,6 @@ function validarFormulario() {
   if (answered < total) {
     const missing = total - answered;
     showToast(`Ainda há ${missing} item(ns) sem resposta.`, "aviso");
-    // Jump to first section with unanswered item
     for (let si = 0; si < zona.sections.length; si++) {
       const hasUnanswered = zona.sections[si].items.some(
         item => scoresMap[item.id] === undefined && !naSet.has(item.id)
@@ -569,13 +585,17 @@ btnSubmit.addEventListener("click", async () => {
     const notes        = document.getElementById("observacoes").value.trim();
     const issues       = buildIssues();
 
-    const { finalScore, sections: sectionResults } = calcularPontuacao(zona, buildScoresMapForCalc());
+    const { finalScore, sections: sectionResults, hasLowSection } = calcularPontuacao(zona, buildScoresMapForCalc());
     const hasCritical = issues.some(i => i.isCritical);
-    const status      = hasCritical && finalScore >= 50
-      ? "attention"
-      : scoreToStatus(finalScore);
 
-    // Build payload for db-limpeza
+    // Determine effective status
+    let status = hasCritical && finalScore >= 50 ? "attention" : scoreToStatus(finalScore);
+
+    // If any senso section scored below 60%, cap status at "attention"
+    if (hasLowSection && (status === "excellent" || status === "acceptable")) {
+      status = "attention";
+    }
+
     const payload = {
       zoneId:           zona.id,
       zoneName:         zona.nome,
@@ -601,13 +621,36 @@ btnSubmit.addEventListener("click", async () => {
     overlayText.textContent = "Enviando fotos e salvando...";
     const inspectionId = await salvarInspecaoLimpeza(payload, issuePhotos);
 
-    // ── Auto O.S. for structural issues ────────────────────────────────────────
-    const structuralIssues = issues.filter(i => i.actionType === "structural");
-    if (structuralIssues.length) {
-      overlayText.textContent = "Gerando O.S. de Manutenção...";
-      const descLines = structuralIssues
-        .map(i => `• ${i.description || i.sectionName}`)
-        .join("\n");
+    // ── Auto O.S. para issues CRÍTICOS estruturais (prazo 24h) ────────────────
+    const critStructural = issues.filter(i => i.actionType === "structural" && i.isCritical);
+    if (critStructural.length) {
+      overlayText.textContent = "Gerando O.S. de Emergência (24h)...";
+      const descLines = critStructural.map(i => `• 🔴 [CRÍTICO] ${i.description || i.sectionName}`).join("\n");
+      try {
+        await criarWorkOrder({
+          type:            "maintenance",
+          maintenanceType: "corrective",
+          title:           `⛔ Corretiva Emergencial 5S — ${zona.nome}`,
+          description:     `Itens CRÍTICOS identificados na inspeção de limpeza:\n${descLines}`,
+          sector:          zona.setor,
+          origin:          "cleaning_inspection",
+          originId:        inspectionId,
+          priority:        "critical",
+          prazoHoras:      24,
+          criadoPor:       inspector,
+          status:          "open",
+          linkedZoneId:    zona.id,
+        });
+      } catch (e) {
+        console.warn("[Limpeza] Falha ao gerar O.S. emergencial:", e);
+      }
+    }
+
+    // ── Auto O.S. para issues estruturais NÃO críticos (prazo 7 dias) ─────────
+    const normStructural = issues.filter(i => i.actionType === "structural" && !i.isCritical);
+    if (normStructural.length) {
+      overlayText.textContent = "Gerando O.S. de Manutenção (7 dias)...";
+      const descLines = normStructural.map(i => `• ${i.description || i.sectionName}`).join("\n");
       try {
         await criarWorkOrder({
           type:            "maintenance",
@@ -618,37 +661,38 @@ btnSubmit.addEventListener("click", async () => {
           origin:          "cleaning_inspection",
           originId:        inspectionId,
           priority:        hasCritical ? "high" : "medium",
+          prazoDias:       7,
           criadoPor:       inspector,
           status:          "open",
           linkedZoneId:    zona.id,
         });
       } catch (e) {
-        console.warn("[Limpeza] Falha ao gerar O.S.:", e);
+        console.warn("[Limpeza] Falha ao gerar O.S. manutenção:", e);
       }
     }
 
-    // ── Auto PO for material issues ────────────────────────────────────────────
+    // ── Auto PO para issues de material ────────────────────────────────────────
     const materialIssues = issues.filter(i => i.actionType === "material");
     if (materialIssues.length) {
       overlayText.textContent = "Gerando Pedido de Compra...";
       const itens = materialIssues.map((iss, idx) => ({
-        id:             idx + 1,
-        descricao:      iss.description || `Material para ${zona.nome}`,
-        quantidade:     1,
-        unidade:        "un",
-        valorUnitario:  0,
+        id:            idx + 1,
+        descricao:     iss.description || `Material para ${zona.nome}`,
+        quantidade:    1,
+        unidade:       "un",
+        valorUnitario: 0,
       }));
       try {
         await criarPedidoCompra({
-          titulo:      `Materiais 5S — ${zona.nome}`,
-          descricao:   `Necessidade identificada em inspeção de limpeza (${zona.id}).`,
+          titulo:     `Materiais 5S — ${zona.nome}`,
+          descricao:  `Necessidade identificada em inspeção de limpeza (${zona.id}).`,
           itens,
-          status:      "pendente",
-          prioridade:  "media",
-          criadoPor:   inspector,
-          origem:      "cleaning_inspection",
-          origemId:    inspectionId,
-          setor:       zona.setor,
+          status:     "pendente",
+          prioridade: "media",
+          criadoPor:  inspector,
+          origem:     "cleaning_inspection",
+          origemId:   inspectionId,
+          setor:      zona.setor,
         });
       } catch (e) {
         console.warn("[Limpeza] Falha ao gerar PO:", e);

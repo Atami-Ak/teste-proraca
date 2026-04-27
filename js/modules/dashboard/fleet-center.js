@@ -43,13 +43,20 @@ function _renderFleetPanel(checklists) {
 
   container.innerHTML = `<div class="vehicle-list">${sorted.map((v) => _vehicleCardHtml(v, ncMap)).join("")}</div>`;
 
-  // Delegate "Create OS" clicks
+  // Delegate "Create OS" clicks — open inline modal via custom event
   container.addEventListener("click", (e) => {
     const btn = e.target.closest(".btn-create-os-vehicle");
     if (!btn) return;
     const { veiculoId, veiculoPlaca } = btn.dataset;
-    const url = `../os/os-detalhe.html?modo=criar&origin=fleet&originId=${encodeURIComponent(veiculoId)}&originNome=${encodeURIComponent(veiculoPlaca)}`;
-    window.open(url, "_blank");
+    document.dispatchEvent(new CustomEvent("siga:criar-os", {
+      bubbles: true,
+      detail: {
+        origin: "fleet",
+        originId: veiculoId,
+        originNome: veiculoPlaca,
+        tipo: "maintenance",
+      },
+    }));
   });
 }
 

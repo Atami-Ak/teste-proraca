@@ -1,0 +1,64 @@
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 500; backdrop-filter: blur(2px); }
+.modal   { background: white; border-radius: 16px; width: min(600px, 96vw); max-height: 92vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.25); animation: fadeIn 0.18s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: none; } }
+
+.modalHeader { display: flex; align-items: flex-start; justify-content: space-between; padding: 20px 22px 14px; border-bottom: 1px solid #f1f5f9; gap: 12px; }
+.modalSub    { font-size: 0.78rem; font-weight: 600; color: #64748b; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.modalTitle  { font-size: 1rem; font-weight: 800; color: #0f172a; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px; }
+.engineTag   { padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+.closeBtn    { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #94a3b8; padding: 2px 8px; border-radius: 6px; flex-shrink: 0; }
+.closeBtn:hover { background: #f1f5f9; }
+
+.modalBody   { padding: 18px 22px; display: flex; flex-direction: column; gap: 13px; }
+.modalFooter { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 22px; border-top: 1px solid #f1f5f9; }
+
+.formGroup   { display: flex; flex-direction: column; gap: 4px; }
+.formRow     { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.label       { font-size: 0.78rem; font-weight: 700; color: #374151; }
+.req         { color: #ef4444; }
+.input, .select, .textarea {
+  border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 8px 12px;
+  font-size: 0.88rem; font-family: inherit; outline: none; background: white;
+  width: 100%; box-sizing: border-box;
+}
+.input:focus, .select:focus, .textarea:focus { border-color: #3b82f6; }
+.textarea { resize: vertical; min-height: 68px; }
+
+.sectionDivider {
+  font-size: 0.78rem; font-weight: 700; color: #64748b;
+  border-top: 1px solid #e2e8f0; padding-top: 12px; margin-top: 2px;
+}
+
+.checkRow   { display: flex; align-items: center; gap: 8px; }
+.checkbox   { width: 15px; height: 15px; cursor: pointer; accent-color: #0f4c75; }
+.checkLabel { font-size: 0.85rem; font-weight: 600; color: #374151; cursor: pointer; }
+
+/* Parts table */
+.partsSection       { display: flex; flex-direction: column; gap: 8px; }
+.partsSectionHeader { display: flex; justify-content: space-between; align-items: center; }
+.addPartBtn         { padding: 5px 12px; font-size: 0.78rem; font-weight: 700; border-radius: 6px; border: 1.5px dashed #3b82f6; background: #eff6ff; color: #3b82f6; cursor: pointer; }
+.addPartBtn:hover   { background: #dbeafe; }
+
+.partsTable { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+.partsHead  { display: grid; grid-template-columns: 1fr 70px 110px 36px; gap: 6px; padding: 8px 10px; background: #f8fafc; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px; }
+.partsRow   { display: grid; grid-template-columns: 1fr 70px 110px 36px; gap: 6px; padding: 6px 10px; border-top: 1px solid #f1f5f9; align-items: center; }
+.removePartBtn { background: none; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+.removePartBtn:hover { background: #fee2e2; }
+.partsTotal { padding: 8px 10px; text-align: right; font-size: 0.82rem; color: #64748b; border-top: 1px solid #e2e8f0; background: #f8fafc; }
+
+/* Post-save panel */
+.postSave        { padding: 32px 28px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.postSaveTitle   { font-size: 1.15rem; font-weight: 800; color: #0f172a; }
+.postSaveHint    { font-size: 0.88rem; color: #64748b; margin: 0; }
+.postSaveActions { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 320px; }
+.actionBtn       { padding: 11px 16px; font-size: 0.88rem; font-weight: 700; border: 1.5px solid #e2e8f0; border-radius: 10px; background: #f8fafc; cursor: pointer; transition: background 0.12s; }
+.actionBtn:hover { background: #eff6ff; border-color: #3b82f6; }
+.actionBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+.linkedTag       { padding: 10px 16px; font-size: 0.88rem; font-weight: 700; background: #f0fdf4; color: #15803d; border: 1.5px solid #bbf7d0; border-radius: 10px; }
+
+/* Buttons */
+.btnPrimary   { padding: 9px 22px; border-radius: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; border: none; background: #0f4c75; color: white; }
+.btnPrimary:hover { background: #0a3d60; }
+.btnPrimary:disabled { opacity: 0.55; cursor: not-allowed; }
+.btnSecondary { padding: 9px 22px; border-radius: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; background: #f1f5f9; color: #374151; border: 1.5px solid #e2e8f0; }
+.btnSecondary:hover { background: #e2e8f0; }

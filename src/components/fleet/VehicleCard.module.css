@@ -1,0 +1,184 @@
+.card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: box-shadow 0.15s, transform 0.12s;
+}
+.card:hover {
+  box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+  transform: translateY(-1px);
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.vehicleIcon {
+  font-size: 1.6rem;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 36px;
+  text-align: center;
+}
+
+.vehicleInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.plate {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.5px;
+  font-family: monospace;
+}
+
+.model {
+  font-size: 0.78rem;
+  color: #1e293b;
+  font-weight: 600;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.category {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-top: 1px;
+}
+
+.statusBadge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* KPI row */
+.kpiRow {
+  display: flex;
+  gap: 0;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.kpi {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 7px 4px;
+  border-right: 1px solid #f1f5f9;
+  gap: 2px;
+}
+.kpi:last-child { border-right: none; }
+
+.kpiLabel {
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.kpiValue {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+/* Last event */
+.lastEvent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  border-radius: 8px;
+  min-height: 44px;
+}
+
+.lastEventLabel {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.lastEventText {
+  font-size: 0.78rem;
+  color: #334155;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.lastEventDate {
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.noEvent {
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  font-style: italic;
+  margin: auto 0;
+}
+
+.driver {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btnPrimary {
+  flex: 1;
+  text-align: center;
+  background: #0f4c75;
+  color: white;
+  padding: 7px 10px;
+  border-radius: 7px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.btnPrimary:hover { background: #1a6aa8; }
+
+.btnSecondary {
+  flex: 1;
+  text-align: center;
+  background: white;
+  color: #374151;
+  padding: 7px 10px;
+  border-radius: 7px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1.5px solid #e2e8f0;
+  transition: background 0.15s;
+}
+.btnSecondary:hover { background: #f8fafc; }
