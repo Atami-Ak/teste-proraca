@@ -1,4 +1,7 @@
-/* src/pages/dashboard/DashboardPage.module.css */
+/* ═══════════════════════════════════════════════════════════
+   DashboardPage — Pro Racing Design System
+   Desktop-first · KPI grid · Live alerts · Period selector
+   ═══════════════════════════════════════════════════════════ */
 
 .page {
   display: flex;
@@ -152,12 +155,13 @@
   flex-direction: column;
   gap: 8px;
   box-shadow: var(--shadow-xs);
-  transition: box-shadow 0.18s, transform 0.12s, border-color 0.18s;
+  transition: box-shadow var(--t-base), transform var(--t-fast), border-color var(--t-base);
 }
 
 .kpiCard:hover {
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
+  border-color: var(--border, #d1d9e6);
 }
 
 .kpiAccentBar {
@@ -207,12 +211,6 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--text-3, #8898AA);
-}
-
-.kpiDetail {
-  font-size: 0.72rem;
-  color: var(--text-3, #8898AA);
-  margin-top: 2px;
 }
 
 /* ── KPI Skeleton ── */
@@ -275,7 +273,7 @@
   border-radius: 10px;
   font-size: 0.7rem;
   font-weight: 800;
-  background: #dc2626;
+  background: var(--danger, #dc2626);
   color: #fff;
 }
 
@@ -289,7 +287,7 @@
 .alertEmptyIcon {
   font-size: 2rem;
   margin-bottom: 8px;
-  color: #16a34a;
+  color: var(--success, #16a34a);
 }
 
 .alertList { display: flex; flex-direction: column; }
@@ -302,7 +300,7 @@
   border-bottom: 1px solid var(--border-light, #EBF0F7);
   text-decoration: none;
   color: inherit;
-  transition: background 0.12s;
+  transition: background var(--t-fast);
 }
 
 .alertItem:last-child { border-bottom: none; }
@@ -345,7 +343,7 @@
 
 /* ── Error state ── */
 .errorBox {
-  background: #fef2f2;
+  background: var(--danger-bg, #fef2f2);
   border: 1px solid #fecaca;
   border-radius: var(--r-lg, 14px);
   padding: 20px 24px;
@@ -363,7 +361,7 @@
 
 .retryBtn {
   padding: 8px 16px;
-  background: #dc2626;
+  background: var(--danger, #dc2626);
   color: #fff;
   border: none;
   border-radius: var(--r-md, 10px);
@@ -378,7 +376,7 @@
 /* ═══════════════ Responsive ═══════════════ */
 
 @media (max-width: 1200px) {
-  .kpiGrid { grid-template-columns: repeat(4, 1fr); }
+  .kpiGrid { grid-template-columns: repeat(3, 1fr); }
 }
 
 @media (max-width: 1000px) {
@@ -396,4 +394,9 @@
 
 @media (max-width: 420px) {
   .kpiGrid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page { animation: none; }
+  .skeletonLine { animation: none; }
 }
