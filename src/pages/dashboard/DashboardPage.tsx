@@ -19,8 +19,10 @@ import s from './DashboardPage.module.css'
 
 // ── KPI definitions ───────────────────────────────────────
 
+type KpiKey = { [K in keyof KpiCacheDoc]: KpiCacheDoc[K] extends { value: number; prev: number } ? K : never }[keyof KpiCacheDoc]
+
 interface KpiDef {
-  key:      keyof KpiCacheDoc
+  key:      KpiKey
   label:    string
   icon:     string
   accent:   string
@@ -68,6 +70,7 @@ function PeriodBar({ loading, onRefresh }: PeriodBarProps) {
       {options.map(opt => (
         <button
           key={opt.value}
+          aria-pressed={period === opt.value}
           className={`${s.periodBtn} ${period === opt.value ? s.periodBtnActive : ''}`}
           onClick={() => setPeriod(opt.value)}
           disabled={loading}
@@ -79,6 +82,7 @@ function PeriodBar({ loading, onRefresh }: PeriodBarProps) {
         className={s.refreshBtn}
         onClick={onRefresh}
         disabled={loading}
+        aria-label="Atualizar KPIs agora"
         title="Atualizar KPIs agora"
       >
         {loading ? '…' : '↺'}
@@ -95,7 +99,7 @@ interface KpiCardProps {
 }
 
 function KpiCard({ def, cache }: KpiCardProps) {
-  const kv    = cache ? (cache[def.key] as { value: number; prev: number }) : null
+  const kv    = cache ? cache[def.key] : null
   const value = kv?.value ?? 0
   const prev  = kv?.prev  ?? 0
   const trend = prev === 0 ? 0 : Math.round(((value - prev) / Math.max(1, prev)) * 100)
@@ -156,7 +160,7 @@ function AlertPanel({ alerts }: { alerts: AlertItem[] }) {
         <div className={s.alertList}>
           {alerts.map(a => {
             const cfg = ALERT_CONFIG[a.severity]
-            const ago = Math.round((Date.now() - a.createdAt.getTime()) / 60_000)
+            const ago = Math.max(0, Math.round((Date.now() - a.createdAt.getTime()) / 60_000))
             const agoLabel = ago < 60
               ? `${ago}min atrás`
               : `${Math.round(ago / 60)}h atrás`
