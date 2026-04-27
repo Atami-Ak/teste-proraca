@@ -1,7 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import AppLayout      from '@/components/layout/AppLayout'
-import LegacyPage     from '@/pages/legacy/LegacyPage'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import LoginPage      from '@/pages/auth/LoginPage'
 import { useAuth }    from '@/hooks/useData'
@@ -57,6 +56,7 @@ const EmpreiteiraDetailPage = lazy(() => import('@/pages/empreiteiras/Empreiteir
 // ── Admin & Ranking ───────────────────────────────────
 const EmployeeRankingPage   = lazy(() => import('@/pages/employees/EmployeeRankingPage'))
 const AdminPage             = lazy(() => import('@/pages/admin/AdminPage'))
+const DashboardPage         = lazy(() => import('@/pages/dashboard/DashboardPage'))
 
 // ── Shared loading fallback ────────────────────────────
 function PageLoader() {
@@ -156,7 +156,7 @@ export default function App() {
         {/* ── Admin-only routes ── */}
         <Route element={<ProtectedRoute requiredRole="admin" />}>
           <Route path="admin"     element={<Lazy page={<AdminPage />} />} />
-          <Route path="dashboard" element={<LegacyPage src="/dashboard/dashboard.html" label="Painel de Gestão" />} />
+          <Route path="dashboard" element={<Lazy page={<DashboardPage />} />} />
         </Route>
 
         {/* ── 404 → Home ── */}
