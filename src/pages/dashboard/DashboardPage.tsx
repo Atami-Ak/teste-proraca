@@ -2,18 +2,29 @@
 
 import { useState, useEffect, useCallback, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
+import {
+  ComposedChart, Area, Bar,
+  XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer,
+} from 'recharts'
 import { PeriodProvider, usePeriod } from '@/context/PeriodContext'
 import {
   readKpiCache,
   computeAndWriteKpiCache,
   subscribeToAlerts,
+  fetchOverviewChartData,
+  computeModuleHealth,
 } from '@/lib/db-dashboard'
 import {
   trendColor,
   trendIcon,
+  getPeriodRanges,
   type KpiCacheDoc,
   type AlertItem,
   type KpiSeverity,
+  type OverviewChartPoint,
+  type ModuleHealth,
+  type HealthStatus,
 } from '@/types/dashboard'
 import s from './DashboardPage.module.css'
 
@@ -47,6 +58,25 @@ const ALERT_CONFIG: Record<AlertItem['severity'], { color: string; bg: string; l
   critical:  { color: '#dc2626', bg: '#fef2f2', label: 'Crítico'  },
   urgent:    { color: '#ea580c', bg: '#fff7ed', label: 'Urgente'  },
   attention: { color: '#f59e0b', bg: '#fffbeb', label: 'Atenção'  },
+}
+
+// ── Health status colors ──────────────────────────────────
+
+const HEALTH_COLOR: Record<HealthStatus, string> = {
+  ok:       '#16a34a',
+  warning:  '#f59e0b',
+  critical: '#dc2626',
+}
+
+const MODULE_LINK: Record<string, string> = {
+  maquinario:    '/ativos',
+  frota:         '/frota',
+  limpeza:       '/limpeza',
+  seguranca:     '/seguranca',
+  colaboradores: '/colaboradores',
+  obras:         '/empreiteiras',
+  compras:       '/compras',
+  aprovacoes:    '/compras',
 }
 
 // ── PeriodBar ─────────────────────────────────────────────
@@ -186,15 +216,95 @@ function AlertPanel({ alerts }: { alerts: AlertItem[] }) {
   )
 }
 
+// ── OverviewChart ─────────────────────────────────────────
+
+interface OverviewChartProps {
+  data:    OverviewChartPoint[]
+  loading: boolean
+}
+
+function OverviewChart({ data, loading }: OverviewChartProps) {
+  return (
+    <div className={s.chartPanel}>
+      <div className={s.chartTitle}>Visão Geral do Período</div>
+      {loading ? (
+        <div className={s.chartSkeleton} />
+      ) : data.length === 0 ? (
+        <div className={s.chartEmpty}>Sem dados para o período selecionado.</div>
+      ) : (
+        <ResponsiveContainer width="100%" height={240}>
+          <ComposedChart data={data} margin={{ top: 4, right: 48, left: 0, bottom: 4 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+            <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+            <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} width={28} />
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              tick={{ fontSize: 11, fill: '#94a3b8' }}
+              axisLine={false}
+              tickLine={false}
+              width={52}
+              tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`}
+            />
+            <Tooltip
+              contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #EBF0F7' }}
+              formatter={(value, name) =>
+                name === 'Custo (R$)'
+                  ? [`R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, name]
+                  : [value, name]
+              }
+            />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+            <Area yAxisId="left"  type="monotone" dataKey="abertas"    stroke="#ea580c" fill="#fff7ed" strokeWidth={2} name="OS Abertas"  dot={false} />
+            <Area yAxisId="left"  type="monotone" dataKey="concluidas" stroke="#16a34a" fill="#f0fdf4" strokeWidth={2} name="Concluídas"  dot={false} />
+            <Bar  yAxisId="right"                 dataKey="custo"      fill="#166534"   fillOpacity={0.5}             name="Custo (R$)" />
+          </ComposedChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  )
+}
+
+// ── ModuleHealthGrid ──────────────────────────────────────
+
+function ModuleHealthGrid({ health, loading }: { health: ModuleHealth[]; loading: boolean }) {
+  return (
+    <div className={s.healthPanel}>
+      <div className={s.healthHeader}>Saúde dos Módulos</div>
+      {loading ? (
+        <div className={s.healthSkeletons}>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className={s.healthCardSkeleton} />
+          ))}
+        </div>
+      ) : (
+        <div className={s.healthGrid}>
+          {health.map(h => (
+            <Link key={h.module} to={MODULE_LINK[h.module] ?? '/'} className={s.healthCard}>
+              <div className={s.healthDot} style={{ background: HEALTH_COLOR[h.status] }} />
+              <div className={s.healthInfo}>
+                <div className={s.healthLabel}>{h.label}</div>
+                <div className={s.healthMetric}>{h.metric}</div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── DashboardContent (inside PeriodProvider) ──────────────
 
 function DashboardContent() {
   const { period } = usePeriod()
 
-  const [cache,   setCache]   = useState<KpiCacheDoc | null>(null)
-  const [alerts,  setAlerts]  = useState<AlertItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error,   setError]   = useState<string | null>(null)
+  const [cache,        setCache]        = useState<KpiCacheDoc | null>(null)
+  const [alerts,       setAlerts]       = useState<AlertItem[]>([])
+  const [loading,      setLoading]      = useState(true)
+  const [error,        setError]        = useState<string | null>(null)
+  const [chartData,    setChartData]    = useState<OverviewChartPoint[]>([])
+  const [chartLoading, setChartLoading] = useState(true)
 
   const loadKpis = useCallback(async (force = false) => {
     setLoading(true)
@@ -217,11 +327,23 @@ function DashboardContent() {
     void loadKpis(false)
   }, [loadKpis])
 
+  // Reload chart when period changes
+  useEffect(() => {
+    setChartLoading(true)
+    const { current } = getPeriodRanges(period)
+    fetchOverviewChartData(current, period)
+      .then(setChartData)
+      .catch(() => setChartData([]))
+      .finally(() => setChartLoading(false))
+  }, [period])
+
   // Subscribe to live alerts
   useEffect(() => {
     const unsub = subscribeToAlerts(setAlerts)
     return unsub
   }, [])
+
+  const moduleHealth = cache ? computeModuleHealth(cache) : []
 
   const today = new Date().toLocaleDateString('pt-BR', {
     weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
@@ -258,6 +380,12 @@ function DashboardContent() {
           {KPI_DEFS.map(def => (
             <KpiCard key={def.key} def={def} cache={loading ? null : cache} />
           ))}
+        </div>
+
+        {/* ── Chart + Module Health ── */}
+        <div className={s.secondRow}>
+          <OverviewChart data={chartData} loading={chartLoading} />
+          <ModuleHealthGrid health={moduleHealth} loading={loading} />
         </div>
 
         {/* ── Alerts ── */}

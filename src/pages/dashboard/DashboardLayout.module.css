@@ -1,0 +1,111 @@
+/* src/pages/dashboard/DashboardLayout.module.css */
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* ── Tab bar ── */
+.tabBar {
+  background: var(--bg-card, #fff);
+  border-bottom: 2px solid var(--border-light, #EBF0F7);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.tabScroll {
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 16px;
+  gap: 2px;
+}
+
+.tabScroll::-webkit-scrollbar { display: none; }
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 48px;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-3, #8898AA);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.tab:hover {
+  color: var(--text-2, #374151);
+}
+
+.tabActive {
+  color: var(--brand-main, #166534);
+  border-bottom-color: var(--brand-accent, #ea580c);
+  font-weight: 700;
+}
+
+.tabIcon {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.tabLabel { }
+
+.tabBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font-size: 0.64rem;
+  font-weight: 800;
+  background: #dc2626;
+  color: #fff;
+  line-height: 1;
+  margin-left: 2px;
+}
+
+.tabStar {
+  font-size: 0.58rem;
+  color: var(--brand-accent, #ea580c);
+  margin-left: -3px;
+  margin-bottom: 6px;
+  align-self: flex-start;
+}
+
+/* ── Content ── */
+.content {
+  flex: 1;
+}
+
+/* ═══════════════ Responsive ═══════════════ */
+
+@media (max-width: 680px) {
+  .tabScroll { padding: 0 8px; }
+
+  .tab {
+    padding: 0 10px;
+    height: 42px;
+    font-size: 0.75rem;
+    gap: 4px;
+  }
+
+  .tabIcon { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab { transition: none; }
+}

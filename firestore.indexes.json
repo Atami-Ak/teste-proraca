@@ -21,13 +21,6 @@
       "collectionGroup": "work_orders",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "timestampEnvio", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "work_orders",
-      "queryScope": "COLLECTION",
-      "fields": [
         { "fieldPath": "origem",         "order": "ASCENDING" },
         { "fieldPath": "timestampEnvio", "order": "DESCENDING" }
       ]
@@ -68,7 +61,8 @@
       "collectionGroup": "purchase_orders",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "timestampEnvio", "order": "DESCENDING" }
+        { "fieldPath": "status",    "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "ASCENDING" }
       ]
     },
     {
@@ -104,20 +98,6 @@
       ]
     },
     {
-      "collectionGroup": "checklists_frota",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "timestampEnvio", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "auditorias_limpeza",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "timestampEnvio", "order": "DESCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "auditorias_limpeza",
       "queryScope": "COLLECTION",
       "fields": [
@@ -147,6 +127,54 @@
       "fields": [
         { "fieldPath": "ativo", "order": "ASCENDING" },
         { "fieldPath": "nome",  "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "asset_maintenance",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",        "order": "ASCENDING" },
+        { "fieldPath": "scheduledDate", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "access_logs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId",    "order": "ASCENDING"  },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "asset_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "assetId",   "order": "ASCENDING"  },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "asset_maintenance",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "assetId",   "order": "ASCENDING"  },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "inspecoes_obra",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "obraId",        "order": "ASCENDING"  },
+        { "fieldPath": "dataInspecao",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "avaliacoes_empreiteira",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "empreiteiraId", "order": "ASCENDING"  },
+        { "fieldPath": "createdAt",     "order": "DESCENDING" }
       ]
     }
   ],

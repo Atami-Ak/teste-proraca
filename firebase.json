@@ -7,15 +7,14 @@
     "rules": "storage.rules"
   },
   "hosting": {
-    "public": ".",
+    "public": "dist",
     "ignore": [
       "firebase.json",
-      "firestore.rules",
-      "firestore.indexes.json",
-      "storage.rules",
       "**/.*",
       "**/node_modules/**"
     ],
+    "cleanUrls": true,
+    "trailingSlash": false,
     "rewrites": [
       {
         "source": "**",

@@ -9,6 +9,7 @@ import { useAuth }    from '@/hooks/useData'
 const HomePage              = lazy(() => import('@/pages/home/HomePage'))
 const AssetsPage            = lazy(() => import('@/pages/assets/AssetsPage'))
 const AssetFormPage         = lazy(() => import('@/pages/assets/AssetFormPage'))
+const AssetDetailPage       = lazy(() => import('@/pages/assets/AssetDetailPage'))
 const MaintenancePage       = lazy(() => import('@/pages/maintenance/MaintenancePage'))
 const SuppliersPage         = lazy(() => import('@/pages/suppliers/SuppliersPage'))
 const InventoryPage         = lazy(() => import('@/pages/inventory/InventoryPage'))
@@ -16,10 +17,10 @@ const CategoriesPage        = lazy(() => import('@/pages/categories/CategoriesPa
 const ServiceOrdersPage     = lazy(() => import('@/pages/orders/ServiceOrdersPage'))
 const PurchaseOrdersPage    = lazy(() => import('@/pages/orders/PurchaseOrdersPage'))
 
-// ── Fleet module (React — migrated from legacy iframe) ─
-const FleetPage             = lazy(() => import('@/pages/fleet/FleetPage'))
-const InspectionPage        = lazy(() => import('@/pages/fleet/InspectionPage'))
-const VehicleHistoryPage    = lazy(() => import('@/pages/fleet/VehicleHistoryPage'))
+// ── Fleet module (isolated — not active) ──────────────
+// const FleetPage             = lazy(() => import('@/pages/fleet/FleetPage'))
+// const InspectionPage        = lazy(() => import('@/pages/fleet/InspectionPage'))
+// const VehicleHistoryPage    = lazy(() => import('@/pages/fleet/VehicleHistoryPage'))
 
 // ── Cleaning / 5S module (React — migrated from legacy) ─
 const CleaningDashboard     = lazy(() => import('@/pages/cleaning/CleaningDashboard'))
@@ -56,7 +57,20 @@ const EmpreiteiraDetailPage = lazy(() => import('@/pages/empreiteiras/Empreiteir
 // ── Admin & Ranking ───────────────────────────────────
 const EmployeeRankingPage   = lazy(() => import('@/pages/employees/EmployeeRankingPage'))
 const AdminPage             = lazy(() => import('@/pages/admin/AdminPage'))
-const DashboardPage         = lazy(() => import('@/pages/dashboard/DashboardPage'))
+
+// ── Dashboard (tabbed shell + sub-pages) ──────────────
+const DashboardLayout            = lazy(() => import('@/pages/dashboard/DashboardLayout'))
+const DashboardPage              = lazy(() => import('@/pages/dashboard/DashboardPage'))
+const MachineryAnalyticsPage     = lazy(() => import('@/pages/dashboard/maquinario/MachineryAnalyticsPage'))
+// const FleetAnalyticsPage         = lazy(() => import('@/pages/dashboard/frota/FleetAnalyticsPage'))
+const CleaningAnalyticsPage      = lazy(() => import('@/pages/dashboard/limpeza/CleaningAnalyticsPage'))
+const AccessControlPage          = lazy(() => import('@/pages/dashboard/acesso/AccessControlPage'))
+const ApprovalCenterPage         = lazy(() => import('@/pages/dashboard/aprovacoes/ApprovalCenterPage'))
+const PurchasingAnalyticsPage    = lazy(() => import('@/pages/dashboard/compras/PurchasingAnalyticsPage'))
+const DocumentCenterPage         = lazy(() => import('@/pages/dashboard/documentos/DocumentCenterPage'))
+const SafetyAnalyticsPage        = lazy(() => import('@/pages/dashboard/seguranca/SafetyAnalyticsPage'))
+const EmployeesAnalyticsPage     = lazy(() => import('@/pages/dashboard/colaboradores/EmployeesAnalyticsPage'))
+const ObrasAnalyticsPage         = lazy(() => import('@/pages/dashboard/obras/ObrasAnalyticsPage'))
 
 // ── Shared loading fallback ────────────────────────────
 function PageLoader() {
@@ -100,16 +114,13 @@ export default function App() {
         <Route path="ativos/fornecedores" element={<Lazy page={<SuppliersPage />} />} />
         <Route path="ativos/inventario" element={<Lazy page={<InventoryPage />} />} />
         <Route path="ativos/categorias" element={<Lazy page={<CategoriesPage />} />} />
+        <Route path="ativos/:id" element={<Lazy page={<AssetDetailPage />} />} />
 
         {/* ── Operations module (fully React) ── */}
         <Route path="os"      element={<Lazy page={<ServiceOrdersPage />} />} />
         <Route path="compras" element={<Lazy page={<PurchaseOrdersPage />} />} />
 
-        {/* ── Fleet module (fully React — migrated) ── */}
-        <Route path="frota"                          element={<Lazy page={<FleetPage />} />} />
-        <Route path="frota/inspecao"                 element={<Lazy page={<InspectionPage />} />} />
-        <Route path="frota/inspecao/:vehicleId"      element={<Lazy page={<InspectionPage />} />} />
-        <Route path="frota/historico/:vehicleId"     element={<Lazy page={<VehicleHistoryPage />} />} />
+        {/* Fleet module isolated — routes removed */}
 
         {/* ── Cleaning / 5S module (fully React — migrated) ── */}
         <Route path="limpeza"                        element={<Lazy page={<CleaningDashboard />} />} />
@@ -155,8 +166,23 @@ export default function App() {
 
         {/* ── Admin-only routes ── */}
         <Route element={<ProtectedRoute requiredRole="admin" />}>
-          <Route path="admin"     element={<Lazy page={<AdminPage />} />} />
-          <Route path="dashboard" element={<Lazy page={<DashboardPage />} />} />
+          <Route path="admin" element={<Lazy page={<AdminPage />} />} />
+
+          {/* Dashboard — tabbed shell, /dashboard → /dashboard/overview */}
+          <Route path="dashboard" element={<Lazy page={<DashboardLayout />} />}>
+            <Route index element={<Navigate to="overview" replace />} />
+            <Route path="overview"      element={<Lazy page={<DashboardPage />} />} />
+            <Route path="maquinario"    element={<Lazy page={<MachineryAnalyticsPage />} />} />
+            {/* Fleet analytics isolated — route removed */}
+            <Route path="limpeza"       element={<Lazy page={<CleaningAnalyticsPage />} />} />
+            <Route path="seguranca"     element={<Lazy page={<SafetyAnalyticsPage />} />} />
+            <Route path="colaboradores" element={<Lazy page={<EmployeesAnalyticsPage />} />} />
+            <Route path="obras"         element={<Lazy page={<ObrasAnalyticsPage />} />} />
+            <Route path="compras"       element={<Lazy page={<PurchasingAnalyticsPage />} />} />
+            <Route path="aprovacoes"    element={<Lazy page={<ApprovalCenterPage />} />} />
+            <Route path="documentos"    element={<Lazy page={<DocumentCenterPage />} />} />
+            <Route path="acesso"        element={<Lazy page={<AccessControlPage />} />} />
+          </Route>
         </Route>
 
         {/* ── 404 → Home ── */}

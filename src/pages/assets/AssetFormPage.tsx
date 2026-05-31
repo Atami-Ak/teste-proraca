@@ -19,6 +19,7 @@ import {
   getAssetById, createAsset, updateAsset, generateAssetCode,
 } from '@/lib/db'
 import { LOCATIONS }       from '@/data/categories'
+import { addAssetEvent }  from '@/lib/db-asset-history'
 import type { Asset, AssetStatus, Category, FieldSchema } from '@/types'
 import s from './AssetFormPage.module.css'
 
@@ -208,11 +209,18 @@ export default function AssetFormPage() {
       } else {
         const cat  = selectedCat!
         const code = await generateAssetCode(cat.prefix)
-        await createAsset({
+        const newId = await createAsset({
           code, codePrefix: cat.prefix,
           ...payload,
           createdBy: 'user',
         } as Omit<Asset, 'id' | 'createdAt' | 'updatedAt'>)
+        addAssetEvent({
+          assetId:     newId,
+          eventType:   'created',
+          title:       'Ativo cadastrado no sistema',
+          description: `${code} · ${payload.location}`,
+          newValue:    payload.status,
+        }).catch(() => {})
       }
       navigate('/ativos')
     } catch (err) {

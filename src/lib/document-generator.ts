@@ -55,16 +55,19 @@ export function generatePurchaseDocument(
 
   const content: PurchaseDocumentContent = {
     orderNumber,
-    title:        order.title,
-    description:  order.description,
-    items:        order.items,
-    totalValue:   order.totalValue,
-    supplierId:   order.supplierId,
-    status:       order.status,
-    requestedBy:  order.requestedBy,
-    approvedBy:   order.approvedBy,
-    assetId:      order.assetId,
-    notes:        order.notes,
+    title:            order.title,
+    description:      order.description,
+    items:            order.items,
+    totalValue:       order.totalValue,
+    supplierId:       order.supplierId,
+    status:           order.status,
+    priority:         order.priority,
+    requestedBy:      order.requestedBy,
+    sector:           order.sector,
+    purchaseCategory: order.purchaseCategory,
+    deliveryDate:     toISOSafe(order.deliveryDate),
+    assetId:          order.assetId,
+    notes:            order.notes,
   }
 
   return {

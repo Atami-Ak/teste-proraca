@@ -17,7 +17,7 @@ export interface FieldSchema {
   required?: boolean
 }
 
-export type MaintenanceType = 'preventiva' | 'corretiva' | 'inspecao'
+export type MaintenanceType = 'preventiva' | 'corretiva' | 'inspecao' | 'software' | 'hardware'
 
 export interface MaintenanceConfig {
   preventiveFrequencyDays: number | null
@@ -66,6 +66,35 @@ export interface Asset {
   updatedAt?:      Date
 }
 
+// ── Maintenance additional data ───────────────────────
+
+export interface ReplacedPart {
+  name:     string
+  quantity: number
+  cost:     number
+}
+
+export interface MachineryAdditionalData {
+  hoursUsed?:           number
+  mileage?:             number
+  nextMaintenanceDate?: string
+  failureType?:         string
+  downtime?:            number
+  rootCause?:           string
+  requiresPurchase?:    boolean
+  replacedParts?:       ReplacedPart[]
+}
+
+export interface ITAdditionalData {
+  ticketId?:           string
+  deviceType?:         'computer' | 'printer' | 'network' | 'other'
+  issueType?:          string
+  assignedTechnician?: string
+  affectedUser?:       string
+  softwareUpdated?:    string[]
+  replacedParts?:      string[]
+}
+
 // ── Maintenance Record ────────────────────────────────
 
 export type MaintenanceStatus = 'pendente' | 'andamento' | 'concluida'
@@ -86,6 +115,8 @@ export interface MaintenanceRecord {
   notes?:          string
   serviceOrderId?: string
   purchaseOrderId?: string
+  engineCategory?: 'machinery' | 'it' | 'default'
+  additionalData?: MachineryAdditionalData | ITAdditionalData
   createdAt?:      FirestoreTimestamp | Date
   updatedAt?:      FirestoreTimestamp | Date
 }
@@ -115,24 +146,28 @@ export type ServiceOrderStatus = 'open' | 'in_progress' | 'completed' | 'cancell
 export type Priority = 'low' | 'normal' | 'high' | 'critical'
 
 export interface ServiceOrder {
-  id:              string
-  orderNumber?:    string
-  assetId?:        string
-  maintenanceId?:  string
-  title:           string
-  description:     string
-  technician?:     string
-  serviceType:     ServiceType
-  status:          ServiceOrderStatus
-  priority?:       Priority
-  supplierId?:     string
-  requestedBy?:    string
-  cost?:           number
-  notes?:          string
-  scheduledDate?:  Date
-  completedDate?:  Date
-  createdAt?:      Date
-  updatedAt?:      Date
+  id:               string
+  orderNumber?:     string
+  assetId?:         string
+  maintenanceId?:   string
+  title:            string
+  description:      string
+  technician?:      string
+  serviceType:      ServiceType
+  status:           ServiceOrderStatus
+  priority?:        Priority
+  supplierId?:      string
+  requestedBy?:     string
+  sector?:          string
+  serviceCategory?: string
+  cost?:            number
+  estimatedCost?:   number
+  quoteImages?:     string[]
+  notes?:           string
+  scheduledDate?:   Date
+  completedDate?:   Date
+  createdAt?:       Date
+  updatedAt?:       Date
 }
 
 // ── Purchase Order ────────────────────────────────────
@@ -147,21 +182,25 @@ export interface PurchaseOrderItem {
 }
 
 export interface PurchaseOrder {
-  id:             string
-  orderNumber?:   string
-  assetId?:       string
-  maintenanceId?: string
-  supplierId?:    string
-  title:          string
-  description?:   string
-  items:          PurchaseOrderItem[]
-  status:         PurchaseOrderStatus
-  requestedBy?:   string
-  approvedBy?:    string
-  totalValue?:    number
-  notes?:         string
-  createdAt?:     Date
-  updatedAt?:     Date
+  id:                string
+  orderNumber?:      string
+  assetId?:          string
+  maintenanceId?:    string
+  supplierId?:       string
+  title:             string
+  description?:      string
+  items:             PurchaseOrderItem[]
+  status:            PurchaseOrderStatus
+  priority?:         Priority
+  requestedBy?:      string
+  sector?:           string
+  purchaseCategory?: string
+  deliveryDate?:     Date
+  totalValue?:       number
+  quoteImages?:      string[]
+  notes?:            string
+  createdAt?:        Date
+  updatedAt?:        Date
 }
 
 // ── Auth ──────────────────────────────────────────────
@@ -191,6 +230,8 @@ export const MAINT_TYPE_META: Record<MaintenanceType, { label: string; icon: str
   preventiva: { label: 'Preventiva', icon: '🔵', cls: 'type-preventiva' },
   corretiva:  { label: 'Corretiva',  icon: '🔴', cls: 'type-corretiva'  },
   inspecao:   { label: 'Inspeção',   icon: '🟢', cls: 'type-inspecao'   },
+  software:   { label: 'Software',   icon: '💻', cls: 'type-software'   },
+  hardware:   { label: 'Hardware',   icon: '🖥️', cls: 'type-hardware'   },
 }
 
 export const MAINT_STATUS_META: Record<MaintenanceStatus, { label: string; icon: string }> = {
@@ -205,13 +246,7 @@ export const SUPPLIER_TYPE_META: Record<SupplierType, { label: string; icon: str
   both:     { label: 'Compras + Serv.', icon: '🏢', cls: 'type-ambos'  },
 }
 
-// ── Maintenance extensions ────────────────────────────
-
-export interface ReplacedPart {
-  name:     string
-  quantity: number
-  cost:     number
-}
+// ── Maintenance extensions (legacy flat shapes — kept for backward compat) ────
 
 export interface MachineryMaintenance extends MaintenanceRecord {
   failureType:      string
@@ -238,13 +273,13 @@ export function isITMaintenance(r: MaintenanceRecord): r is ITMaintenance {
 
 // ── Maintenance engine resolver ───────────────────────
 
-export type MaintenanceEngine = 'legacy_machinery' | 'it' | 'standard'
+export type MaintenanceEngine = 'machinery' | 'it' | 'standard'
 
 const MACHINERY_PREFIXES = new Set(['MAQ', 'CLIM'])
 const IT_PREFIXES        = new Set(['TI', 'COM'])
 
 export function resolveEngine(category: Pick<Category, 'prefix'>): MaintenanceEngine {
-  if (MACHINERY_PREFIXES.has(category.prefix)) return 'legacy_machinery'
+  if (MACHINERY_PREFIXES.has(category.prefix)) return 'machinery'
   if (IT_PREFIXES.has(category.prefix))        return 'it'
   return 'standard'
 }
@@ -269,17 +304,20 @@ export interface ServiceDocumentContent {
 }
 
 export interface PurchaseDocumentContent {
-  orderNumber:  string
-  title:        string
-  description?: string
-  items:        PurchaseOrderItem[]
-  totalValue?:  number
-  supplierId?:  string
-  status:       PurchaseOrderStatus
-  requestedBy?: string
-  approvedBy?:  string
-  assetId?:     string
-  notes?:       string
+  orderNumber:       string
+  title:             string
+  description?:      string
+  items:             PurchaseOrderItem[]
+  totalValue?:       number
+  supplierId?:       string
+  status:            PurchaseOrderStatus
+  priority?:         Priority
+  requestedBy?:      string
+  sector?:           string
+  purchaseCategory?: string
+  deliveryDate?:     string
+  assetId?:          string
+  notes?:            string
 }
 
 export interface OrderDocument {

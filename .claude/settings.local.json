@@ -9,7 +9,16 @@
       "Bash(echo \"EXIT:$?\")",
       "Bash(./node_modules/.bin/tsc --noEmit)",
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('scripts',{}\\), indent=2\\)\\)\")",
-      "Read(//c/c/Users/Atami/Desktop/Pro Raça - Sistema/proraca v2.0-pr/teste-pr-main/src/pages/dashboard/**)"
+      "Read(//c/c/Users/Atami/Desktop/Pro Raça - Sistema/proraca v2.0-pr/teste-pr-main/src/pages/dashboard/**)",
+      "Bash(Get-ChildItem -Path . -Directory)",
+      "Bash(Select-Object Name)",
+      "PowerShell(cd \"C:\\\\Users\\\\Atami\\\\Desktop\\\\Pro Raça - Sistema\\\\proraca v2.0-pr\\\\teste-pr-main\"; Get-ChildItem -Path . -File | Where-Object { $_.Extension -in @\\('.json', '.ts', '.tsx'\\) } | Select-Object -ExpandProperty Name)",
+      "Bash(Get-ChildItem -Path \".\" -Directory)",
+      "Bash(xargs wc -l)",
+      "Bash(npx vite *)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('\\\\n'.join\\(sorted\\(d.get\\('dependencies',{}\\).keys\\(\\)\\)\\)\\)\")",
+      "Bash(Get-Content *)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Atami\\\\Desktop\\\\Pro Raça - Sistema\\\\proraca v2.0-pr\\\\teste-pr-main\\\\src\" -Recurse -File | Where-Object { $_.Name -match '\\(service|ordem|os\\)' -and \\($_.Extension -match '\\\\.\\(tsx|ts|ts\\)$'\\) } | Select-Object FullName)"
     ]
   }
 }

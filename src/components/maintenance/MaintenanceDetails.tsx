@@ -150,7 +150,7 @@ export default function MaintenanceDetails({ record: r, asset, category, onClose
                 <div className={s.assetName}>{asset.name} · {asset.location}</div>
               </div>
               {engine !== 'standard' && (
-                <span className={s.enginePill}>{engine === 'legacy_machinery' ? '⚙️ Maquinário' : '💻 TI'}</span>
+                <span className={s.enginePill}>{engine === 'machinery' ? '⚙️ Maquinário' : '💻 TI'}</span>
               )}
             </div>
           )}

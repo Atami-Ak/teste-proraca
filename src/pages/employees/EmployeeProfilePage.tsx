@@ -3,11 +3,11 @@ import { useNavigate, useParams, Link } from 'react-router-dom'
 import {
   getEmployee, getEmployeeHistory, getEmployeeEvaluations,
   getEmployeeWarnings, getEmployeeRecognitions, getSupervisorNotes,
-  createSupervisorNote, resolveWarning, deactivateEmployee,
+  createSupervisorNote, createWarning, resolveWarning, deactivateEmployee,
 } from '@/lib/db-employees'
 import type {
   Employee, EmployeeHistoryEvent, EmployeeEvaluation,
-  EmployeeWarning, EmployeeRecognition, SupervisorNote, CategoriaNota,
+  EmployeeWarning, EmployeeRecognition, SupervisorNote, CategoriaNota, TipoAviso,
 } from '@/types/employee'
 import {
   STATUS_PERFORMANCE_META, STATUS_EMPLOYEE_META, TIPO_VINCULO_META,
@@ -42,6 +42,14 @@ export default function EmployeeProfilePage() {
   const [notes, setNotes]     = useState<SupervisorNote[]>([])
   const [tab, setTab]         = useState<Tab>('timeline')
   const [loading, setLoading] = useState(true)
+
+  // Warning form
+  const [showWarnForm, setShowWarnForm] = useState(false)
+  const [warnTipo,     setWarnTipo]     = useState<TipoAviso>('verbal')
+  const [warnTitulo,   setWarnTitulo]   = useState('')
+  const [warnDesc,     setWarnDesc]     = useState('')
+  const [warnAssinado, setWarnAssinado] = useState(false)
+  const [warnSaving,   setWarnSaving]   = useState(false)
 
   // New note form
   const [noteText, setNoteText]     = useState('')
@@ -87,6 +95,33 @@ export default function EmployeeProfilePage() {
       toast.success('Nota adicionada.')
     } catch { toast.error('Erro ao salvar nota.') }
     finally { setNoteSaving(false) }
+  }
+
+  async function handleCreateWarning() {
+    if (!warnTitulo.trim() || !warnDesc.trim() || !id || !emp) return
+    setWarnSaving(true)
+    try {
+      const newId = await createWarning({
+        employeeId:  id,
+        tipo:        warnTipo,
+        titulo:      warnTitulo.trim(),
+        descricao:   warnDesc.trim(),
+        data:        new Date(),
+        emissorNome: 'Sistema',
+        assinado:    warnAssinado,
+        resolvido:   false,
+      })
+      setWarns(prev => [{
+        id: newId, employeeId: id, tipo: warnTipo,
+        titulo: warnTitulo.trim(), descricao: warnDesc.trim(),
+        data: new Date(), emissorNome: 'Sistema',
+        assinado: warnAssinado, resolvido: false,
+      }, ...prev])
+      setEmp(prev => prev ? { ...prev, totalAvisos: prev.totalAvisos + 1 } : prev)
+      setWarnTitulo(''); setWarnDesc(''); setWarnAssinado(false); setShowWarnForm(false)
+      toast.success('Advertência registrada.')
+    } catch { toast.error('Erro ao registrar advertência.') }
+    finally { setWarnSaving(false) }
   }
 
   async function handleResolveWarning(warnId: string) {
@@ -251,6 +286,57 @@ export default function EmployeeProfilePage() {
       {/* ── Tab: Disciplinar ── */}
       {tab === 'disciplinar' && (
         <div className={s.tabContent}>
+
+          {/* ── Formulário Nova Advertência ── */}
+          {showWarnForm ? (
+            <div className={s.noteForm}>
+              <div className={s.noteFormTitle}>⚠️ Nova Advertência</div>
+              <div className={s.noteFormRow}>
+                <select className={s.select} value={warnTipo} onChange={e => setWarnTipo(e.target.value as TipoAviso)}>
+                  <option value="verbal">Advertência Verbal</option>
+                  <option value="escrito">Advertência Escrita</option>
+                  <option value="suspensao">Suspensão</option>
+                  <option value="conduta">Ocorrência de Conduta</option>
+                  <option value="compliance">Falha de Compliance</option>
+                </select>
+                <label className={s.checkLabel}>
+                  <input type="checkbox" checked={warnAssinado} onChange={e => setWarnAssinado(e.target.checked)} />
+                  Colaborador assinou
+                </label>
+              </div>
+              <input
+                className={s.textarea}
+                style={{ padding: '8px 12px', marginBottom: 8 }}
+                placeholder="Título da advertência…"
+                value={warnTitulo}
+                onChange={e => setWarnTitulo(e.target.value)}
+              />
+              <textarea
+                className={s.textarea} rows={3}
+                placeholder="Descreva o motivo e os fatos que originaram a advertência…"
+                value={warnDesc}
+                onChange={e => setWarnDesc(e.target.value)}
+              />
+              <div className={s.noteFormRow} style={{ justifyContent: 'flex-end', gap: 8 }}>
+                <button className={s.btnOutline} onClick={() => setShowWarnForm(false)}>Cancelar</button>
+                <button
+                  className={s.btnPrimary}
+                  style={{ background: '#dc2626' }}
+                  disabled={warnSaving || !warnTitulo.trim() || !warnDesc.trim()}
+                  onClick={handleCreateWarning}
+                >
+                  {warnSaving ? 'Salvando…' : '⚠️ Registrar Advertência'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className={s.tabActions}>
+              <button className={s.btnPrimary} style={{ background: '#dc2626' }} onClick={() => setShowWarnForm(true)}>
+                + Nova Advertência
+              </button>
+            </div>
+          )}
+
           <div className={s.twoColTabs}>
 
             <div className={s.subSection}>

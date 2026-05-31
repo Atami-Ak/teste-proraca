@@ -22,15 +22,15 @@ function fmtCurrency(v?: number) {
 
 function fmtDate(d?: Date) {
   if (!d) return '—'
-  return d.toLocaleDateString('pt-BR')
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 function ScoreRing({ score, max = 10 }: { score: number; max?: number }) {
-  const pct     = (score / max) * 100
-  const color   = score >= 7 ? '#166534' : score >= 5 ? '#d97706' : '#dc2626'
-  const r       = 36
-  const circ    = 2 * Math.PI * r
-  const offset  = circ * (1 - pct / 100)
+  const pct    = (score / max) * 100
+  const color  = score >= 7 ? '#16a34a' : score >= 5 ? '#d97706' : '#dc2626'
+  const r      = 36
+  const circ   = 2 * Math.PI * r
+  const offset = circ * (1 - pct / 100)
   return (
     <div className={s.scoreRing}>
       <svg width="88" height="88" viewBox="0 0 88 88">
@@ -50,19 +50,13 @@ function ScoreRing({ score, max = 10 }: { score: number; max?: number }) {
 }
 
 type AvaliacaoForm = {
-  qualidade:          number
-  seguranca:          number
-  prazo:              number
-  retrabalho:         number
-  organizacao:        number
-  custoBeneficio:     number
-  profissionalismo:   number
-  resolucaoProblemas: number
-  justificativa:      string
+  qualidade: number; seguranca: number; prazo: number; retrabalho: number
+  organizacao: number; custoBeneficio: number; profissionalismo: number
+  resolucaoProblemas: number; justificativa: string
 }
 const EMPTY_AVALIACAO: AvaliacaoForm = {
-  qualidade:          7, seguranca: 7, prazo: 7, retrabalho: 7,
-  organizacao:        7, custoBeneficio: 7, profissionalismo: 7,
+  qualidade: 7, seguranca: 7, prazo: 7, retrabalho: 7,
+  organizacao: 7, custoBeneficio: 7, profissionalismo: 7,
   resolucaoProblemas: 7, justificativa: '',
 }
 
@@ -77,46 +71,31 @@ export default function ObraDetailPage() {
   const [avaliacao,   setAvaliacao]   = useState<AvaliacaoEmpreiteira | null>(null)
   const [loading,     setLoading]     = useState(true)
   const [tab,         setTab]         = useState<Tab>('visao')
-
-  // Avaliação form state
-  const [avForm,    setAvForm]    = useState<AvaliacaoForm>(EMPTY_AVALIACAO)
-  const [avSaving,  setAvSaving]  = useState(false)
-
-  // Aprovação state
-  const [apParecer, setApParecer] = useState('')
-  const [apSaving,  setApSaving]  = useState(false)
+  const [avForm,      setAvForm]      = useState<AvaliacaoForm>(EMPTY_AVALIACAO)
+  const [avSaving,    setAvSaving]    = useState(false)
+  const [apParecer,   setApParecer]   = useState('')
+  const [apSaving,    setApSaving]    = useState(false)
 
   useEffect(() => {
     if (!obraId) return
-    Promise.all([
-      getObra(obraId),
-      getInspecoesObra(obraId),
-      getAvaliacaoByObra(obraId),
-    ])
+    Promise.all([getObra(obraId), getInspecoesObra(obraId), getAvaliacaoByObra(obraId)])
       .then(async ([o, ins, av]) => {
         if (!o) { toast.error('Obra não encontrada'); navigate('/obras'); return }
-        setObra(o)
-        setInspecoes(ins)
-        setAvaliacao(av)
+        setObra(o); setInspecoes(ins); setAvaliacao(av)
         if (o.empreiteiraId) {
           const emp = await getEmpreiteira(o.empreiteiraId)
           setEmpreiteira(emp)
         }
         if (av) {
           setAvForm({
-            qualidade:          av.qualidade,
-            seguranca:          av.seguranca,
-            prazo:              av.prazo,
-            retrabalho:         av.retrabalho,
-            organizacao:        av.organizacao,
-            custoBeneficio:     av.custoBeneficio,
-            profissionalismo:   av.profissionalismo,
-            resolucaoProblemas: av.resolucaoProblemas,
-            justificativa:      av.justificativa,
+            qualidade: av.qualidade, seguranca: av.seguranca, prazo: av.prazo,
+            retrabalho: av.retrabalho, organizacao: av.organizacao,
+            custoBeneficio: av.custoBeneficio, profissionalismo: av.profissionalismo,
+            resolucaoProblemas: av.resolucaoProblemas, justificativa: av.justificativa,
           })
         }
       })
-      .catch(() => toast.error('Erro ao carregar dados'))
+      .catch((err) => { console.error('[ObraDetailPage]', err); toast.error('Erro ao carregar dados') })
       .finally(() => setLoading(false))
   }, [obraId, navigate])
 
@@ -125,35 +104,24 @@ export default function ObraDetailPage() {
 
   async function handleSaveAvaliacao() {
     if (!obraId || !obra?.empreiteiraId) {
-      toast.error('Obra deve ter uma empreiteira vinculada para avaliação final')
-      return
+      toast.error('Obra deve ter uma empreiteira vinculada para avaliação final'); return
     }
-    if (!avForm.justificativa.trim()) {
-      toast.error('Justificativa é obrigatória')
-      return
-    }
+    if (!avForm.justificativa.trim()) { toast.error('Justificativa é obrigatória'); return }
     setAvSaving(true)
     try {
-      const newAv = await createAvaliacao({
-        obraId,
-        empreiteiraId:     obra.empreiteiraId,
-        ...avForm,
-        avaliadorId:   user?.uid,
-        avaliadorNome: user?.nome,
+      await createAvaliacao({
+        obraId, empreiteiraId: obra.empreiteiraId, ...avForm,
+        avaliadorId: user?.uid, avaliadorNome: user?.nome,
       })
-      const updated = await getAvaliacaoByObra(obraId)
+      const [updated, emp] = await Promise.all([
+        getAvaliacaoByObra(obraId),
+        obra.empreiteiraId ? getEmpreiteira(obra.empreiteiraId) : Promise.resolve(null),
+      ])
       setAvaliacao(updated)
-      if (obra.empreiteiraId) {
-        const emp = await getEmpreiteira(obra.empreiteiraId)
-        setEmpreiteira(emp)
-      }
+      setEmpreiteira(emp)
       toast.success('Avaliação salva! Score da empreiteira atualizado.')
-      void newAv
-    } catch {
-      toast.error('Erro ao salvar avaliação')
-    } finally {
-      setAvSaving(false)
-    }
+    } catch { toast.error('Erro ao salvar avaliação') }
+    finally { setAvSaving(false) }
   }
 
   async function handleAprovacao(status: 'aprovada' | 'reprovada') {
@@ -161,33 +129,33 @@ export default function ObraDetailPage() {
     setApSaving(true)
     try {
       await updateAprovacao(obraId, {
-        status,
-        aprovadorId:   user?.uid,
-        aprovadorNome: user?.nome,
-        data:          new Date(),
-        parecer:       apParecer.trim() || undefined,
+        status, aprovadorId: user?.uid, aprovadorNome: user?.nome,
+        data: new Date(), parecer: apParecer.trim() || undefined,
       })
       const updated = await getObra(obraId)
       setObra(updated)
       toast.success(`Obra ${status === 'aprovada' ? 'aprovada' : 'reprovada'} com sucesso!`)
-    } catch {
-      toast.error('Erro ao registrar aprovação')
-    } finally {
-      setApSaving(false)
-    }
+    } catch { toast.error('Erro ao registrar aprovação') }
+    finally { setApSaving(false) }
   }
 
-  if (loading) return <div className={s.loader}>Carregando…</div>
+  if (loading) return <div className={s.loader}><div className={s.loaderSpinner} /></div>
   if (!obra)   return null
 
-  const statusMeta = OBRA_STATUS_META[obra.status]
-  const empMeta    = empreiteira ? EMPREITEIRA_STATUS_META[empreiteira.status] : null
-
-  const orcamentoTotal = (obra.valorContrato ?? 0) + (obra.valorAditivos ?? 0)
-  const pctPago        = orcamentoTotal > 0 ? Math.round(((obra.valorPago ?? 0) / orcamentoTotal) * 100) : 0
-  const diasRestantes  = obra.dataFimPrevisto
+  const statusMeta    = OBRA_STATUS_META[obra.status]
+  const empMeta       = empreiteira ? EMPREITEIRA_STATUS_META[empreiteira.status] : null
+  const orcTotal      = (obra.valorContrato ?? 0) + (obra.valorAditivos ?? 0)
+  const pctPago       = orcTotal > 0 ? Math.round(((obra.valorPago ?? 0) / orcTotal) * 100) : 0
+  const diasRestantes = obra.dataFimPrevisto
     ? Math.ceil((obra.dataFimPrevisto.getTime() - Date.now()) / 86400000)
     : null
+
+  const TABS: Array<{ id: Tab; label: string; icon: string; badge?: number }> = [
+    { id: 'visao',     label: 'Visão Geral',    icon: '📊' },
+    { id: 'inspecoes', label: 'Inspeções',       icon: '📋', badge: inspecoes.length },
+    { id: 'avaliacao', label: 'Avaliação Final', icon: '⭐' },
+    { id: 'aprovacao', label: 'Aprovação',       icon: '🛡️' },
+  ]
 
   return (
     <div className={s.page}>
@@ -197,14 +165,19 @@ export default function ObraDetailPage() {
         <div className={s.heroBg} />
         <div className={s.heroContent}>
           <div className={s.heroTop}>
-            <button className={s.backBtn} onClick={() => navigate('/obras')}>← Obras</button>
+            <button className={s.backBtn} onClick={() => navigate('/obras')}>
+              ← Obras
+            </button>
             <div className={s.heroActions}>
-              <button className={s.editBtn} onClick={() => navigate(`/obras/${obraId}/editar`)}>✏️ Editar</button>
+              <button className={s.editBtn} onClick={() => navigate(`/obras/${obraId}/editar`)}>
+                ✏️ Editar
+              </button>
               <button className={s.inspBtn} onClick={() => navigate(`/obras/${obraId}/inspecao`)}>
                 📋 Nova Inspeção
               </button>
             </div>
           </div>
+
           <div className={s.heroMain}>
             <div>
               <div className={s.heroCode}>{obra.codigo}</div>
@@ -218,24 +191,21 @@ export default function ObraDetailPage() {
               <span className={s.statusBadge} style={{ color: statusMeta.color, background: statusMeta.bg }}>
                 {statusMeta.label}
               </span>
-              {obra.alertasCriticos != null && obra.alertasCriticos > 0 && (
-                <span className={s.alertBadge}>⚠️ {obra.alertasCriticos} alerta{obra.alertasCriticos > 1 ? 's' : ''}</span>
+              {(obra.alertasCriticos ?? 0) > 0 && (
+                <span className={s.alertBadge}>
+                  ⚠️ {obra.alertasCriticos} alerta{obra.alertasCriticos! > 1 ? 's' : ''}
+                </span>
               )}
             </div>
           </div>
 
-          {/* ── Progress bar ── */}
           <div className={s.progressRow}>
             <div className={s.progressTrack}>
-              <div
-                className={s.progressFill}
-                style={{ width: `${obra.percentualConcluido}%` }}
-              />
+              <div className={s.progressFill} style={{ width: `${obra.percentualConcluido}%` }} />
             </div>
             <span className={s.progressPct}>{obra.percentualConcluido}% concluído</span>
           </div>
 
-          {/* ── Financial & timeline strip ── */}
           <div className={s.heroStrip}>
             <div className={s.heroStat}>
               <div className={s.heroStatLabel}>Contrato</div>
@@ -244,7 +214,7 @@ export default function ObraDetailPage() {
             <div className={s.heroStatDivider} />
             <div className={s.heroStat}>
               <div className={s.heroStatLabel}>Total c/ Aditivos</div>
-              <div className={s.heroStatValue}>{fmtCurrency(orcamentoTotal || undefined)}</div>
+              <div className={s.heroStatValue}>{fmtCurrency(orcTotal || undefined)}</div>
             </div>
             <div className={s.heroStatDivider} />
             <div className={s.heroStat}>
@@ -260,9 +230,14 @@ export default function ObraDetailPage() {
               <>
                 <div className={s.heroStatDivider} />
                 <div className={s.heroStat}>
-                  <div className={s.heroStatLabel}>Dias Restantes</div>
-                  <div className={s.heroStatValue} style={{ color: diasRestantes < 0 ? '#fca5a5' : diasRestantes < 7 ? '#fcd34d' : '#86efac' }}>
-                    {diasRestantes < 0 ? `${Math.abs(diasRestantes)}d atrasado` : `${diasRestantes}d`}
+                  <div className={s.heroStatLabel}>Prazo</div>
+                  <div
+                    className={s.heroStatValue}
+                    style={{ color: diasRestantes < 0 ? '#fca5a5' : diasRestantes < 7 ? '#fcd34d' : '#86efac' }}
+                  >
+                    {diasRestantes < 0
+                      ? `${Math.abs(diasRestantes)}d atrasado`
+                      : `${diasRestantes}d restantes`}
                   </div>
                 </div>
               </>
@@ -273,18 +248,17 @@ export default function ObraDetailPage() {
 
       {/* ── Tabs ── */}
       <div className={s.tabBar}>
-        {([
-          { id: 'visao',     label: 'Visão Geral'  },
-          { id: 'inspecoes', label: `Inspeções (${inspecoes.length})` },
-          { id: 'avaliacao', label: 'Avaliação Final' },
-          { id: 'aprovacao', label: 'Aprovação' },
-        ] as Array<{ id: Tab; label: string }>).map(t => (
+        {TABS.map(t => (
           <button
             key={t.id}
             className={`${s.tabBtn} ${tab === t.id ? s.tabActive : ''}`}
             onClick={() => setTab(t.id)}
           >
+            <span>{t.icon}</span>
             {t.label}
+            {t.badge !== undefined && t.badge > 0 && (
+              <span className={s.tabBadge}>{t.badge}</span>
+            )}
           </button>
         ))}
       </div>
@@ -293,10 +267,11 @@ export default function ObraDetailPage() {
       {tab === 'visao' && (
         <div className={s.tabContent}>
           <div className={s.infoGrid}>
+
             <div className={s.infoCard}>
-              <div className={s.infoCardTitle}>Empreiteira</div>
+              <div className={s.infoCardTitle}>👷 Empreiteira</div>
               {empreiteira ? (
-                <div>
+                <div className={s.empDetails}>
                   <div className={s.empName}>{empreiteira.nome}</div>
                   {empMeta && (
                     <span className={s.empBadge} style={{ color: empMeta.color, background: empMeta.bg }}>
@@ -304,10 +279,16 @@ export default function ObraDetailPage() {
                     </span>
                   )}
                   {empreiteira.scoreGlobal != null && (
-                    <div className={s.empScore}>Score global: <strong>{empreiteira.scoreGlobal}/100</strong></div>
+                    <div className={s.empScore}>
+                      📈 Score global: <strong>{empreiteira.scoreGlobal}/100</strong>
+                    </div>
                   )}
-                  <div className={s.empSpecs}>{empreiteira.especialidades?.join(', ')}</div>
-                  {empreiteira.contato && <div className={s.empContact}>👤 {empreiteira.contato}</div>}
+                  {empreiteira.especialidades?.length > 0 && (
+                    <div className={s.empSpecs}>{empreiteira.especialidades.join(', ')}</div>
+                  )}
+                  {empreiteira.contato && (
+                    <div className={s.empContact}>👤 {empreiteira.contato}</div>
+                  )}
                   <button className={s.linkBtn} onClick={() => navigate(`/empreiteiras/${empreiteira.id}`)}>
                     Ver perfil completo →
                   </button>
@@ -318,20 +299,20 @@ export default function ObraDetailPage() {
             </div>
 
             <div className={s.infoCard}>
-              <div className={s.infoCardTitle}>Desempenho das Inspeções</div>
+              <div className={s.infoCardTitle}>📊 Desempenho das Inspeções</div>
               {inspecoes.length > 0 ? (
                 <div className={s.inspStats}>
                   <ScoreRing score={obra.notaMedia ?? 0} />
                   <div className={s.inspStatsMeta}>
                     <div className={s.statRow}><span>Total de inspeções</span><strong>{inspecoes.length}</strong></div>
-                    <div className={s.statRow}><span>Alertas críticos</span>
+                    <div className={s.statRow}>
+                      <span>Alertas críticos</span>
                       <strong style={{ color: (obra.alertasCriticos ?? 0) > 0 ? '#dc2626' : '#166534' }}>
                         {obra.alertasCriticos ?? 0}
                       </strong>
                     </div>
-                    <div className={s.statRow}><span>Última inspeção</span>
-                      <strong>{fmtDate(inspecoes[0]?.dataInspecao)}</strong>
-                    </div>
+                    <div className={s.statRow}><span>Última inspeção</span><strong>{fmtDate(inspecoes[0]?.dataInspecao)}</strong></div>
+                    <div className={s.statRow}><span>Submetidas</span><strong>{inspecoes.filter(i => i.status !== 'rascunho').length}</strong></div>
                   </div>
                 </div>
               ) : (
@@ -345,7 +326,7 @@ export default function ObraDetailPage() {
             </div>
 
             <div className={s.infoCard}>
-              <div className={s.infoCardTitle}>Dados da Obra</div>
+              <div className={s.infoCardTitle}>📄 Dados da Obra</div>
               <div className={s.detailRows}>
                 <div className={s.detailRow}><span>Código</span><strong>{obra.codigo}</strong></div>
                 <div className={s.detailRow}><span>Tipo</span><strong>{obra.tipo}</strong></div>
@@ -353,15 +334,22 @@ export default function ObraDetailPage() {
                 <div className={s.detailRow}><span>Prazo previsto</span><strong>{fmtDate(obra.dataFimPrevisto)}</strong></div>
                 <div className={s.detailRow}><span>Prazo real</span><strong>{fmtDate(obra.dataFimReal)}</strong></div>
                 <div className={s.detailRow}><span>Responsável</span><strong>{obra.responsavelInterno ?? '—'}</strong></div>
-                <div className={s.detailRow}><span>Aprovação</span>
-                  <strong style={{ color: obra.aprovacaoFinal?.status === 'aprovada' ? '#166534' : obra.aprovacaoFinal?.status === 'reprovada' ? '#dc2626' : undefined }}>
-                    {obra.aprovacaoFinal?.status === 'aprovada' ? '✅ Aprovada' :
-                     obra.aprovacaoFinal?.status === 'reprovada' ? '❌ Reprovada' : 'Pendente'}
+                <div className={s.detailRow}>
+                  <span>Aprovação</span>
+                  <strong style={{
+                    color: obra.aprovacaoFinal?.status === 'aprovada' ? '#166534'
+                          : obra.aprovacaoFinal?.status === 'reprovada' ? '#dc2626'
+                          : undefined
+                  }}>
+                    {obra.aprovacaoFinal?.status === 'aprovada' ? '✅ Aprovada'
+                    : obra.aprovacaoFinal?.status === 'reprovada' ? '❌ Reprovada'
+                    : 'Pendente'}
                   </strong>
                 </div>
               </div>
             </div>
           </div>
+
           {obra.descricao && (
             <div className={s.descCard}>
               <div className={s.descTitle}>Descrição</div>
@@ -377,15 +365,16 @@ export default function ObraDetailPage() {
           <div className={s.sectionHeader}>
             <div>
               <h3 className={s.sectionTitle}>Histórico de Inspeções</h3>
-              <p className={s.sectionSub}>{inspecoes.length} inspeção(ões) realizadas</p>
+              <p className={s.sectionSub}>{inspecoes.length} inspeção(ões) · {inspecoes.filter(i => i.status !== 'rascunho').length} submetida(s)</p>
             </div>
             <button className={s.btnPrimary} onClick={() => navigate(`/obras/${obraId}/inspecao`)}>
-              + Nova Inspeção
+              📋 Nova Inspeção
             </button>
           </div>
+
           {inspecoes.length === 0 ? (
             <div className={s.emptyState}>
-              <div className={s.emptyIcon}>📋</div>
+              <div className={s.emptyIconWrap}>📋</div>
               <div className={s.emptyTitle}>Nenhuma inspeção registrada</div>
               <div className={s.emptyDesc}>Inicie a primeira inspeção para acompanhar o desempenho da obra.</div>
               <button className={s.btnPrimary} onClick={() => navigate(`/obras/${obraId}/inspecao`)}>
@@ -395,28 +384,40 @@ export default function ObraDetailPage() {
           ) : (
             <div className={s.inspecoesList}>
               {inspecoes.map(insp => {
-                const sc = insp.scoreGeral
-                const color = sc >= 7 ? '#166534' : sc >= 5 ? '#d97706' : '#dc2626'
-                const statusColor = insp.status === 'aprovada' ? '#166534' : insp.status === 'submetida' ? '#3b82f6' : '#94a3b8'
+                const sc      = insp.scoreGeral
+                const color   = sc >= 7 ? '#16a34a' : sc >= 5 ? '#d97706' : '#dc2626'
+                const submet  = insp.status === 'submetida' || insp.status === 'aprovada'
+                const criticos = insp.alertasCriticos?.filter(a => a.tipo === 'critico').length ?? 0
+                const atencoes = insp.alertasCriticos?.filter(a => a.tipo === 'atencao').length ?? 0
                 return (
-                  <div key={insp.id} className={s.inspCard}
-                    onClick={() => navigate(`/obras/${obraId}/inspecao/${insp.id}`)}>
-                    <div className={s.inspCardScore} style={{ color, borderColor: color }}>
-                      {sc.toFixed(1)}
+                  <div
+                    key={insp.id}
+                    className={s.inspCard}
+                    onClick={() => navigate(`/obras/${obraId}/inspecao/${insp.id}`)}
+                  >
+                    <div className={s.inspCardScoreWrap}>
+                      <div className={s.inspCardScore} style={{ color, borderColor: color }}>
+                        {sc.toFixed(1)}
+                      </div>
+                      <div className={s.inspCardScoreLabel} style={{ color }}>
+                        {sc >= 7 ? 'Bom' : sc >= 5 ? 'Regular' : 'Crítico'}
+                      </div>
                     </div>
                     <div className={s.inspCardBody}>
-                      <div className={s.inspCardDate}>{fmtDate(insp.dataInspecao)}</div>
+                      <div className={s.inspCardDate}>📅 {fmtDate(insp.dataInspecao)}</div>
                       <div className={s.inspCardInsp}>
-                        👤 {insp.inspetorNome ?? 'Sem inspetor'} &nbsp;·&nbsp;
-                        <span style={{ color: statusColor, fontWeight: 600 }}>
-                          {insp.status === 'aprovada' ? '✅ Aprovada' :
-                           insp.status === 'submetida' ? '🔵 Submetida' : '📝 Rascunho'}
+                        👤 {insp.inspetorNome ?? 'Sem inspetor'}
+                        <span className={s.inspCardStatus} style={{
+                          color: insp.status === 'aprovada' ? '#16a34a' : submet ? '#3b82f6' : '#94a3b8'
+                        }}>
+                          {insp.status === 'aprovada' ? ' ● Aprovada' : submet ? ' ● Submetida' : ' ● Rascunho'}
                         </span>
                       </div>
-                      {insp.alertasCriticos?.length > 0 && (
+                      {(criticos > 0 || atencoes > 0) && (
                         <div className={s.inspAlerts}>
-                          ⚠️ {insp.alertasCriticos.filter(a => a.tipo === 'critico').length} crítico(s),{' '}
-                          {insp.alertasCriticos.filter(a => a.tipo === 'atencao').length} atenção
+                          ⚠️
+                          {criticos > 0 && <span className={s.inspAlertCrit}>{criticos} crítico{criticos > 1 ? 's' : ''}</span>}
+                          {atencoes > 0 && <span className={s.inspAlertWarn}>{atencoes} atenção</span>}
                         </div>
                       )}
                     </div>
@@ -450,14 +451,13 @@ export default function ObraDetailPage() {
                 </div>
                 <div className={s.avalCriterios}>
                   {AVALIACAO_CRITERIOS.map(c => {
-                    const nota = avaliacao[c.key as keyof AvaliacaoEmpreiteira] as number
-                    const color = nota >= 7 ? '#166534' : nota >= 5 ? '#d97706' : '#dc2626'
-                    const w = (nota / 10) * 100
+                    const nota  = avaliacao[c.key as keyof AvaliacaoEmpreiteira] as number
+                    const color = nota >= 7 ? '#16a34a' : nota >= 5 ? '#d97706' : '#dc2626'
                     return (
                       <div key={c.key} className={s.criterioRow}>
                         <span className={s.criterioLabel}>{c.label}</span>
                         <div className={s.criterioBar}>
-                          <div className={s.criterioFill} style={{ width: `${w}%`, background: color }} />
+                          <div className={s.criterioFill} style={{ width: `${(nota / 10) * 100}%`, background: color }} />
                         </div>
                         <span className={s.criterioNota} style={{ color }}>{nota.toFixed(1)}</span>
                       </div>
@@ -480,14 +480,14 @@ export default function ObraDetailPage() {
                 </div>
               )}
               <div className={s.avaliacaoForm}>
-                <h3 className={s.sectionTitle}>Avaliação Final da Empreiteira</h3>
-                <p className={s.sectionSub}>
-                  Avaliar cada critério de 0 a 10. Score final ponderado gera a decisão de recontratação.
-                </p>
+                <div>
+                  <h3 className={s.sectionTitle}>Avaliação Final da Empreiteira</h3>
+                  <p className={s.sectionSub}>Avalie cada critério de 0 a 10. O score ponderado gera a decisão de recontratação.</p>
+                </div>
 
-                {/* Score preview */}
                 <div className={s.scorePreview}>
-                  <div className={s.scorePreviewValue} style={{ color: previewScore >= 70 ? '#166534' : previewScore >= 55 ? '#d97706' : '#dc2626' }}>
+                  <div className={s.scorePreviewValue}
+                    style={{ color: previewScore >= 70 ? '#16a34a' : previewScore >= 55 ? '#d97706' : '#dc2626' }}>
                     {previewScore}
                   </div>
                   <div className={s.scorePreviewLabel}>/100 (preview)</div>
@@ -529,12 +529,8 @@ export default function ObraDetailPage() {
                 </div>
 
                 <div className={s.avaliacaoActions}>
-                  <button
-                    className={s.btnPrimary}
-                    onClick={handleSaveAvaliacao}
-                    disabled={avSaving || !obra.empreiteiraId}
-                  >
-                    {avSaving ? 'Salvando…' : '💾 Salvar Avaliação Final'}
+                  <button className={s.btnPrimary} onClick={handleSaveAvaliacao} disabled={avSaving || !obra.empreiteiraId}>
+                    {avSaving ? 'Salvando…' : '⭐ Salvar Avaliação Final'}
                   </button>
                 </div>
               </div>
@@ -547,10 +543,11 @@ export default function ObraDetailPage() {
       {tab === 'aprovacao' && (
         <div className={s.tabContent}>
           <div className={s.aprovacaoCard}>
-            <h3 className={s.sectionTitle}>Aprovação Final da Obra</h3>
-            <p className={s.sectionSub}>
-              A aprovação final confirma a entrega da obra, quitação técnica e encerramento do contrato.
-            </p>
+            <div>
+              <h3 className={s.sectionTitle}>Aprovação Final da Obra</h3>
+              <p className={s.sectionSub}>A aprovação confirma a entrega, quitação técnica e encerramento do contrato.</p>
+            </div>
+
             {obra.aprovacaoFinal?.status && obra.aprovacaoFinal.status !== 'pendente' ? (
               <div className={s.aprovacaoResult}>
                 <div className={s.aprovacaoStatus} style={{
@@ -570,16 +567,17 @@ export default function ObraDetailPage() {
               <div>
                 <div className={s.checklist}>
                   {[
-                    { ok: obra.percentualConcluido >= 100,     label: 'Obra 100% concluída'              },
-                    { ok: inspecoes.length > 0,                label: 'Ao menos uma inspeção realizada'  },
-                    { ok: avaliacao !== null,                   label: 'Avaliação final preenchida'       },
-                    { ok: (obra.alertasCriticos ?? 0) === 0,   label: 'Sem alertas críticos em aberto'   },
+                    { ok: obra.percentualConcluido >= 100,   label: 'Obra 100% concluída' },
+                    { ok: inspecoes.length > 0,              label: 'Ao menos uma inspeção realizada' },
+                    { ok: avaliacao !== null,                 label: 'Avaliação final preenchida' },
+                    { ok: (obra.alertasCriticos ?? 0) === 0, label: 'Sem alertas críticos em aberto' },
                   ].map((item, i) => (
                     <div key={i} className={`${s.checkItem} ${item.ok ? s.checkOk : s.checkPending}`}>
                       <span>{item.ok ? '✅' : '⏳'}</span> {item.label}
                     </div>
                   ))}
                 </div>
+
                 <div className={s.aprovacaoPaecerField}>
                   <label className={s.criterioFieldLabel}>Parecer (opcional)</label>
                   <textarea className={s.textarea} rows={3}
@@ -587,6 +585,7 @@ export default function ObraDetailPage() {
                     placeholder="Observações sobre a entrega final, pendências, retenções…"
                   />
                 </div>
+
                 <div className={s.aprovacaoActions}>
                   <button className={s.btnDanger} onClick={() => handleAprovacao('reprovada')} disabled={apSaving}>
                     {apSaving ? 'Processando…' : '❌ Reprovar Obra'}

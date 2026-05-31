@@ -3,7 +3,7 @@ import { getFirestore }           from 'firebase/firestore'
 import { getAuth }                from 'firebase/auth'
 import { getStorage }             from 'firebase/storage'
 
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey:            'AIzaSyAm-WkbDCMDNuWIsqI8QbbU4mdKEdIUnYo',
   authDomain:        'proraca-6f522.firebaseapp.com',
   projectId:         'proraca-6f522',

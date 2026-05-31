@@ -177,14 +177,16 @@ export async function deactivateEmployee(id: string, motivo: string, registradoP
 // ═════════════════════════════════════════════════════════════
 
 export async function getEmployeeHistory(employeeId: string, maxItems = 100): Promise<EmployeeHistoryEvent[]> {
-  const q = query(
+  // No orderBy — avoids composite-index requirement. Sort client-side.
+  const snap = await getDocs(query(
     collection(db, EMP_COLLECTIONS.history),
     where('employeeId', '==', employeeId),
-    orderBy('data', 'desc'),
-    limit(maxItems),
-  )
-  const snap = await getDocs(q)
-  return snap.docs.map(d => hydrateEvent(d.id, d.data() as Record<string, unknown>))
+    limit(500),
+  ))
+  return snap.docs
+    .map(d => hydrateEvent(d.id, d.data() as Record<string, unknown>))
+    .sort((a, b) => (b.data?.getTime() ?? 0) - (a.data?.getTime() ?? 0))
+    .slice(0, maxItems)
 }
 
 export async function addHistoryEvent(
@@ -206,13 +208,13 @@ export async function deleteHistoryEvent(id: string): Promise<void> {
 // ═════════════════════════════════════════════════════════════
 
 export async function getEmployeeEvaluations(employeeId: string): Promise<EmployeeEvaluation[]> {
-  const q = query(
+  const snap = await getDocs(query(
     collection(db, EMP_COLLECTIONS.evaluations),
     where('employeeId', '==', employeeId),
-    orderBy('data', 'desc'),
-  )
-  const snap = await getDocs(q)
-  return snap.docs.map(d => hydrateEvaluation(d.id, d.data() as Record<string, unknown>))
+  ))
+  return snap.docs
+    .map(d => hydrateEvaluation(d.id, d.data() as Record<string, unknown>))
+    .sort((a, b) => (b.data?.getTime() ?? 0) - (a.data?.getTime() ?? 0))
 }
 
 export async function createEvaluation(
@@ -264,13 +266,13 @@ export async function createEvaluation(
 // ═════════════════════════════════════════════════════════════
 
 export async function getEmployeeWarnings(employeeId: string): Promise<EmployeeWarning[]> {
-  const q = query(
+  const snap = await getDocs(query(
     collection(db, EMP_COLLECTIONS.warnings),
     where('employeeId', '==', employeeId),
-    orderBy('data', 'desc'),
-  )
-  const snap = await getDocs(q)
-  return snap.docs.map(d => hydrateWarning(d.id, d.data() as Record<string, unknown>))
+  ))
+  return snap.docs
+    .map(d => hydrateWarning(d.id, d.data() as Record<string, unknown>))
+    .sort((a, b) => (b.data?.getTime() ?? 0) - (a.data?.getTime() ?? 0))
 }
 
 export async function createWarning(data: Omit<EmployeeWarning, 'id' | 'createdAt'>): Promise<string> {
@@ -311,13 +313,13 @@ export async function resolveWarning(id: string, resolucao: string): Promise<voi
 // ═════════════════════════════════════════════════════════════
 
 export async function getEmployeeRecognitions(employeeId: string): Promise<EmployeeRecognition[]> {
-  const q = query(
+  const snap = await getDocs(query(
     collection(db, EMP_COLLECTIONS.recognitions),
     where('employeeId', '==', employeeId),
-    orderBy('data', 'desc'),
-  )
-  const snap = await getDocs(q)
-  return snap.docs.map(d => hydrateRecognition(d.id, d.data() as Record<string, unknown>))
+  ))
+  return snap.docs
+    .map(d => hydrateRecognition(d.id, d.data() as Record<string, unknown>))
+    .sort((a, b) => (b.data?.getTime() ?? 0) - (a.data?.getTime() ?? 0))
 }
 
 export async function createRecognition(data: Omit<EmployeeRecognition, 'id' | 'createdAt'>): Promise<string> {
@@ -350,13 +352,13 @@ export async function createRecognition(data: Omit<EmployeeRecognition, 'id' | '
 // ═════════════════════════════════════════════════════════════
 
 export async function getSupervisorNotes(employeeId: string): Promise<SupervisorNote[]> {
-  const q = query(
+  const snap = await getDocs(query(
     collection(db, EMP_COLLECTIONS.notes),
     where('employeeId', '==', employeeId),
-    orderBy('data', 'desc'),
-  )
-  const snap = await getDocs(q)
-  return snap.docs.map(d => hydrateNote(d.id, d.data() as Record<string, unknown>))
+  ))
+  return snap.docs
+    .map(d => hydrateNote(d.id, d.data() as Record<string, unknown>))
+    .sort((a, b) => (b.data?.getTime() ?? 0) - (a.data?.getTime() ?? 0))
 }
 
 export async function createSupervisorNote(data: Omit<SupervisorNote, 'id' | 'createdAt'>): Promise<string> {
@@ -392,18 +394,18 @@ export async function deleteSupervisorNote(id: string): Promise<void> {
 // ═════════════════════════════════════════════════════════════
 
 export async function getDepartmentHistory(employeeId: string): Promise<DepartmentMove[]> {
-  const q = query(
+  const snap = await getDocs(query(
     collection(db, EMP_COLLECTIONS.deptHistory),
     where('employeeId', '==', employeeId),
-    orderBy('data', 'desc'),
-  )
-  const snap = await getDocs(q)
-  return snap.docs.map(d => ({
-    ...d.data(),
-    id: d.id,
-    data: tsToDate(d.data().data) ?? new Date(),
-    createdAt: tsToDate(d.data().createdAt),
-  }) as DepartmentMove)
+  ))
+  return snap.docs
+    .map(d => ({
+      ...d.data(),
+      id: d.id,
+      data: tsToDate(d.data().data) ?? new Date(),
+      createdAt: tsToDate(d.data().createdAt),
+    }) as DepartmentMove)
+    .sort((a, b) => (b.data?.getTime() ?? 0) - (a.data?.getTime() ?? 0))
 }
 
 export async function createDepartmentMove(data: Omit<DepartmentMove, 'id' | 'createdAt'>): Promise<string> {

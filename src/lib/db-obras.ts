@@ -183,9 +183,10 @@ export async function deleteEmpreiteira(id: string): Promise<void> {
 
 export async function getInspecoesObra(obraId: string): Promise<InspecaoObra[]> {
   const snap = await getDocs(
-    query(collection(db, C.inspecoes), where('obraId', '==', obraId), orderBy('dataInspecao', 'desc'))
+    query(collection(db, C.inspecoes), where('obraId', '==', obraId))
   )
-  return snap.docs.map(d => hydrateInspecao(d.id, d.data() as Record<string, unknown>))
+  const docs = snap.docs.map(d => hydrateInspecao(d.id, d.data() as Record<string, unknown>))
+  return docs.sort((a, b) => b.dataInspecao.getTime() - a.dataInspecao.getTime())
 }
 
 export async function getInspecao(id: string): Promise<InspecaoObra | null> {
@@ -235,9 +236,10 @@ async function _recalcObraAggregates(obraId: string): Promise<void> {
 
 export async function getAvaliacoesEmpreiteira(empreiteiraId: string): Promise<AvaliacaoEmpreiteira[]> {
   const snap = await getDocs(
-    query(collection(db, C.avaliacoes), where('empreiteiraId', '==', empreiteiraId), orderBy('createdAt', 'desc'))
+    query(collection(db, C.avaliacoes), where('empreiteiraId', '==', empreiteiraId))
   )
-  return snap.docs.map(d => hydrateAvaliacao(d.id, d.data() as Record<string, unknown>))
+  const docs = snap.docs.map(d => hydrateAvaliacao(d.id, d.data() as Record<string, unknown>))
+  return docs.sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0))
 }
 
 export async function getAvaliacaoByObra(obraId: string): Promise<AvaliacaoEmpreiteira | null> {

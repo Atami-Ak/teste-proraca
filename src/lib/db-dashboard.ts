@@ -18,6 +18,7 @@ import { db }            from './firebase'
 import type {
   Period, DateRange, KpiCacheDoc, KpiValue,
   AlertItem, AlertSeverity, DashboardModule, OverviewChartPoint,
+  ModuleHealth, HealthStatus,
 } from '@/types/dashboard'
 import { getPeriodRanges } from '@/types/dashboard'
 
@@ -289,10 +290,20 @@ export function subscribeToAlerts(
 // ─────────────────────────────────────────────────────────
 
 export function subscribeToPendingCount(cb: (count: number) => void): Unsubscribe {
-  return onSnapshot(
+  // Combine: purchase_orders(pending) + work_orders(open)
+  let poCount = 0
+  let osCount = 0
+
+  const unsubPO = onSnapshot(
     query(collection(db, 'purchase_orders'), where('status', '==', 'pending')),
-    snap => cb(snap.size)
+    snap => { poCount = snap.size; cb(poCount + osCount) }
   )
+  const unsubOS = onSnapshot(
+    query(collection(db, 'work_orders'), where('status', '==', 'open')),
+    snap => { osCount = snap.size; cb(poCount + osCount) }
+  )
+
+  return () => { unsubPO(); unsubOS() }
 }
 
 // ─────────────────────────────────────────────────────────
@@ -360,4 +371,28 @@ export async function fetchOverviewChartData(
       return ma !== mb ? ma - mb : da - db2
     })
     .map(([date, vals]) => ({ date, ...vals }))
+}
+
+// ─────────────────────────────────────────────────────────
+// MODULE HEALTH (derived from KPI cache)
+// ─────────────────────────────────────────────────────────
+
+export function computeModuleHealth(cache: KpiCacheDoc): ModuleHealth[] {
+  function st(v: number, warn: number, crit: number): HealthStatus {
+    return v >= crit ? 'critical' : v >= warn ? 'warning' : 'ok'
+  }
+  function metric(n: number, singular: string, plural: string): string {
+    return `${n} ${n === 1 ? singular : plural}`
+  }
+
+  return [
+    { module: 'maquinario'    as DashboardModule, label: 'Maquinário',    status: st(cache.alertasMaquinario.value, 1, 5),    metric: metric(cache.alertasMaquinario.value, 'alerta', 'alertas') },
+    { module: 'frota'         as DashboardModule, label: 'Frota',         status: st(cache.alertasFrota.value, 1, 3),         metric: metric(cache.alertasFrota.value, 'alerta', 'alertas') },
+    { module: 'limpeza'       as DashboardModule, label: 'Limpeza',       status: st(cache.falhasLimpeza.value, 1, 5),        metric: metric(cache.falhasLimpeza.value, 'falha', 'falhas') },
+    { module: 'seguranca'     as DashboardModule, label: 'Segurança',     status: st(cache.incidentesSeguranca.value, 1, 3),  metric: metric(cache.incidentesSeguranca.value, 'incidente', 'incidentes') },
+    { module: 'colaboradores' as DashboardModule, label: 'Colaboradores', status: st(cache.alertasColaboradores.value, 1, 5), metric: metric(cache.alertasColaboradores.value, 'alerta', 'alertas') },
+    { module: 'obras'         as DashboardModule, label: 'Empreiteiras',  status: st(cache.empreiteirasCriticas.value, 1, 3), metric: metric(cache.empreiteirasCriticas.value, 'crítica', 'críticas') },
+    { module: 'compras'       as DashboardModule, label: 'Compras',       status: st(cache.comprasUrgentes.value, 1, 5),      metric: metric(cache.comprasUrgentes.value, 'urgente', 'urgentes') },
+    { module: 'aprovacoes'    as DashboardModule, label: 'Aprovações',    status: st(cache.aprovacoesPendentes.value, 1, 5),  metric: metric(cache.aprovacoesPendentes.value, 'pendente', 'pendentes') },
+  ]
 }

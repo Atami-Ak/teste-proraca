@@ -1,272 +1,496 @@
+/* ═══════════════════════════════════════════════════════════
+   RankingPage — Redesign 5S
+   ═══════════════════════════════════════════════════════════ */
+
 .page {
-  padding: 24px;
+  padding: 24px 32px 56px;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 24px;
+  animation: fadeUp 0.22s ease;
 }
 
-/* ── Header ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Header ──────────────────────────────────────────── */
 .header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
   gap: 16px;
+  flex-wrap: wrap;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .backBtn {
-  background: none; border: none;
-  color: var(--brand-accent, #2F6BFF); font-size: 0.85rem;
-  cursor: pointer; padding: 0 0 4px;
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-2, #4A5568);
+  text-decoration: none;
+  transition: color 0.14s;
+}
+.backBtn:hover { color: #166534; }
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border-light, #EBF0F7);
 }
 
-.backBtn:hover { text-decoration: underline; }
+.headerTitleWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
-.title    { font-size: 1.4rem; font-weight: 700; color: #0f172a; letter-spacing: -0.5px; }
-.subtitle { color: #64748b; font-size: 0.875rem; }
+.headerIcon {
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #166534, #16A34A);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 3px 10px rgba(22,101,52,0.3);
+}
 
+.title {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text, #1B2430);
+  letter-spacing: -0.4px;
+}
+
+.subtitle {
+  font-size: 0.78rem;
+  color: var(--text-3, #8898AA);
+  margin-top: 2px;
+}
+
+/* ── Period toggle ───────────────────────────────────── */
 .periodToggle {
   display: flex;
-  gap: 4px;
-  background: #f1f5f9;
-  padding: 4px;
+  background: var(--bg, #F5F7FA);
+  border: 1px solid var(--border-light, #EBF0F7);
   border-radius: 10px;
-  align-self: flex-start;
+  padding: 3px;
+  gap: 2px;
 }
 
 .periodBtn {
-  padding: 8px 16px;
-  border: none;
+  padding: 7px 16px;
   border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  color: #64748b;
+  border: none;
   background: transparent;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-2, #4A5568);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
 }
 
 .periodActive {
   background: #fff;
-  color: #1e293b;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  color: #166534;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 }
 
-/* ── Section ── */
-.section { display: flex; flex-direction: column; gap: 16px; }
+/* ── Section ─────────────────────────────────────────── */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
 .sectionTitle {
   font-size: 1rem;
-  font-weight: 600;
-  color: #1e293b;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #f1f5f9;
+  font-weight: 800;
+  color: var(--text, #1B2430);
+  margin: 0;
 }
 
-/* ── Podium ── */
+.sectionSub {
+  font-size: 0.72rem;
+  color: var(--text-3, #8898AA);
+  background: var(--bg, #F5F7FA);
+  border: 1px solid var(--border-light, #EBF0F7);
+  padding: 2px 9px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+/* ── Podium ──────────────────────────────────────────── */
+.podiumWrap {
+  background: linear-gradient(135deg, #f8fafc, #f0fdf4);
+  border: 1px solid var(--border-light, #EBF0F7);
+  border-radius: 16px;
+  padding: 32px 24px 0;
+  overflow: hidden;
+}
+
 .podium {
   display: flex;
   align-items: flex-end;
   justify-content: center;
   gap: 12px;
-  padding: 24px 0 0;
 }
 
 .podiumSlot {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  flex: 1;
-  max-width: 180px;
+  gap: 6px;
+  width: 140px;
 }
 
-.podiumFirst { order: -1; }
+.podiumAvatar {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem;
+  font-weight: 800;
+  border: 2px solid;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
 
-.podiumMedal { font-size: 2rem; line-height: 1; }
+.podiumMedal { font-size: 1.5rem; line-height: 1; }
 
 .podiumName {
+  font-size: 0.85rem;
   font-weight: 700;
-  font-size: 0.875rem;
-  color: #0f172a;
+  color: var(--text, #1B2430);
   text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 130px;
 }
 
 .podiumCargo {
-  font-size: 0.72rem;
-  color: #64748b;
+  font-size: 0.68rem;
+  color: var(--text-3, #8898AA);
   text-align: center;
 }
 
 .podiumZone {
-  font-size: 0.7rem;
-  color: #94a3b8;
+  font-size: 0.65rem;
+  color: var(--text-3, #8898AA);
   text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
 }
 
 .podiumPlatform {
   width: 100%;
-  border-radius: 8px 8px 0 0;
+  border-radius: 10px 10px 0 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  margin-top: 8px;
+  transition: height 0.4s ease;
 }
 
 .podiumScore {
   font-size: 1.1rem;
-  font-weight: 700;
+  font-weight: 900;
   color: #fff;
+  letter-spacing: -0.5px;
 }
 
 .podiumInsp {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: rgba(255,255,255,0.8);
 }
 
-.podiumEmpty { display: flex; flex-direction: column; align-items: center; gap: 0; }
+.podiumLabel {
+  font-size: 1.2rem;
+  font-weight: 900;
+  margin-top: 4px;
+}
 
-/* ── Leaderboard ── */
-.leaderboard {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+.podiumEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 6px;
+}
+
+/* ── Leaderboard ─────────────────────────────────────── */
+.leaderCard {
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-light, #EBF0F7);
+  border-radius: 14px;
   overflow: hidden;
+  box-shadow: var(--shadow-xs);
 }
 
 .leaderRow {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border-light, #EBF0F7);
+  transition: background 0.12s;
 }
-
 .leaderRow:last-child { border-bottom: none; }
+.leaderRow:hover { background: var(--bg, #F5F7FA); }
 
 .leaderRank {
-  width: 30px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--text-3, #8898AA);
+  width: 28px;
   flex-shrink: 0;
   text-align: center;
 }
 
+.leaderAvatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
 .leaderInfo { flex: 1; min-width: 0; }
-.leaderName  { display: block; font-weight: 600; font-size: 0.875rem; color: #1e293b; }
-.leaderCargo { font-size: 0.75rem; color: #94a3b8; }
-.leaderZone  { display: block; font-size: 0.72rem; color: var(--brand-accent, #2F6BFF); }
+
+.leaderName {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text, #1B2430);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leaderCargo {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-3, #8898AA);
+  margin-top: 1px;
+}
+
+.leaderZone {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--text-3, #8898AA);
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .leaderRight {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 4px;
-  min-width: 90px;
+  flex-shrink: 0;
 }
 
-.leaderScore { font-weight: 700; font-size: 1rem; }
-
-.leaderBar {
-  width: 90px;
-  height: 4px;
-  background: #f1f5f9;
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.leaderBarFill { height: 100%; border-radius: 2px; }
-
-.leaderPerfBadge {
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.leaderInsp { font-size: 0.72rem; color: #94a3b8; }
-.leaderNoData { font-size: 0.8rem; color: #94a3b8; }
-
-/* ── Zone grid ── */
-.zoneGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-
-.zoneRankCard {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-left: 4px solid;
-  border-radius: 8px;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.zoneRankHeader {
+.leaderScoreRow {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.zoneRankPos {
-  font-size: 0.8rem;
+.leaderScore {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+
+.leaderPerf {
+  font-size: 0.65rem;
   font-weight: 700;
-  color: #94a3b8;
-  width: 24px;
+  padding: 2px 7px;
+  border-radius: 8px;
+}
+
+.leaderBarWrap { width: 100px; }
+
+.leaderBar {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--border-light, #EBF0F7);
+  overflow: hidden;
+}
+
+.leaderBarFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.leaderInsp {
+  font-size: 0.65rem;
+  color: var(--text-3, #8898AA);
+}
+
+.leaderNoData {
+  font-size: 0.72rem;
+  color: var(--text-3, #8898AA);
+}
+
+/* ── Zone grid ───────────────────────────────────────── */
+.zoneGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.zoneCard {
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-light, #EBF0F7);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow 0.18s, transform 0.12s;
+}
+.zoneCard:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+
+.zoneCardAccent {
+  height: 3px;
+  background: var(--zone-color, #94a3b8);
+}
+
+.zoneCardHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px 8px;
+}
+
+.zoneRankBadge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--text-3, #8898AA);
+  background: var(--bg, #F5F7FA);
+  border: 1px solid var(--border-light, #EBF0F7);
+  border-radius: 8px;
+  padding: 2px 7px;
   flex-shrink: 0;
 }
 
-.zoneRankIcon { font-size: 1.3rem; flex-shrink: 0; }
-
-.zoneRankInfo { flex: 1; min-width: 0; }
-.zoneRankName { display: block; font-weight: 600; font-size: 0.875rem; color: #1e293b; }
-.zoneRankTeam { font-size: 0.72rem; color: #94a3b8; }
-
-.zoneRankScore {
-  font-weight: 700;
-  font-size: 1.1rem;
+.zoneIconBox {
+  font-size: 1.3rem;
   flex-shrink: 0;
 }
 
-.zoneNoData { font-size: 0.85rem; color: #94a3b8; }
+.zoneCardInfo { flex: 1; min-width: 0; }
 
-.zoneRankBar {
+.zoneCardName {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text, #1B2430);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zoneCardTeam {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--text-3, #8898AA);
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zoneCardScore {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  flex-shrink: 0;
+}
+
+.zoneNoData {
+  font-size: 0.82rem;
+  color: var(--text-3, #8898AA);
+  flex-shrink: 0;
+}
+
+.zoneCardBar {
   height: 4px;
-  background: #f1f5f9;
+  background: var(--border-light, #EBF0F7);
+  margin: 0 14px;
   border-radius: 2px;
   overflow: hidden;
 }
 
-.zoneRankBarFill { height: 100%; border-radius: 2px; }
+.zoneCardBarFill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
 
-.zoneRankInsp { font-size: 0.72rem; color: #94a3b8; }
+.zoneCardMeta {
+  padding: 6px 14px 10px;
+  font-size: 0.7rem;
+  color: var(--text-3, #8898AA);
+}
 
-/* ── States ── */
+/* ── Misc ────────────────────────────────────────────── */
 .loading {
-  padding: 40px;
   text-align: center;
-  color: #94a3b8;
+  padding: 60px;
+  color: var(--text-3, #8898AA);
+  font-size: 0.875rem;
 }
 
 .empty {
-  padding: 24px;
-  text-align: center;
-  color: #94a3b8;
-  background: #f8fafc;
-  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px;
+  color: var(--text-3, #8898AA);
+  font-size: 0.85rem;
+  background: var(--bg-card, #fff);
+  border: 2px dashed var(--border, #D9E1EC);
+  border-radius: 12px;
 }
 
-/* ── Responsive ── */
-@media (max-width: 700px) {
-  .page { padding: 16px; gap: 20px; }
-  .header { flex-direction: column; }
+/* ═══════════════ Responsive ════════════════════════ */
+@media (max-width: 1100px) {
+  .zoneGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 800px) {
+  .page   { padding: 16px 16px 40px; }
+  .header { flex-direction: column; align-items: flex-start; }
+  .podiumSlot { width: 100px; }
+  .podiumName { max-width: 90px; }
+}
+
+@media (max-width: 600px) {
   .zoneGrid { grid-template-columns: 1fr; }
-  .podium { gap: 6px; }
-  .podiumMedal { font-size: 1.5rem; }
+  .podium   { gap: 8px; }
+  .podiumSlot { width: 90px; }
 }

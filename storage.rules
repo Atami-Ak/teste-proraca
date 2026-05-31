@@ -1,0 +1,76 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// storage.rules — SIGA v2.0 · Pro Raça Rações
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Regras de segurança do Firebase Storage.
+// Exige autenticação Firebase para leitura e escrita.
+// Limites: 10 MB por arquivo, apenas imagens e PDFs.
+//
+// DEPLOY:
+//   firebase deploy --only storage
+//
+// ═══════════════════════════════════════════════════════════════════════════
+
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ─── Negar tudo por padrão ───────────────────────────────────────────────
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // ─── OS — Anexos de Ordens de Serviço ───────────────────────────────────
+    // Path: os-attachments/{orderId}/{fileName}
+    match /os-attachments/{orderId}/{fileName} {
+
+      // Leitura: qualquer usuário autenticado
+      allow read: if request.auth != null;
+
+      // Upload (criação): autenticado, ≤ 10 MB, somente imagem ou PDF
+      allow create: if request.auth != null
+        && request.resource.size <= 10 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*')
+          || request.resource.contentType == 'application/pdf');
+
+      // Substituição: mesmas regras que criação
+      allow update: if request.auth != null
+        && request.resource.size <= 10 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*')
+          || request.resource.contentType == 'application/pdf');
+
+      // Exclusão: qualquer usuário autenticado pode remover
+      allow delete: if request.auth != null;
+    }
+
+    // ─── PC — Anexos de Pedidos de Compra ───────────────────────────────────
+    // Path: pc-attachments/{orderId}/{fileName}
+    match /pc-attachments/{orderId}/{fileName} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.size <= 10 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*')
+          || request.resource.contentType == 'application/pdf');
+      allow update: if request.auth != null
+        && request.resource.size <= 10 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*')
+          || request.resource.contentType == 'application/pdf');
+      allow delete: if request.auth != null;
+    }
+
+    // ─── Ativos — Fotos de Ativos Patrimoniais ───────────────────────────────
+    // Path: asset-photos/{assetId}/{fileName}
+    match /asset-photos/{assetId}/{fileName} {
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow update: if request.auth != null
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null;
+    }
+
+  }
+}

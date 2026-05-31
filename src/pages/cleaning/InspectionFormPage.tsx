@@ -297,6 +297,11 @@ export default function InspectionFormPage() {
     }
   }
 
+  // Progress: count answered items
+  const totalItems     = zone?.sections.reduce((s, sec) => s + sec.items.length, 0) ?? 0
+  const answeredItems  = Object.values(scores).filter(v => v !== undefined).length
+  const progressPct    = totalItems > 0 ? Math.round((answeredItems / totalItems) * 100) : 0
+
   if (!zone) {
     return (
       <div className={s.notFound}>
@@ -315,27 +320,38 @@ export default function InspectionFormPage() {
       {/* Header */}
       <div className={s.header}>
         <button className={s.backBtn} onClick={() => nav('/limpeza')}>← Voltar</button>
-        <div>
-          <h1 className={s.title}>{zone.icone} {zone.nome}</h1>
+        <div className={s.headerDivider} />
+        <span className={s.headerZoneBox}>{zone.icone}</span>
+        <div className={s.headerTitleGroup}>
+          <h1 className={s.title}>{zone.nome}</h1>
           <p className={s.subtitle}>Inspeção 5S · {zone.setor}</p>
         </div>
 
         {/* Live score */}
         {scoring && (
           <div className={s.liveScore}>
-            <ScoreRing score={scoring.finalScore} size={72} stroke={7} />
+            <ScoreRing score={scoring.finalScore} size={64} stroke={6} />
             {meta && (
               <div>
                 <span className={s.statusBadge} style={{ color: meta.color, background: meta.bg }}>
-                  {meta.icon} {meta.label}
+                  {meta.label}
                 </span>
                 {scoring.hasLowSection && (
-                  <p className={s.lowSectionWarn}>⚠ Seção abaixo de 60%</p>
+                  <p className={s.lowSectionWarn}>Seção abaixo de 60%</p>
                 )}
               </div>
             )}
           </div>
         )}
+      </div>
+
+      {/* Progress bar */}
+      <div className={s.progressWrap}>
+        <span className={s.progressLabel}>Progresso</span>
+        <div className={s.progressBar}>
+          <div className={s.progressFill} style={{ width: `${progressPct}%` }} />
+        </div>
+        <span className={s.progressPct}>{answeredItems}/{totalItems}</span>
       </div>
 
       {/* Inspector fields */}

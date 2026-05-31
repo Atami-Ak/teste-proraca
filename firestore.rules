@@ -160,6 +160,17 @@ service cloud.firestore {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
+    // PATRIMÔNIO — Histórico de Eventos de Ativos (asset_events)
+    // ═══════════════════════════════════════════════════════════════════════
+    match /asset_events/{eventId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      // Eventos são auditoria imutável — update bloqueado para todos.
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
     // PATRIMÔNIO — Manutenção de Ativos
     // ═══════════════════════════════════════════════════════════════════════
     match /asset_maintenance/{maintId} {
@@ -566,12 +577,35 @@ service cloud.firestore {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // KPI CACHE — Dados pré-agregados para o dashboard
-    // Escrita apenas por admin ou Cloud Function (service account).
+    // DASHBOARD — Cache de KPIs do painel principal (React)
+    // Escrito client-side por computeAndWriteKpiCache em db-dashboard.ts.
+    // Qualquer operador pode atualizar; visualizador só lê o cache existente.
+    // ═══════════════════════════════════════════════════════════════════════
+    match /dashboard_kpi_cache/{docId} {
+      allow read:  if isAnyRole();
+      allow write: if isOperador();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // KPI CACHE — Cache legado / por Cloud Function (service account)
     // ═══════════════════════════════════════════════════════════════════════
     match /kpi_cache/{docId} {
       allow read:  if isAnyRole();
       allow write: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CONTROLE DE ACESSO — Logs de Auditoria (access_logs)
+    // ═══════════════════════════════════════════════════════════════════════
+    //   • Somente admins leem o histórico completo.
+    //   • Qualquer usuário autenticado pode gravar (login, role change, etc.)
+    //   • Logs são imutáveis (update bloqueado).
+    //   • Admin pode apagar logs antigos.
+    match /access_logs/{logId} {
+      allow read:   if isAdmin();
+      allow create: if isAuthenticated();
+      allow update: if false;
+      allow delete: if isAdmin();
     }
 
     // ═══════════════════════════════════════════════════════════════════════
