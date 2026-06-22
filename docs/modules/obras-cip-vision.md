@@ -188,7 +188,7 @@ Read-only, sem ações automáticas, custo controlado por limite de chamadas/dia
 
 ## 20. Roadmap V1 → V5
 
-- **V1 (não exige Blaze)**: Health Score calculado client-side (mesma limitação atual, mas com fórmula nova de 8 fatores), Timeline básica (coleção `timeline`, escrita direta), Centro de Operações com cards executivos lendo agregados já existentes. Resolve os achados #2–#9 do documento de auditoria sem mudar infraestrutura.
+- **V1 (não exige Blaze) — ✅ ENTREGUE em 2026-06-22**: Health Score 8-fatores (`src/lib/db-obras-health.ts`, exibido em `ObraDetailPage`), Timeline básica (coleção `obra_timeline`, escrita client-side, aba "Timeline" em `ObraDetailPage`), Centro de Operações (`/dashboard/noc`, reaproveita `fetchObrasAnalytics`). Documentação/Compliance no Health Score usam nota neutra (placeholder) até V2/V3. Resolve parte dos achados #2–#9 do `obras-empreiteiras.md` sem mudar infraestrutura.
 - **V2 (exige Blaze)**: Cloud Functions para Rules Engine + Audit Engine automático + recálculo server-side de Health/Risk Score. Resolve o achado #4 (aprovação sem trava) de forma definitiva.
 - **V3**: Compliance Center + GED com alertas de vencimento (Cloud Scheduler) + SLA Engine.
 - **V4**: Workflow Engine completo (BPM), Portal da Empreiteira, Não Conformidades.
