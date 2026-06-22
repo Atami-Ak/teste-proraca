@@ -47,6 +47,7 @@ const PRIORITY_META: Record<Priority, { label: string; color: string }> = {
   normal:   { label: 'Normal',   color: '#3b82f6' },
   high:     { label: 'Alta',     color: '#d97706' },
   critical: { label: 'Crítica',  color: '#dc2626' },
+  bloqueante: { label: 'Bloqueante', color: '#7c3aed' },
 }
 
 export default function ObraFormPage() {
