@@ -4,6 +4,7 @@ import {
   getObra, getEmpreiteira, getInspecoesObra,
   getAvaliacaoByObra, createAvaliacao, updateAprovacao,
 } from '@/lib/db-obras'
+import { computeObraHealthScore } from '@/lib/db-obras-health'
 import { toast } from '@/components/ui/Toast'
 import { useStore } from '@/store/useStore'
 import type { Obra, Empreiteira, InspecaoObra, AvaliacaoEmpreiteira } from '@/types/obras'
@@ -98,6 +99,11 @@ export default function ObraDetailPage() {
       .catch((err) => { console.error('[ObraDetailPage]', err); toast.error('Erro ao carregar dados') })
       .finally(() => setLoading(false))
   }, [obraId, navigate])
+
+  const healthScore = useMemo(
+    () => obra ? computeObraHealthScore(obra, inspecoes, empreiteira) : null,
+    [obra, inspecoes, empreiteira],
+  )
 
   const previewScore = useMemo(() => calcAvaliacaoScore(avForm), [avForm])
   const previewRecom = useMemo(() => calcRecomendacao(previewScore), [previewScore])
@@ -266,6 +272,45 @@ export default function ObraDetailPage() {
       {/* ── Tab: Visão Geral ── */}
       {tab === 'visao' && (
         <div className={s.tabContent}>
+          {healthScore && (
+            <div className={s.infoCard} style={{ marginBottom: 16 }}>
+              <div className={s.infoCardTitle}>🩺 Health Score da Obra (CIP V1)</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '2rem', fontWeight: 900, color: healthScore.color }}>
+                    {healthScore.score}
+                  </div>
+                  <span style={{
+                    fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px', borderRadius: 999,
+                    color: healthScore.color, background: healthScore.bg,
+                  }}>
+                    {healthScore.label}
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px 18px', flex: 1, minWidth: 280 }}>
+                  {([
+                    ['Qualidade (25)',    healthScore.breakdown.qualidade, 25],
+                    ['Segurança (20)',    healthScore.breakdown.seguranca, 20],
+                    ['Prazo (15)',        healthScore.breakdown.prazo, 15],
+                    ['Financeiro (10)',   healthScore.breakdown.financeiro, 10],
+                    ['Equipe (10)',       healthScore.breakdown.equipe, 10],
+                    ['Documentação (10)*', healthScore.breakdown.documentacao, 10],
+                    ['Compliance (5)*',   healthScore.breakdown.compliance, 5],
+                    ['Hist. Empreiteira (5)', healthScore.breakdown.historicoEmp, 5],
+                  ] as Array<[string, number, number]>).map(([label, val, max]) => (
+                    <div key={label} style={{ fontSize: '0.74rem' }}>
+                      <div style={{ color: '#64748b', marginBottom: 2 }}>{label}</div>
+                      <strong>{val}/{max}</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <p style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 10 }}>
+                * Documentação e Compliance ainda não têm dados próprios — usam nota neutra até o GED/Compliance Center (V2/V3 do roadmap).
+              </p>
+            </div>
+          )}
+
           <div className={s.infoGrid}>
 
             <div className={s.infoCard}>
