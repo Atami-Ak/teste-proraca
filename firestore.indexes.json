@@ -170,11 +170,43 @@
       ]
     },
     {
+      "collectionGroup": "obra_timeline",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "obraId",    "order": "ASCENDING"  },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "avaliacoes_empreiteira",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "empreiteiraId", "order": "ASCENDING"  },
         { "fieldPath": "createdAt",     "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "kpi_evaluations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "employeeId", "order": "ASCENDING"  },
+        { "fieldPath": "data",       "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "timebank_entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "employeeId", "order": "ASCENDING"  },
+        { "fieldPath": "data",       "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "employee_timebank_registros",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "employeeId", "order": "ASCENDING"  },
+        { "fieldPath": "data",       "order": "DESCENDING" }
       ]
     }
   ],

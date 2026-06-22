@@ -412,6 +412,17 @@ service cloud.firestore {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
+    // OBRAS — Timeline (CIP V1 — Digital Twin básico, escrita direta do client)
+    // ═══════════════════════════════════════════════════════════════════════
+    match /obra_timeline/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      // Timeline é histórico — update bloqueado para todos.
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
     // SEGURANÇA — DDS (Diálogo Diário de Segurança)
     // ═══════════════════════════════════════════════════════════════════════
     match /safety_dds/{docId} {
@@ -539,6 +550,26 @@ service cloud.firestore {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
+    // COLABORADORES — Banco de Horas
+    // ═══════════════════════════════════════════════════════════════════════
+    match /employee_timebank/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isSupervisor();
+      allow update: if isSupervisor();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // COLABORADORES — Registros de Ponto (Banco de Horas v2)
+    // ═══════════════════════════════════════════════════════════════════════
+    match /employee_timebank_registros/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isSupervisor();
+      allow update: if isSupervisor();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
     // COLABORADORES — Reconhecimentos
     // ═══════════════════════════════════════════════════════════════════════
     match /employee_recognitions/{docId} {
@@ -604,6 +635,178 @@ service cloud.firestore {
     match /access_logs/{logId} {
       allow read:   if isAdmin();
       allow create: if isAuthenticated();
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PATRIMÔNIO — Histórico de Localização de Ativos (asset_location_history)
+    // ═══════════════════════════════════════════════════════════════════════
+    match /asset_location_history/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      allow update: if isOperador();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // COLABORADORES — Documentos de RH (subcoleção de employees)
+    // ═══════════════════════════════════════════════════════════════════════
+    match /employees/{empId}/employee_documents/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isSupervisor();
+      allow update: if isSupervisor();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CD — Inventário de Insumos (contagens)
+    // ═══════════════════════════════════════════════════════════════════════
+    match /contagens_insumos/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      allow update: if isOperador();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CD — Catálogo de Insumos (config/insumos_lista)
+    // ═══════════════════════════════════════════════════════════════════════
+    match /config/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isSupervisor();
+      allow update: if isSupervisor();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CD — Contadores Sequenciais (meta/contagens_insumos_counter)
+    // ═══════════════════════════════════════════════════════════════════════
+    match /meta/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      allow update: if isOperador();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CD — Rascunhos de Edição (auto-save por usuário, docId = {uid}__*)
+    // ═══════════════════════════════════════════════════════════════════════
+    match /rascunhos_edicao/{docId} {
+      allow read, write: if isAuthAndActive() &&
+        docId.split('__')[0] == request.auth.uid;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CD — Log de Auditoria (cd_audit_log)
+    // ═══════════════════════════════════════════════════════════════════════
+    match /cd_audit_log/{docId} {
+      allow read:   if isSupervisor();
+      allow create: if isAuthAndActive();
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // COLABORADORES — Avaliações KPI (54 indicadores · sistema de desempenho)
+    // ═══════════════════════════════════════════════════════════════════════
+    match /kpi_evaluations/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isSupervisor();
+      allow update: if isSupervisor();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
+    // ROADMAP — Templates de Jornada do Colaborador
+    // ═══════════════════════════════════════════════════════════════════════
+    match /roadmap_templates/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ROADMAP — Auditoria de alterações de etapas (subcoleção do employee)
+    // ═══════════════════════════════════════════════════════════════════════
+    match /employees/{empId}/roadmap_audit/{docId} {
+      allow read:   if isSupervisor();
+      allow create: if isSupervisor();
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // OUVIDORIA — Manifestações (criação pública anônima, sem leitura direta)
+    // ═══════════════════════════════════════════════════════════════════════
+    match /manifestacoes/{docId} {
+      allow create: if
+        request.resource.data.keys().hasAll([
+          'protocolo', 'unidade', 'assunto', 'descricao',
+          'anonimo', 'status', 'dataCriacao', 'origem'
+        ]) &&
+        request.resource.data.protocolo is string &&
+        request.resource.data.protocolo.size() > 0 &&
+        request.resource.data.descricao is string &&
+        request.resource.data.descricao.size() >= 20 &&
+        request.resource.data.descricao.size() <= 3000 &&
+        request.resource.data.unidade is string &&
+        request.resource.data.unidade.size() > 0 &&
+        request.resource.data.assunto is string &&
+        request.resource.data.assunto.size() > 0 &&
+        request.resource.data.anonimo is bool &&
+        request.resource.data.status == 'Nova' &&
+        request.resource.data.origem in ['online', 'offline'];
+      allow read:   if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // OUVIDORIA — Contadores de protocolo (leitura/escrita pública, sem delete)
+    // ═══════════════════════════════════════════════════════════════════════
+    match /contadores/{docId} {
+      allow read:   if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // DATA HUB — Snapshot de Inteligência Operacional (data_hub_snapshots)
+    // Gerado client-side; documento único 'latest'; TTL 30 min.
+    // Qualquer operador pode reescrever (para forçar refresh do hub).
+    // ═══════════════════════════════════════════════════════════════════════
+    match /data_hub_snapshots/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      allow update: if isOperador();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // EAM — Custos de Ativo (asset_costs)
+    // Registro de todos os custos associados a um ativo patrimonial.
+    // Supervisor pode criar/atualizar; admin exclui.
+    // ═══════════════════════════════════════════════════════════════════════
+    match /asset_costs/{costId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      allow update: if isSupervisor();
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // AUDITORIA GLOBAL — Log imutável de todas as ações do sistema (audit_log)
+    //   • Supervisor+ pode ler o histórico completo.
+    //   • Qualquer usuário autenticado e ativo pode gravar.
+    //   • Logs são imutáveis (update bloqueado).
+    //   • Admin pode apagar logs antigos por política de retenção.
+    // ═══════════════════════════════════════════════════════════════════════
+    match /audit_log/{logId} {
+      allow read:   if isSupervisor();
+      allow create: if isAuthAndActive();
       allow update: if false;
       allow delete: if isAdmin();
     }

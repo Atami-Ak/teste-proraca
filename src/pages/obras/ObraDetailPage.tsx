@@ -5,16 +5,19 @@ import {
   getAvaliacaoByObra, createAvaliacao, updateAprovacao,
 } from '@/lib/db-obras'
 import { computeObraHealthScore } from '@/lib/db-obras-health'
+import { getObraTimeline } from '@/lib/db-obras-timeline'
 import { toast } from '@/components/ui/Toast'
 import { useStore } from '@/store/useStore'
 import type { Obra, Empreiteira, InspecaoObra, AvaliacaoEmpreiteira } from '@/types/obras'
+import type { ObraTimelineEvent } from '@/types/obras-timeline'
+import { OBRA_TIMELINE_META } from '@/types/obras-timeline'
 import {
   OBRA_STATUS_META, EMPREITEIRA_STATUS_META, AVALIACAO_CRITERIOS, AVALIACAO_PESOS,
   calcAvaliacaoScore, calcRecomendacao, RECOMENDACAO_META,
 } from '@/types/obras'
 import s from './ObraDetailPage.module.css'
 
-type Tab = 'visao' | 'inspecoes' | 'avaliacao' | 'aprovacao'
+type Tab = 'visao' | 'inspecoes' | 'avaliacao' | 'aprovacao' | 'timeline'
 
 function fmtCurrency(v?: number) {
   if (v == null) return '—'
@@ -70,6 +73,7 @@ export default function ObraDetailPage() {
   const [empreiteira, setEmpreiteira] = useState<Empreiteira | null>(null)
   const [inspecoes,   setInspecoes]   = useState<InspecaoObra[]>([])
   const [avaliacao,   setAvaliacao]   = useState<AvaliacaoEmpreiteira | null>(null)
+  const [timeline,    setTimeline]    = useState<ObraTimelineEvent[]>([])
   const [loading,     setLoading]     = useState(true)
   const [tab,         setTab]         = useState<Tab>('visao')
   const [avForm,      setAvForm]      = useState<AvaliacaoForm>(EMPTY_AVALIACAO)
@@ -79,10 +83,10 @@ export default function ObraDetailPage() {
 
   useEffect(() => {
     if (!obraId) return
-    Promise.all([getObra(obraId), getInspecoesObra(obraId), getAvaliacaoByObra(obraId)])
-      .then(async ([o, ins, av]) => {
+    Promise.all([getObra(obraId), getInspecoesObra(obraId), getAvaliacaoByObra(obraId), getObraTimeline(obraId)])
+      .then(async ([o, ins, av, tl]) => {
         if (!o) { toast.error('Obra não encontrada'); navigate('/obras'); return }
-        setObra(o); setInspecoes(ins); setAvaliacao(av)
+        setObra(o); setInspecoes(ins); setAvaliacao(av); setTimeline(tl)
         if (o.empreiteiraId) {
           const emp = await getEmpreiteira(o.empreiteiraId)
           setEmpreiteira(emp)
@@ -161,6 +165,7 @@ export default function ObraDetailPage() {
     { id: 'inspecoes', label: 'Inspeções',       icon: '📋', badge: inspecoes.length },
     { id: 'avaliacao', label: 'Avaliação Final', icon: '⭐' },
     { id: 'aprovacao', label: 'Aprovação',       icon: '🛡️' },
+    { id: 'timeline',  label: 'Timeline',         icon: '🕒', badge: timeline.length },
   ]
 
   return (
@@ -642,6 +647,46 @@ export default function ObraDetailPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ── Tab: Timeline (CIP V1) ── */}
+      {tab === 'timeline' && (
+        <div className={s.tabContent}>
+          <div className={s.sectionHeader}>
+            <div>
+              <h3 className={s.sectionTitle}>Timeline da Obra</h3>
+              <p className={s.sectionSub}>Registro cronológico de eventos — base do Digital Twin (CIP V1)</p>
+            </div>
+          </div>
+          {timeline.length === 0 ? (
+            <div className={s.emptyState}>
+              <div className={s.emptyIconWrap}>🕒</div>
+              <div className={s.emptyTitle}>Nenhum evento registrado ainda</div>
+              <div className={s.emptyDesc}>Eventos aparecem aqui conforme a obra avança (criação, inspeções, avaliação, aprovação).</div>
+            </div>
+          ) : (
+            <div className={s.inspecoesList}>
+              {timeline.map(ev => {
+                const meta = OBRA_TIMELINE_META[ev.eventType]
+                return (
+                  <div key={ev.id} className={s.inspCard} style={{ cursor: 'default' }}>
+                    <div className={s.inspCardScoreWrap}>
+                      <div className={s.inspCardScore} style={{ color: meta.color, borderColor: meta.color, fontSize: '1.1rem' }}>
+                        {meta.icon}
+                      </div>
+                    </div>
+                    <div className={s.inspCardBody}>
+                      <div className={s.inspCardDate}>📅 {fmtDate(ev.createdAt)} — <strong style={{ color: meta.color }}>{meta.label}</strong></div>
+                      <div className={s.inspCardInsp}>{ev.title}</div>
+                      {ev.description && <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 2 }}>{ev.description}</div>}
+                      {ev.performedBy && <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: 2 }}>por {ev.performedBy}</div>}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
 

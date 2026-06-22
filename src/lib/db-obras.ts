@@ -12,6 +12,7 @@ import type {
   AprovacaoFinal, AlertaCritico, InspecaoSecao,
 } from '@/types/obras'
 import { calcAvaliacaoScore, calcEmpreiteiraStatus, calcRecomendacao } from '@/types/obras'
+import { addObraTimelineEvent } from './db-obras-timeline'
 
 // ── Collection names ──────────────────────────────────────
 const C = {
@@ -121,6 +122,12 @@ export async function createObra(
     updatedAt: serverTimestamp(),
   })
   const ref = await addDoc(collection(db, C.obras), payload)
+  await addObraTimelineEvent({
+    obraId:   ref.id,
+    eventType: 'obra_criada',
+    title:    `Obra ${codigo} criada — ${data.nome}`,
+    performedBy: data.createdBy,
+  })
   return ref.id
 }
 
@@ -137,6 +144,13 @@ export async function updateAprovacao(obraId: string, ap: AprovacaoFinal): Promi
   await updateDoc(doc(db, C.obras, obraId), {
     aprovacaoFinal: dropUndefined(ap),
     updatedAt: serverTimestamp(),
+  })
+  await addObraTimelineEvent({
+    obraId,
+    eventType:   ap.status === 'aprovada' ? 'obra_aprovada' : 'obra_reprovada',
+    title:       ap.status === 'aprovada' ? 'Obra aprovada' : 'Obra reprovada',
+    description: ap.parecer,
+    performedBy: ap.aprovadorNome,
   })
 }
 
@@ -203,6 +217,16 @@ export async function createInspecao(
   // Update obra aggregates
   await _recalcObraAggregates(data.obraId)
 
+  if (data.status === 'submetida') {
+    await addObraTimelineEvent({
+      obraId:   data.obraId,
+      eventType: 'inspecao_submetida',
+      title:    `Inspeção submetida — score ${data.scoreGeral.toFixed(1)}/10`,
+      performedBy: data.inspetorNome,
+      linkedId: ref.id,
+    })
+  }
+
   return ref.id
 }
 
@@ -210,6 +234,16 @@ export async function updateInspecao(id: string, data: Partial<InspecaoObra>): P
   const payload = dropUndefined({ ...data, updatedAt: serverTimestamp() })
   await updateDoc(doc(db, C.inspecoes, id), payload as Record<string, unknown>)
   if (data.obraId) await _recalcObraAggregates(data.obraId)
+
+  if (data.status === 'submetida' && data.obraId) {
+    await addObraTimelineEvent({
+      obraId:   data.obraId,
+      eventType: 'inspecao_submetida',
+      title:    `Inspeção submetida — score ${(data.scoreGeral ?? 0).toFixed(1)}/10`,
+      performedBy: data.inspetorNome,
+      linkedId: id,
+    })
+  }
 }
 
 async function _recalcObraAggregates(obraId: string): Promise<void> {
@@ -265,6 +299,14 @@ export async function createAvaliacao(
 
   // Re-aggregate empreiteira global score
   await _recalcEmpreiteiraScore(data.empreiteiraId)
+
+  await addObraTimelineEvent({
+    obraId:   data.obraId,
+    eventType: 'avaliacao_registrada',
+    title:    `Avaliação final registrada — score ${scoreTotal}/100 (${recomendacao})`,
+    performedBy: data.avaliadorNome,
+    linkedId: ref.id,
+  })
 
   return ref.id
 }
