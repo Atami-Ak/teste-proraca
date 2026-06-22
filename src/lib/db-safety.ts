@@ -285,9 +285,14 @@ function computeEPIStatus(entregas: EPIEntrega[]): {
 }
 
 export async function getEPIFichas(): Promise<EPIFicha[]> {
-  const q = query(collection(db, C.epi), orderBy('colaboradorNome', 'asc'))
-  const snap = await getDocs(q)
-  return snap.docs.map(d => hydrateEPIFicha(d.id, d.data() as Record<string, unknown>))
+  try {
+    // Sem orderBy para evitar dependência de índice — ordenação feita client-side
+    const snap = await getDocs(collection(db, C.epi))
+    const list = snap.docs.map(d => hydrateEPIFicha(d.id, d.data() as Record<string, unknown>))
+    return list.sort((a, b) => a.colaboradorNome.localeCompare(b.colaboradorNome, 'pt-BR'))
+  } catch {
+    return []
+  }
 }
 
 export async function getEPIFicha(id: string): Promise<EPIFicha | null> {
@@ -329,20 +334,25 @@ export async function addEPIEntrega(fichaId: string, entrega: EPIEntrega): Promi
 // ── EPI Inspections ───────────────────────────────────────
 
 export async function getEPIInspecoes(fichaId?: string): Promise<EPIInspecao[]> {
-  const col = collection(db, C.epiInsp)
-  const q = fichaId
-    ? query(col, where('fichaId', '==', fichaId), orderBy('dataInspecao', 'desc'))
-    : query(col, orderBy('dataInspecao', 'desc'))
-  const snap = await getDocs(q)
-  return snap.docs.map(d => {
-    const data = d.data() as Record<string, unknown>
-    return {
-      ...data,
-      id:            d.id,
-      dataInspecao:  tsToDate(data.dataInspecao) ?? new Date(),
-      createdAt:     tsToDate(data.createdAt),
-    } as EPIInspecao
-  })
+  try {
+    // Sem where+orderBy combinados para evitar dependência de índice composto
+    const snap = await getDocs(collection(db, C.epiInsp))
+    const all = snap.docs.map(d => {
+      const data = d.data() as Record<string, unknown>
+      return {
+        ...data,
+        id:           d.id,
+        dataInspecao: tsToDate(data.dataInspecao) ?? new Date(),
+        createdAt:    tsToDate(data.createdAt),
+      } as EPIInspecao
+    })
+    // Filtragem e ordenação client-side
+    const filtered = fichaId ? all.filter(i => i.fichaId === fichaId) : all
+    return filtered.sort((a, b) => b.dataInspecao.getTime() - a.dataInspecao.getTime())
+  } catch {
+    return []
+  }
+
 }
 
 export async function createEPIInspecao(data: Omit<EPIInspecao, 'id' | 'createdAt'>): Promise<string> {

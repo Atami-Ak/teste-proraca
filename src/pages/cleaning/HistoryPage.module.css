@@ -593,6 +593,115 @@
   font-weight: 600;
 }
 
+/* ── Items por seção ─────────────────────────────────── */
+.sectionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg, #F5F7FA);
+  border: 1px solid var(--border-light, #EBF0F7);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.sectionBlockTitle {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-2, #4A5568);
+  padding: 8px 12px;
+  background: var(--bg-card, #fff);
+  border-bottom: 1px solid var(--border-light, #EBF0F7);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.itemLines {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.itemLine {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border-light, #EBF0F7);
+  transition: background 0.1s;
+}
+.itemLine:last-child { border-bottom: none; }
+
+.itemLineFail {
+  background: rgba(220,38,38,0.035);
+  border-left: 3px solid rgba(220,38,38,0.3);
+}
+
+.itemLinePass { background: rgba(22,163,74,0.025); }
+
+.itemLineHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.itemChip {
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.itemLineText {
+  font-size: 0.78rem;
+  color: var(--text, #1B2430);
+  line-height: 1.4;
+  flex: 1;
+}
+
+.itemLineTags {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.itemLineIssue {
+  font-size: 0.75rem;
+  color: var(--text-2, #4A5568);
+  margin: 0;
+  padding: 5px 8px;
+  background: rgba(220,38,38,0.04);
+  border: 1px solid rgba(220,38,38,0.1);
+  border-radius: 6px;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+.itemLinePhotos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.itemLinePhoto {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid var(--border-light, #EBF0F7);
+  cursor: zoom-in;
+  transition: transform 0.14s, border-color 0.14s;
+}
+.itemLinePhoto:hover {
+  transform: scale(1.06);
+  border-color: #3b82f6;
+}
+
 /* ── Issues ──────────────────────────────────────────── */
 .issueList { display: flex; flex-direction: column; gap: 8px; }
 

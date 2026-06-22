@@ -1,0 +1,301 @@
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+}
+
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pageTitle {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px;
+}
+
+.pageSub {
+  color: #64748b;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.btnBack {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  font-size: 0.875rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btnBack:hover { background: #f8fafc; }
+
+/* ── Hero resultado ── */
+.hero {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.heroScore {
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.heroScoreNum {
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.heroScoreLabel {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.heroInfo {
+  flex: 1;
+  min-width: 160px;
+}
+
+.heroBadge {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.heroBar {
+  height: 10px;
+  background: #f1f5f9;
+  border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.heroBarFill {
+  height: 100%;
+  border-radius: 5px;
+}
+
+.heroMeta {
+  font-size: 0.8rem;
+  color: #64748b;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.heroMetaItem {
+  display: flex;
+  gap: 4px;
+}
+
+/* ── Category grid ── */
+.catGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.catCard {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.catCardName {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+
+.catCardBar {
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+.catCardFill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.catCardVal {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+/* ── Indicadores por categoria ── */
+.section {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px 18px;
+  cursor: pointer;
+  user-select: none;
+  background: #fafafa;
+  border-bottom: 1px solid #f1f5f9;
+}
+.sectionHeader:hover { background: #f1f5f9; }
+
+.sectionTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.sectionAvg {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.chevron {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  transition: transform 0.2s;
+}
+.chevronOpen { transform: rotate(180deg); }
+
+.indicatorRow {
+  padding: 12px 18px;
+  border-bottom: 1px solid #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.indicatorRow:last-child { border-bottom: none; }
+
+.indicatorTop {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.indicatorNum {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.indicatorDesc {
+  font-size: 0.83rem;
+  color: #334155;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.indicatorRight {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.notaBadge {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.notaBarWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.notaBar {
+  flex: 1;
+  height: 5px;
+  background: #f1f5f9;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.notaBarFill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.ncTag {
+  display: inline-block;
+  padding: 3px 8px;
+  background: rgba(217,119,6,0.08);
+  color: #92400e;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.loadingWrap {
+  padding: 80px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.obsCard {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  font-size: 0.875rem;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.obsTitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}

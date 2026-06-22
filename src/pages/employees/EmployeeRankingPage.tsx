@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { getEmployees }                 from '@/lib/db-employees'
 import type { Employee }                from '@/types/employee'
-import { STATUS_PERFORMANCE_META }      from '@/types/employee'
+import { STATUS_PERFORMANCE_META, calcScore360, scoreToStatus } from '@/types/employee'
 import s                                from './EmployeeRankingPage.module.css'
 
 const MEDAL: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' }
@@ -24,7 +24,7 @@ export default function EmployeeRankingPage() {
   useEffect(() => {
     getEmployees(true)
       .then(list => {
-        setEmployees([...list].sort((a, b) => b.scorePerformance - a.scorePerformance))
+        setEmployees([...list].sort((a, b) => calcScore360(b) - calcScore360(a)))
       })
       .catch(() => setError('Falha ao carregar dados. Tente novamente.'))
       .finally(() => setLoading(false))
@@ -44,6 +44,7 @@ export default function EmployeeRankingPage() {
   }, [employees, deptFilter, statusFilter])
 
   const avgScore   = ranked.length > 0 ? Math.round(ranked.reduce((acc, e) => acc + e.scorePerformance, 0) / ranked.length) : 0
+  const avgScore360 = ranked.length > 0 ? Math.round(ranked.reduce((acc, e) => acc + calcScore360(e), 0) / ranked.length) : 0
   const excelentes = ranked.filter(e => e.statusPerformance === 'excelente' || e.statusPerformance === 'muito_bom').length
   const criticos   = ranked.filter(e => e.statusPerformance === 'critico').length
 
@@ -60,7 +61,7 @@ export default function EmployeeRankingPage() {
       <div className={s.header}>
         <div className={s.titleBlock}>
           <h1 className={s.pageTitle}>Ranking de Colaboradores</h1>
-          <p className={s.pageSub}>{ranked.length} colaborador{ranked.length !== 1 ? 'es' : ''} · Score médio: {avgScore}/100</p>
+          <p className={s.pageSub}>{ranked.length} colaborador{ranked.length !== 1 ? 'es' : ''} · Score Avaliação médio: {avgScore}/100 · Score 360° médio: {avgScore360}/100</p>
         </div>
 
         <div className={s.filters}>
@@ -87,7 +88,11 @@ export default function EmployeeRankingPage() {
         </div>
         <div className={s.kpiCard}>
           <div className={s.kpiValue}>{avgScore}</div>
-          <div className={s.kpiLabel}>Score Médio</div>
+          <div className={s.kpiLabel}>Score Avaliação Médio</div>
+        </div>
+        <div className={s.kpiCard}>
+          <div className={s.kpiValue} style={{ color: SCORE_COLOR[scoreToStatus(avgScore360)] ?? '#64748b' }}>{avgScore360}</div>
+          <div className={s.kpiLabel}>Score 360° Médio</div>
         </div>
         <div className={s.kpiCard}>
           <div className={s.kpiValue} style={{ color: '#166534' }}>{excelentes}</div>
@@ -115,7 +120,8 @@ export default function EmployeeRankingPage() {
                 <th>Setor</th>
                 <th>Avaliações</th>
                 <th>Status</th>
-                <th>Score</th>
+                <th>Score Avaliação</th>
+                <th>Score 360°</th>
               </tr>
             </thead>
             <tbody>
@@ -123,6 +129,8 @@ export default function EmployeeRankingPage() {
                 const pos    = idx + 1
                 const meta   = STATUS_PERFORMANCE_META[emp.statusPerformance]
                 const color  = SCORE_COLOR[emp.statusPerformance] ?? '#64748b'
+                const score360 = calcScore360(emp)
+                const score360Color = SCORE_COLOR[scoreToStatus(score360)] ?? '#64748b'
 
                 return (
                   <tr key={emp.id}>
@@ -155,6 +163,17 @@ export default function EmployeeRankingPage() {
                           />
                         </div>
                         <span className={s.scoreNum} style={{ color }}>{emp.scorePerformance}</span>
+                      </div>
+                    </td>
+                    <td className={s.scoreCell}>
+                      <div className={s.scoreWrap}>
+                        <div className={s.scoreBar}>
+                          <div
+                            className={s.scoreBarFill}
+                            style={{ width: `${score360}%`, background: score360Color }}
+                          />
+                        </div>
+                        <span className={s.scoreNum} style={{ color: score360Color }}>{score360}</span>
                       </div>
                     </td>
                   </tr>

@@ -72,6 +72,7 @@ export interface CleaningInspection {
   issues:           Issue[]
   notes:            string
   hasCriticalIssue: boolean
+  itemPhotos?:      Record<string, string[]>  // itemId → foto URLs (conformes e não-conformes)
   timestampEnvio:   number
   dataCriacaoOficial?: Date
 }
@@ -129,8 +130,7 @@ export interface FormIssue {
   actionType:  ActionType
   severity:    'critical' | 'low'
   linkedWOId:  string | null
-  photo:       File | null
-  photoUrl:    string | null
+  photoUrl:    string | null   // preenchido durante o save a partir de itemPhotos
 }
 
 // ── UI meta ───────────────────────────────────────────

@@ -1,1 +1,0 @@
-import{r as a}from"./app-CeKS-_vc.js";import{C as t,a as o}from"./CartesianChart-2bnwVnht.js";var i=["axis"],s=a.forwardRef((r,e)=>a.createElement(t,{chartName:"LineChart",defaultTooltipEventType:"axis",validateTooltipEventTypes:i,tooltipPayloadSearcher:o,categoricalChartProps:r,ref:e}));export{s as L};

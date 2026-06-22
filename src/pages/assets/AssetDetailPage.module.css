@@ -758,6 +758,233 @@
   color: var(--text-3, #8898AA); font-size: 0.875rem;
 }
 
+/* ── História de Localização ─────────────────────────── */
+.locHistEmpty {
+  padding: 32px 20px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-3, #8898AA);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.locHistEmpty svg { opacity: 0.35; }
+
+.locHistList { display: flex; flex-direction: column; }
+
+.locHistItem {
+  display: flex;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border-light, #EBF0F7);
+  position: relative;
+}
+.locHistItem:last-child { border-bottom: none; }
+.locHistItem::before {
+  content: '';
+  position: absolute;
+  left: 31px;
+  top: 50px;
+  bottom: 0;
+  width: 2px;
+  background: var(--border-light, #EBF0F7);
+}
+.locHistItem:last-child::before { display: none; }
+
+.locHistDot {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+  position: relative;
+  z-index: 1;
+  color: #fff;
+}
+
+.locHistContent { flex: 1; min-width: 0; }
+
+.locHistHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.locHistCurrentBadge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #7c3aed;
+  background: rgba(124,58,237,0.12);
+  border: 1px solid rgba(124,58,237,0.2);
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+
+.locHistLocation {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text, #1B2430);
+}
+
+.locHistDetail {
+  font-size: 0.8rem;
+  color: var(--text-2, #4A5568);
+}
+
+.locHistDate {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-3, #8898AA);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.locHistNotes {
+  font-size: 0.78rem;
+  color: var(--text-2, #4A5568);
+  margin-top: 5px;
+  line-height: 1.5;
+}
+
+.locHistBy {
+  font-size: 0.68rem;
+  color: var(--text-3, #8898AA);
+  margin-top: 3px;
+  font-style: italic;
+}
+
+.locHistPhotos {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.locHistPhoto {
+  width: 84px; height: 84px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 2px solid var(--border-light, #EBF0F7);
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.locHistPhoto:hover {
+  transform: scale(1.06);
+  border-color: #7c3aed;
+  box-shadow: 0 4px 16px rgba(124,58,237,0.2);
+}
+
+/* ── Photo upload zone (modal) ───────────────────────── */
+.photoUploadZone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 22px;
+  border: 2px dashed var(--border, #D9E1EC);
+  border-radius: 12px;
+  cursor: pointer;
+  color: var(--text-3, #8898AA);
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  text-align: center;
+}
+.photoUploadZone:hover {
+  border-color: #7c3aed;
+  background: rgba(124,58,237,0.04);
+  color: #7c3aed;
+}
+
+.photoPreviewGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.photoPreviewItem {
+  position: relative;
+  width: 76px; height: 76px;
+  flex-shrink: 0;
+}
+
+.photoPreviewImg {
+  width: 76px; height: 76px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 2px solid var(--border-light, #EBF0F7);
+}
+
+.photoRemoveBtn {
+  position: absolute;
+  top: -6px; right: -6px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.6rem;
+  z-index: 1;
+  padding: 0;
+  transition: background 0.12s;
+}
+.photoRemoveBtn:hover { background: #b91c1c; }
+
+/* ── Purple button ───────────────────────────────────── */
+.btnPurple {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: #7c3aed; color: #fff; border: none;
+  padding: 10px 18px; border-radius: 10px;
+  font-size: 0.875rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+  transition: background 0.15s, transform 0.12s;
+}
+.btnPurple:hover:not(:disabled) { background: #6d28d9; transform: translateY(-1px); }
+.btnPurple:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Lightbox ────────────────────────────────────────── */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 700;
+  padding: 20px;
+  animation: fadeUp 0.15s ease;
+}
+
+.lightboxImg {
+  max-width: min(900px, 95vw);
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  user-select: none;
+}
+
+.lightboxClose {
+  position: fixed;
+  top: 16px; right: 16px;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: #fff;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.lightboxClose:hover { background: rgba(255,255,255,0.28); }
+
 /* ══════════════════ Responsive ════════════════════════ */
 @media (max-width: 1100px) {
   .body { grid-template-columns: 1fr 340px; }
@@ -777,4 +1004,423 @@
   .headerRight { align-items: flex-start; width: 100%; }
   .actionBar { flex-wrap: wrap; width: 100%; }
   .actionBar > * { flex: 1; justify-content: center; }
+}
+
+/* ── Health Score Ring ──────────────────────────────── */
+.healthRingWrap {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  flex-shrink: 0;
+}
+
+.healthRingInner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+
+.healthRingScore {
+  font-size: 1.4rem;
+  font-weight: 900;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.healthRingLabel {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* ── Tab Navigation ─────────────────────────────────── */
+.tabBar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 5px;
+  flex-wrap: wrap;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+  white-space: nowrap;
+}
+
+.tab:hover { background: #f1f5f9; color: #374151; }
+
+.tabActive {
+  background: #166534;
+  color: #fff;
+}
+
+.tabBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  background: rgba(255,255,255,0.25);
+  color: inherit;
+}
+
+.tabActive .tabBadge {
+  background: rgba(255,255,255,0.3);
+}
+
+.tab:not(.tabActive) .tabBadge {
+  background: #166534;
+  color: #fff;
+}
+
+/* ── Tab Content Columns (Geral tab) ────────────────── */
+.tabCols {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+.tabColMain { display: flex; flex-direction: column; gap: 20px; }
+.tabColSide { display: flex; flex-direction: column; gap: 20px; }
+
+/* ── Lifecycle Badge ─────────────────────────────────── */
+.lifecycleBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid;
+}
+
+.lifecycleBadgeEmpty {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.lifecycleRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 2px;
+}
+
+/* ── Filter Row (Manutenções tab) ───────────────────── */
+.filterRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 0 20px 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.pill {
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1.5px solid #e2e8f0;
+  background: transparent;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.pill:hover { border-color: #166534; color: #166534; }
+
+.pillActive {
+  background: #166534;
+  border-color: #166534;
+  color: #fff;
+}
+
+/* ── KPI Grid (Indicadores tab) ─────────────────────── */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.kpiCard {
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px 18px 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.kpiCardVal {
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: -1.5px;
+  color: #1e293b;
+  line-height: 1;
+}
+
+.kpiCardUnit {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-top: 2px;
+}
+
+.kpiCardLabel {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #374151;
+  margin-top: 8px;
+}
+
+.kpiCardSub {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+/* ── Health Breakdown ────────────────────────────────── */
+.breakdownList { display: flex; flex-direction: column; gap: 12px; }
+
+.breakdownRow {
+  display: grid;
+  grid-template-columns: 160px 1fr 50px;
+  align-items: center;
+  gap: 12px;
+}
+
+.breakdownLabel { font-size: 0.8rem; font-weight: 600; color: #374151; }
+
+.breakdownBar {
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.breakdownFill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+.breakdownScore {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #64748b;
+  text-align: right;
+}
+
+/* ── Maintenance Distribution Bars ──────────────────── */
+.distRow {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  height: 100px;
+}
+
+.distItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+
+.distBar {
+  width: 100%;
+  height: 70px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+
+.distBarFill {
+  width: 100%;
+  border-radius: 6px;
+  min-height: 4px;
+  transition: height 0.6s ease;
+}
+
+.distCount { font-size: 0.8rem; font-weight: 800; color: #1e293b; }
+.distLabel { font-size: 0.64rem; font-weight: 600; color: #64748b; text-align: center; }
+
+/* ── Cost Summary ────────────────────────────────────── */
+.costSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.costSummaryCard {
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.costSummaryIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+}
+
+.costSummaryLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 4px;
+}
+
+.costSummaryVal {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #1e293b;
+  letter-spacing: -0.5px;
+}
+
+/* ── Cost List ───────────────────────────────────────── */
+.costList { display: flex; flex-direction: column; }
+
+.costItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.12s;
+}
+
+.costItem:last-child { border-bottom: none; }
+.costItem:hover { background: #f8fafc; }
+
+.costItemIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.costItemBody { flex: 1; min-width: 0; }
+
+.costItemDesc {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.costItemMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 3px;
+  font-size: 0.72rem;
+  color: #64748b;
+  flex-wrap: wrap;
+}
+
+.costItemType {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.costItemVal {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #1e293b;
+  flex-shrink: 0;
+  letter-spacing: -0.3px;
+}
+
+/* ── Timeline tag ────────────────────────────────────── */
+.timelineTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 0.64rem;
+  font-weight: 700;
+  margin-left: 6px;
+}
+
+/* ── Button variants ─────────────────────────────────── */
+.btnCyan {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 10px;
+  border: none;
+  background: #0891b2;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.14s;
+}
+
+.btnCyan:hover:not(:disabled) { background: #0e7490; }
+.btnCyan:disabled { opacity: 0.55; cursor: default; }
+
+/* ── Responsive ─────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .tabCols { grid-template-columns: 1fr; }
+  .tabColSide { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .kpiGrid { grid-template-columns: repeat(2, 1fr); }
+  .costSummaryGrid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 700px) {
+  .tabBar { gap: 2px; }
+  .tab { padding: 7px 10px; font-size: 0.74rem; }
+  .kpiGrid { grid-template-columns: 1fr; }
+  .tabColSide { grid-template-columns: 1fr; }
+  .breakdownRow { grid-template-columns: 120px 1fr 40px; }
 }

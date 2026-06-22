@@ -1,4 +1,5 @@
-import type { MaintenanceRecord, Asset, Category } from '@/types'
+import { useState } from 'react'
+import type { MaintenanceRecord, Asset, Category, CLIMAdditionalData } from '@/types'
 import {
   MAINT_TYPE_META, MAINT_STATUS_META,
   isMachineryMaintenance, isITMaintenance, resolveEngine,
@@ -93,6 +94,43 @@ function ITSection({ r }: { r: MaintenanceRecord }) {
   )
 }
 
+// ── CLIMSection ───────────────────────────────────────
+
+const FILTER_LABEL: Record<string, string> = {
+  clean:    '✅ Limpo',
+  dirty:    '⚠️ Sujo / Precisando limpeza',
+  replaced: '🔄 Substituído',
+}
+
+function CLIMSection({ r }: { r: MaintenanceRecord }) {
+  if (r.engineCategory !== 'clim') return null
+  const d = r.additionalData as CLIMAdditionalData | undefined
+  if (!d) return null
+
+  return (
+    <Section title="❄️ Detalhes de Climatização">
+      <Row label="Refrigerante"          value={d.refrigerantType} />
+      <Row label="Estado do Filtro"      value={d.filterState ? FILTER_LABEL[d.filterState] : undefined} />
+      <Row label="Evaporador"            value={d.evaporatorState} />
+      <Row label="Condensador"           value={d.condenserState} />
+      <Row label="Dreno"                 value={d.drainState} />
+      <Row label="Pressão Atual"         value={d.currentPressure != null ? `${d.currentPressure} bar` : undefined} />
+      <Row label="Limpeza Realizada"     value={d.cleaningDone !== undefined ? (d.cleaningDone ? '✅ Sim' : '❌ Não') : undefined} />
+      <Row label="Reabast. de Gás"       value={d.gasRefillDone !== undefined ? (d.gasRefillDone ? '✅ Sim' : '❌ Não') : undefined} />
+      {d.gasRefillDone && (
+        <>
+          <Row label="Qtd. Reabastecida" value={d.gasRefillQty != null ? `${d.gasRefillQty} kg` : undefined} />
+          <Row label="Data Reabastec."   value={d.lastGasRefill} />
+        </>
+      )}
+      {d.failureType && <Row label="Tipo de Falha" value={d.failureType} />}
+      {d.requiresPurchase !== undefined && (
+        <Row label="Requer Compra" value={d.requiresPurchase ? '✅ Sim' : '❌ Não'} />
+      )}
+    </Section>
+  )
+}
+
 // ══════════════════════════════════════════════════════
 // MaintenanceDetails
 // ══════════════════════════════════════════════════════
@@ -105,8 +143,16 @@ export interface MaintenanceDetailsProps {
   onEdit:    () => void
 }
 
+const ENGINE_PILL: Record<string, string> = {
+  machinery: '⚙️ Maquinário',
+  it:        '💻 TI',
+  clim:      '❄️ Climatização',
+}
+
 export default function MaintenanceDetails({ record: r, asset, category, onClose, onEdit }: MaintenanceDetailsProps) {
-  const typeMeta   = MAINT_TYPE_META[r.type]   ?? { label: r.type,   icon: '🔧', cls: '' }
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
+
+  const typeMeta   = MAINT_TYPE_META[r.type]    ?? { label: r.type,   icon: '🔧', cls: '' }
   const statusMeta = MAINT_STATUS_META[r.status] ?? { label: r.status, icon: '❓' }
   const engine     = category ? resolveEngine(category) : 'standard'
 
@@ -118,6 +164,12 @@ export default function MaintenanceDetails({ record: r, asset, category, onClose
     return c
   })()
 
+  const typeColor = typeMeta.cls === 'type-preventiva' ? '#3b82f6'
+    : typeMeta.cls === 'type-corretiva' ? '#ef4444'
+    : typeMeta.cls === 'type-software'  ? '#6366f1'
+    : typeMeta.cls === 'type-hardware'  ? '#8b5cf6'
+    : '#22c55e'
+
   return (
     <div className={s.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
       <div className={s.modal}>
@@ -126,10 +178,7 @@ export default function MaintenanceDetails({ record: r, asset, category, onClose
         <div className={s.header}>
           <div className={s.headerLeft}>
             <div className={s.badges}>
-              <span className={s.typeBadge} style={{
-                background: '#' + (typeMeta.cls === 'type-preventiva' ? '3b82f6' : typeMeta.cls === 'type-corretiva' ? 'ef4444' : '22c55e') + '22',
-                color:      '#' + (typeMeta.cls === 'type-preventiva' ? '3b82f6' : typeMeta.cls === 'type-corretiva' ? 'ef4444' : '22c55e'),
-              }}>
+              <span className={s.typeBadge} style={{ background: typeColor + '22', color: typeColor }}>
                 {typeMeta.icon} {typeMeta.label}
               </span>
               <span className={s.statusBadge}>{statusMeta.icon} {statusMeta.label}</span>
@@ -149,8 +198,8 @@ export default function MaintenanceDetails({ record: r, asset, category, onClose
                 <div className={s.assetCode}>{asset.code}</div>
                 <div className={s.assetName}>{asset.name} · {asset.location}</div>
               </div>
-              {engine !== 'standard' && (
-                <span className={s.enginePill}>{engine === 'machinery' ? '⚙️ Maquinário' : '💻 TI'}</span>
+              {ENGINE_PILL[engine] && (
+                <span className={s.enginePill}>{ENGINE_PILL[engine]}</span>
               )}
             </div>
           )}
@@ -167,11 +216,25 @@ export default function MaintenanceDetails({ record: r, asset, category, onClose
           {/* Category-specific sections */}
           <MachinerySection r={r} />
           <ITSection r={r} />
+          <CLIMSection r={r} />
 
           {/* Notes */}
           {r.notes && (
             <Section title="Observações">
               <p className={s.notes}>{r.notes}</p>
+            </Section>
+          )}
+
+          {/* Images */}
+          {r.images && r.images.length > 0 && (
+            <Section title="📷 Fotos da Manutenção">
+              <div className={s.photosGrid}>
+                {r.images.map((url, i) => (
+                  <img key={i} src={url} alt={`Foto ${i + 1}`}
+                    className={s.photoThumb}
+                    onClick={() => setLightboxUrl(url)} />
+                ))}
+              </div>
             </Section>
           )}
 
@@ -186,8 +249,8 @@ export default function MaintenanceDetails({ record: r, asset, category, onClose
           {/* Linked orders */}
           {(r.serviceOrderId || r.purchaseOrderId) && (
             <Section title="Vínculos">
-              {r.serviceOrderId  && <Row label="Ordem de Serviço"   value={<code className={s.orderId}>{r.serviceOrderId}</code>} />}
-              {r.purchaseOrderId && <Row label="Pedido de Compra"   value={<code className={s.orderId}>{r.purchaseOrderId}</code>} />}
+              {r.serviceOrderId  && <Row label="Ordem de Serviço" value={<code className={s.orderId}>{r.serviceOrderId}</code>} />}
+              {r.purchaseOrderId && <Row label="Pedido de Compra" value={<code className={s.orderId}>{r.purchaseOrderId}</code>} />}
             </Section>
           )}
 
@@ -198,6 +261,14 @@ export default function MaintenanceDetails({ record: r, asset, category, onClose
           <button className={s.btnPrimary}   onClick={onEdit}>✏️ Editar</button>
         </div>
       </div>
+
+      {/* Lightbox */}
+      {lightboxUrl && (
+        <div className={s.lightbox} onClick={() => setLightboxUrl(null)}>
+          <img src={lightboxUrl} className={s.lightboxImg} alt="Foto ampliada" />
+          <button className={s.lightboxClose} onClick={() => setLightboxUrl(null)}>×</button>
+        </div>
+      )}
     </div>
   )
 }

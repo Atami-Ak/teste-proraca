@@ -54,7 +54,10 @@ export async function fetchAllInspections(): Promise<CleaningInspection[]> {
 
   legSnap.forEach(d => {
     if (seenIds.has(d.id)) return
-    results.push(normalizeLegacy(d.data() as Record<string, unknown>, d.id))
+    const data = d.data() as Record<string, unknown>
+    // Pula documentos legados que apontam para um documento primário já carregado
+    if (typeof data.legacyRef === 'string' && seenIds.has(data.legacyRef)) return
+    results.push(normalizeLegacy(data, d.id))
   })
 
   return results.sort((a, b) => b.timestampEnvio - a.timestampEnvio)
@@ -165,64 +168,74 @@ export interface SavePayload {
   issues:           FormIssue[]
   notes:            string
   hasCriticalIssue: boolean
+  itemPhotos:       Record<string, File[]>  // todos os arquivos de foto por itemId
 }
 
 export async function saveInspection(payload: SavePayload): Promise<string> {
   const ts = Date.now()
 
-  // Upload photos and convert FormIssue → Issue
-  const resolvedIssues: Issue[] = await Promise.all(
-    payload.issues.map(async issue => {
-      let photoUrl = issue.photoUrl
-      if (issue.photo) {
-        const path    = `cleaning_photos/${ts}_${payload.zoneId}_${issue.itemId}.jpg`
-        const storRef = ref(storage, path)
-        await uploadBytes(storRef, issue.photo)
-        photoUrl = await getDownloadURL(storRef)
+  // Upload de todas as fotos (conformes e não-conformes) por item
+  const uploadedItemPhotos: Record<string, string[]> = {}
+  for (const [itemId, files] of Object.entries(payload.itemPhotos)) {
+    if (!files.length) continue
+    const urls: string[] = []
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      const ext  = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+      const path = `cleaning_photos/${ts}_${payload.zoneId}_${itemId}_${i}.${ext}`
+      try {
+        await uploadBytes(ref(storage, path), file)
+        urls.push(await getDownloadURL(ref(storage, path)))
+      } catch {
+        // Foto individual com falha não bloqueia o restante do upload
       }
-      return {
-        itemId:      issue.itemId,
-        description: issue.description,
-        category:    issue.category,
-        severity:    issue.severity,
-        actionType:  issue.actionType,
-        linkedWOId:  issue.linkedWOId,
-        photoUrl,
-      } satisfies Issue
-    }),
-  )
+    }
+    if (urls.length) uploadedItemPhotos[itemId] = urls
+  }
+
+  // Converte FormIssue → Issue usando primeira foto do item como photoUrl
+  const resolvedIssues: Issue[] = payload.issues.map(issue => ({
+    itemId:      issue.itemId,
+    description: issue.description,
+    category:    issue.category,
+    severity:    issue.severity,
+    actionType:  issue.actionType,
+    linkedWOId:  issue.linkedWOId,
+    photoUrl:    uploadedItemPhotos[issue.itemId]?.[0] ?? null,
+  }))
 
   const docData = {
-    zoneId:           payload.zoneId,
-    zoneName:         payload.zoneName,
-    inspectorName:    payload.inspectorName,
-    employeeId:       payload.employeeId,
-    employeeName:     payload.employeeName,
-    score:            payload.score,
-    status:           payload.status,
-    sections:         payload.sections,
-    issues:           resolvedIssues,
-    notes:            payload.notes,
-    hasCriticalIssue: payload.hasCriticalIssue,
-    timestampEnvio:   ts,
+    zoneId:             payload.zoneId,
+    zoneName:           payload.zoneName,
+    inspectorName:      payload.inspectorName,
+    employeeId:         payload.employeeId,
+    employeeName:       payload.employeeName,
+    score:              payload.score,
+    status:             payload.status,
+    sections:           payload.sections,
+    issues:             resolvedIssues,
+    notes:              payload.notes,
+    hasCriticalIssue:   payload.hasCriticalIssue,
+    itemPhotos:         uploadedItemPhotos,
+    timestampEnvio:     ts,
     dataCriacaoOficial: serverTimestamp(),
   }
 
   const docRef = await addDoc(collection(db, COL_NEW), docData)
 
-  // Legacy compatibility write
-  await addDoc(collection(db, COL_LEGACY), {
+  // Escrita legacy para compatibilidade com código antigo
+  addDoc(collection(db, COL_LEGACY), {
     ...docData,
-    notaLimpeza:  payload.score / 10,
-    statusVisual: payload.status,
-    inspetor:     payload.inspectorName,
+    notaLimpeza:   payload.score / 10,
+    statusVisual:  payload.status,
+    inspetor:      payload.inspectorName,
     funcionarioId: payload.employeeId,
-    funcionario:  payload.employeeName,
-    zonaId:       payload.zoneId,
-    nomeZona:     payload.zoneName,
-    observacoes:  payload.notes,
-    legacyRef:    docRef.id,
-  }).catch(() => { /* legacy write failing silently is acceptable */ })
+    funcionario:   payload.employeeName,
+    zonaId:        payload.zoneId,
+    nomeZona:      payload.zoneName,
+    observacoes:   payload.notes,
+    legacyRef:     docRef.id,
+  }).catch(() => {})
 
   return docRef.id
 }

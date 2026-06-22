@@ -11,20 +11,25 @@ import { db } from './firebase'
 import type {
   Employee, EmployeeHistoryEvent, EmployeeEvaluation,
   EmployeeWarning, EmployeeRecognition, SupervisorNote,
-  DepartmentMove,
+  DepartmentMove, RoadmapStageEntry, EmployeeDocument, TimebankEntry,
+  TimebankRegistro, StatusRegistroBH,
 } from '@/types/employee'
-import { calcEvaluationScore, scoreToStatus } from '@/types/employee'
+import { calcEvaluationScore, scoreToStatus, ETAPA_ROADMAP_ORDER, ETAPA_ROADMAP_META, computeCertStatus } from '@/types/employee'
+import { buildStagesFromTemplate, migrateStagesV1toV2, logRoadmapAudit, getRoadmapTemplates } from './db-roadmap'
+import { STATUS_ETAPA_META } from '@/types/roadmap'
 
 // ── Collection names ──────────────────────────────────────────
 export const EMP_COLLECTIONS = {
-  employees:   'employees',
-  history:     'employee_history',
-  evaluations: 'employee_evaluations',
-  warnings:    'employee_warnings',
-  recognitions:'employee_recognitions',
-  notes:       'employee_supervisor_notes',
-  deptHistory: 'employee_department_history',
-  cache:       'employee_dashboard_cache',
+  employees:         'employees',
+  history:           'employee_history',
+  evaluations:       'employee_evaluations',
+  warnings:          'employee_warnings',
+  recognitions:      'employee_recognitions',
+  notes:             'employee_supervisor_notes',
+  deptHistory:       'employee_department_history',
+  cache:             'employee_dashboard_cache',
+  timebank:          'employee_timebank',
+  timebankRegistros: 'employee_timebank_registros',
 } as const
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -47,6 +52,14 @@ function clean(v: Record<string, unknown>): Record<string, unknown> {
 // ── Hydrators ─────────────────────────────────────────────────
 
 function hydrateEmployee(id: string, d: Record<string, unknown>): Employee {
+  const roadmapStages = Array.isArray(d.roadmapStages)
+    ? (d.roadmapStages as Record<string, unknown>[]).map(st => ({
+        ...st,
+        dataInicio:    tsToDate(st.dataInicio),
+        dataConclusao: tsToDate(st.dataConclusao),
+      }) as RoadmapStageEntry)
+    : undefined
+
   return {
     ...d,
     id,
@@ -55,6 +68,10 @@ function hydrateEmployee(id: string, d: Record<string, unknown>): Employee {
     ultimaAvaliacao: tsToDate(d.ultimaAvaliacao),
     createdAt:       tsToDate(d.createdAt),
     updatedAt:       tsToDate(d.updatedAt),
+    totalCertificacoesVencidas: (d.totalCertificacoesVencidas as number) ?? 0,
+    totalCertificacoesAVencer:  (d.totalCertificacoesAVencer as number) ?? 0,
+    saldoBancoHoras:            (d.saldoBancoHoras as number) ?? 0,
+    roadmapStages,
   } as Employee
 }
 
@@ -83,6 +100,10 @@ function hydrateWarning(id: string, d: Record<string, unknown>): EmployeeWarning
 
 function hydrateRecognition(id: string, d: Record<string, unknown>): EmployeeRecognition {
   return { ...d, id, data: tsToDate(d.data) ?? new Date(), createdAt: tsToDate(d.createdAt) } as EmployeeRecognition
+}
+
+function hydrateTimebankEntry(id: string, d: Record<string, unknown>): TimebankEntry {
+  return { ...d, id, data: tsToDate(d.data) ?? new Date(), createdAt: tsToDate(d.createdAt) } as TimebankEntry
 }
 
 function hydrateNote(id: string, d: Record<string, unknown>): SupervisorNote {
@@ -120,7 +141,7 @@ export async function searchEmployees(term: string): Promise<Employee[]> {
 }
 
 export async function createEmployee(
-  data: Omit<Employee, 'id' | 'scorePerformance' | 'statusPerformance' | 'totalAvisos' | 'totalReconhecimentos' | 'totalEvaluacoes' | 'totalIncidentesSeg' | 'totalDDSPresencas' | 'totalEpisAtivos' | 'createdAt' | 'updatedAt'>
+  data: Omit<Employee, 'id' | 'scorePerformance' | 'statusPerformance' | 'totalAvisos' | 'totalReconhecimentos' | 'totalEvaluacoes' | 'totalIncidentesSeg' | 'totalDDSPresencas' | 'totalEpisAtivos' | 'totalCertificacoesVencidas' | 'totalCertificacoesAVencer' | 'saldoBancoHoras' | 'createdAt' | 'updatedAt'>
 ): Promise<string> {
   const ref = await addDoc(collection(db, EMP_COLLECTIONS.employees), {
     ...clean(data as Record<string, unknown>),
@@ -132,6 +153,9 @@ export async function createEmployee(
     totalIncidentesSeg:  0,
     totalDDSPresencas:   0,
     totalEpisAtivos:     0,
+    totalCertificacoesVencidas: 0,
+    totalCertificacoesAVencer:  0,
+    saldoBancoHoras:     0,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   })
@@ -348,6 +372,114 @@ export async function createRecognition(data: Omit<EmployeeRecognition, 'id' | '
 }
 
 // ═════════════════════════════════════════════════════════════
+// BANCO DE HORAS (TIMEBANK)
+// ═════════════════════════════════════════════════════════════
+
+export async function getEmployeeTimebankEntries(employeeId: string): Promise<TimebankEntry[]> {
+  const snap = await getDocs(query(
+    collection(db, EMP_COLLECTIONS.timebank),
+    where('employeeId', '==', employeeId),
+  ))
+  return snap.docs
+    .map(d => hydrateTimebankEntry(d.id, d.data() as Record<string, unknown>))
+    .sort((a, b) => (b.data?.getTime() ?? 0) - (a.data?.getTime() ?? 0))
+}
+
+export async function createTimebankEntry(data: Omit<TimebankEntry, 'id' | 'createdAt' | 'saldoResultante'>): Promise<string> {
+  const emp = await getEmployee(data.employeeId)
+  const saldoAnterior   = emp?.saldoBancoHoras ?? 0
+  const delta           = data.tipo === 'credito' ? data.horas : -data.horas
+  const saldoResultante = saldoAnterior + delta
+
+  const ref = await addDoc(collection(db, EMP_COLLECTIONS.timebank), {
+    ...clean(data as Record<string, unknown>),
+    saldoResultante,
+    createdAt: serverTimestamp(),
+  })
+
+  if (emp) await updateEmployee(data.employeeId, { saldoBancoHoras: saldoResultante })
+
+  await addHistoryEvent({
+    employeeId: data.employeeId,
+    tipo: data.tipo === 'credito' ? 'banco_horas_credito' : 'banco_horas_debito',
+    titulo: data.tipo === 'credito' ? `Crédito de ${data.horas}h no Banco de Horas` : `Débito de ${data.horas}h no Banco de Horas`,
+    descricao: data.motivo,
+    positivo: data.tipo === 'credito',
+    valor: data.horas,
+    registradoPor: data.registradoPorNome,
+    registradoPorId: data.registradoPorId,
+    data: data.data,
+    referenceId: ref.id,
+    referenceType: 'timebank',
+  })
+
+  return ref.id
+}
+
+// ═════════════════════════════════════════════════════════════
+// BANCO DE HORAS — REGISTROS DE PONTO (v2)
+// ═════════════════════════════════════════════════════════════
+
+function hydrateTimebankRegistro(id: string, d: Record<string, unknown>): TimebankRegistro {
+  return {
+    ...d, id,
+    data:       tsToDate(d.data)       ?? new Date(),
+    aprovadoEm: tsToDate(d.aprovadoEm),
+    createdAt:  tsToDate(d.createdAt),
+  } as TimebankRegistro
+}
+
+export async function getTimebankRegistros(employeeId: string): Promise<TimebankRegistro[]> {
+  const snap = await getDocs(query(
+    collection(db, EMP_COLLECTIONS.timebankRegistros),
+    where('employeeId', '==', employeeId),
+  ))
+  return snap.docs
+    .map(d => hydrateTimebankRegistro(d.id, d.data() as Record<string, unknown>))
+    .sort((a, b) => b.data.getTime() - a.data.getTime())
+}
+
+export async function createTimebankRegistro(
+  data: Omit<TimebankRegistro, 'id' | 'createdAt'>
+): Promise<string> {
+  const ref = await addDoc(collection(db, EMP_COLLECTIONS.timebankRegistros), {
+    ...clean(data as Record<string, unknown>),
+    createdAt: serverTimestamp(),
+  })
+  return ref.id
+}
+
+export async function approveTimebankRegistro(
+  id: string,
+  employeeId: string,
+  saldoDia: number,
+  aprovadoPorNome: string,
+  action: StatusRegistroBH,
+): Promise<void> {
+  await updateDoc(doc(db, EMP_COLLECTIONS.timebankRegistros, id), {
+    status: action,
+    aprovadoPorNome,
+    aprovadoEm: serverTimestamp(),
+  })
+
+  if (action === 'aprovado') {
+    const emp = await getEmployee(employeeId)
+    const saldoNovo = (emp?.saldoBancoHoras ?? 0) + saldoDia
+    await updateEmployee(employeeId, { saldoBancoHoras: saldoNovo })
+    await addDoc(collection(db, EMP_COLLECTIONS.timebank), {
+      employeeId,
+      tipo:              saldoDia >= 0 ? 'credito' : 'debito',
+      horas:             Math.abs(saldoDia),
+      motivo:            'Registro de ponto aprovado',
+      data:              new Date(),
+      saldoResultante:   saldoNovo,
+      registradoPorNome: aprovadoPorNome,
+      createdAt:         serverTimestamp(),
+    })
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
 // SUPERVISOR NOTES
 // ═════════════════════════════════════════════════════════════
 
@@ -433,6 +565,140 @@ export async function createDepartmentMove(data: Omit<DepartmentMove, 'id' | 'cr
   })
 
   return ref.id
+}
+
+// ═════════════════════════════════════════════════════════════
+// ROADMAP 360° — Linha evolutiva do colaborador
+// ═════════════════════════════════════════════════════════════
+
+function cleanStageEntries(stages: RoadmapStageEntry[]): RoadmapStageEntry[] {
+  return stages.map(st => clean(st as unknown as Record<string, unknown>) as unknown as RoadmapStageEntry)
+}
+
+// Retrocompat: gera stages v2 a partir dos IDs legados
+export function defaultRoadmapStages(emp: Pick<Employee, 'dataAdmissao' | 'status' | 'dataDemissao'>): RoadmapStageEntry[] {
+  return ETAPA_ROADMAP_ORDER.map((etapa, idx) => {
+    const meta = ETAPA_ROADMAP_META[etapa]
+    const base: RoadmapStageEntry = {
+      stageId: etapa.toUpperCase(),
+      etapa,
+      name:    meta.label,
+      icon:    meta.icon,
+      order:   idx + 1,
+      status:  'pendente',
+    }
+    if (etapa === 'selecao' || etapa === 'admissao') {
+      return { ...base, status: 'concluida', dataInicio: emp.dataAdmissao, dataConclusao: emp.dataAdmissao }
+    }
+    if (etapa === 'integracao') {
+      return { ...base, status: 'em_andamento', dataInicio: emp.dataAdmissao }
+    }
+    if (etapa === 'desligamento' && emp.status === 'desligado') {
+      return { ...base, status: 'concluida', dataConclusao: emp.dataDemissao }
+    }
+    return base
+  })
+}
+
+export async function ensureRoadmapStages(employeeId: string, emp: Employee): Promise<RoadmapStageEntry[]> {
+  if (emp.roadmapStages && emp.roadmapStages.length > 0) {
+    // Migração v1 → v2: adiciona stageId quando ausente
+    const migrated = migrateStagesV1toV2(emp.roadmapStages)
+    const needsMigration = emp.roadmapStages.some(s => !s.stageId)
+    if (needsMigration) {
+      await updateEmployee(employeeId, { roadmapStages: cleanStageEntries(migrated) })
+    }
+    return migrated
+  }
+
+  // Colaborador sem stages: cria a partir do template atribuído (ou default)
+  let stages: RoadmapStageEntry[]
+  if (emp.roadmapTemplateId) {
+    try {
+      const templates = await getRoadmapTemplates()
+      const tpl = templates.find(t => t.id === emp.roadmapTemplateId)
+      stages = tpl ? buildStagesFromTemplate(tpl, emp) : defaultRoadmapStages(emp)
+    } catch {
+      stages = defaultRoadmapStages(emp)
+    }
+  } else {
+    stages = defaultRoadmapStages(emp)
+  }
+
+  await updateEmployee(employeeId, { roadmapStages: cleanStageEntries(stages) })
+  return stages
+}
+
+export async function saveRoadmapStage(
+  employeeId: string, emp: Employee, updated: RoadmapStageEntry, registradoPor: string
+): Promise<RoadmapStageEntry[]> {
+  const current = emp.roadmapStages && emp.roadmapStages.length > 0
+    ? migrateStagesV1toV2(emp.roadmapStages)
+    : defaultRoadmapStages(emp)
+
+  const prev = current.find(s => s.stageId === updated.stageId)
+  const stages = current.map(s => s.stageId === updated.stageId ? updated : s)
+
+  await updateEmployee(employeeId, { roadmapStages: cleanStageEntries(stages) })
+
+  // Auditoria: registra cada campo alterado
+  const auditFields: Array<keyof RoadmapStageEntry> = ['status', 'responsavel', 'dataInicio', 'dataConclusao', 'observacoes']
+  for (const campo of auditFields) {
+    const oldVal = prev ? String(prev[campo] ?? '') : ''
+    const newVal = String(updated[campo] ?? '')
+    if (oldVal !== newVal && (oldVal || newVal)) {
+      const metaStatus = STATUS_ETAPA_META[updated.status]
+      await logRoadmapAudit(employeeId, {
+        stageId:       updated.stageId,
+        stageName:     updated.name ?? updated.stageId,
+        campo,
+        valorAnterior: campo === 'status' && prev?.status
+          ? (STATUS_ETAPA_META[prev.status]?.label ?? oldVal) : oldVal,
+        valorNovo:     campo === 'status'
+          ? (metaStatus?.label ?? newVal) : newVal,
+        changedBy:     registradoPor,
+      }).catch(() => {/* não bloqueia se audit falhar */})
+    }
+  }
+
+  // Timeline: evento ao concluir
+  if (updated.status === 'concluida' && prev?.status !== 'concluida') {
+    const stageName = updated.name ?? updated.stageId
+    await addHistoryEvent({
+      employeeId, tipo: 'etapa_roadmap',
+      titulo: `Etapa concluída: ${stageName}`,
+      descricao: updated.observacoes || `Etapa "${stageName}" da jornada marcada como concluída.`,
+      positivo: true,
+      registradoPor,
+      data: updated.dataConclusao ?? new Date(),
+      referenceType: 'roadmap_stage',
+    })
+  }
+
+  return stages
+}
+
+// ═════════════════════════════════════════════════════════════
+// CAPACITAÇÃO & NRs — Alertas de validade de certificações
+// ═════════════════════════════════════════════════════════════
+
+export function computeCertCounts(docs: EmployeeDocument[]): { vencidas: number; aVencer: number } {
+  let vencidas = 0, aVencer = 0
+  for (const d of docs) {
+    const status = computeCertStatus(d.dataValidade)
+    if (status === 'vencido') vencidas++
+    else if (status === 'a_vencer') aVencer++
+  }
+  return { vencidas, aVencer }
+}
+
+export async function syncCertificationStats(employeeId: string, docs: EmployeeDocument[]): Promise<{ vencidas: number; aVencer: number }> {
+  const counts = computeCertCounts(docs)
+  await updateEmployee(employeeId, {
+    totalCertificacoesVencidas: counts.vencidas,
+    totalCertificacoesAVencer:  counts.aVencer,
+  })
+  return counts
 }
 
 // ═════════════════════════════════════════════════════════════

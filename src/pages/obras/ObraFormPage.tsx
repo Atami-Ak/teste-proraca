@@ -1,11 +1,19 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { createObra, updateObra, getObra, getEmpreiteiras } from '@/lib/db-obras'
+import {
+  uploadObraDocumento, getObraDocumentos, deleteObraDocumento,
+} from '@/lib/db-obras-documentos'
 import { toast } from '@/components/ui/Toast'
+import { useStore } from '@/store/useStore'
 import type { Obra, ObraStatus, Empreiteira } from '@/types/obras'
 import { OBRA_TIPOS, OBRA_STATUS_META } from '@/types/obras'
 import type { Priority } from '@/types'
+import type { ObraDocumento, ObraDocumentoTipo } from '@/types/obras-documentos'
+import { OBRA_DOC_TIPO_META, OBRA_DOC_TIPOS } from '@/types/obras-documentos'
 import s from './ObraFormPage.module.css'
+
+interface PendingDoc { file: File; tipo: ObraDocumentoTipo; nome: string }
 
 type FormState = {
   nome:                string
@@ -54,6 +62,7 @@ export default function ObraFormPage() {
   const navigate   = useNavigate()
   const { obraId } = useParams<{ obraId: string }>()
   const isEdit     = Boolean(obraId)
+  const user       = useStore(st => st.user)
 
   const [form,         setForm]         = useState<FormState>(EMPTY)
   const [empreiteiras, setEmpreiteiras] = useState<Empreiteira[]>([])
@@ -61,9 +70,15 @@ export default function ObraFormPage() {
   const [saving,       setSaving]       = useState(false)
   const [errors,       setErrors]       = useState<Partial<Record<keyof FormState, string>>>({})
 
+  // ── Documentos (CIP V2) ──
+  const [existingDocs, setExistingDocs] = useState<ObraDocumento[]>([])
+  const [pendingDocs,  setPendingDocs]  = useState<PendingDoc[]>([])
+  const [docsBusy,     setDocsBusy]     = useState(false)
+
   useEffect(() => {
     getEmpreiteiras().then(setEmpreiteiras).catch(() => {})
     if (isEdit && obraId) {
+      getObraDocumentos(obraId).then(setExistingDocs).catch(() => {})
       getObra(obraId)
         .then(obra => {
           if (!obra) { toast.error('Obra não encontrada'); navigate('/obras'); return }
@@ -92,6 +107,51 @@ export default function ObraFormPage() {
   function set(field: keyof FormState, value: string | number) {
     setForm(f => ({ ...f, [field]: value }))
     if (errors[field]) setErrors(e => ({ ...e, [field]: undefined }))
+  }
+
+  // ── Documentos (CIP V2) ──
+  function handlePickDocs(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
+    setPendingDocs(prev => [
+      ...prev,
+      ...files.map(file => ({ file, tipo: 'contrato' as ObraDocumentoTipo, nome: file.name })),
+    ])
+    e.target.value = ''
+  }
+  function setPendingTipo(idx: number, tipo: ObraDocumentoTipo) {
+    setPendingDocs(prev => prev.map((d, i) => i === idx ? { ...d, tipo } : d))
+  }
+  function removePendingDoc(idx: number) {
+    setPendingDocs(prev => prev.filter((_, i) => i !== idx))
+  }
+  async function removeExistingDoc(docToRemove: ObraDocumento) {
+    if (!docToRemove.id) return
+    if (!confirm(`Excluir o documento "${docToRemove.nome}"?`)) return
+    setDocsBusy(true)
+    try {
+      await deleteObraDocumento(docToRemove.id, docToRemove.url)
+      setExistingDocs(prev => prev.filter(d => d.id !== docToRemove.id))
+      toast.success('Documento excluído')
+    } catch {
+      toast.error('Erro ao excluir documento')
+    } finally {
+      setDocsBusy(false)
+    }
+  }
+  async function uploadPendingDocs(targetObraId: string) {
+    if (pendingDocs.length === 0) return
+    setDocsBusy(true)
+    try {
+      for (const d of pendingDocs) {
+        await uploadObraDocumento(targetObraId, d.file, d.tipo, d.nome, user?.nome)
+      }
+      setPendingDocs([])
+    } catch {
+      toast.error('Obra salva, mas houve erro ao enviar algum documento. Tente reenviar na tela de edição.')
+    } finally {
+      setDocsBusy(false)
+    }
   }
 
   function validate(): boolean {
@@ -131,10 +191,12 @@ export default function ObraFormPage() {
       }
       if (isEdit && obraId) {
         await updateObra(obraId, payload)
+        await uploadPendingDocs(obraId)
         toast.success('Obra atualizada com sucesso!')
         navigate(`/obras/${obraId}`)
       } else {
         const newId = await createObra(payload)
+        await uploadPendingDocs(newId)
         toast.success('Obra criada com sucesso!')
         navigate(`/obras/${newId}`)
       }
@@ -345,6 +407,65 @@ export default function ObraFormPage() {
                   placeholder="0,00" />
               </div>
             </div>
+          </div>
+
+          {/* Documentos (CIP V2) */}
+          <div className={s.section}>
+            <div className={s.sectionHeader}>
+              <span className={s.sectionIcon}>📄</span>
+              <span className={s.sectionTitle}>Documentos</span>
+            </div>
+            <p style={{ fontSize: '0.78rem', color: '#64748b', marginTop: -4, marginBottom: 10 }}>
+              Anexe o contrato e outras documentações da obra (ART, seguro, licenças, aditivos…). Imagens e PDF, até 20MB.
+            </p>
+
+            <label style={{
+              display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+              border: '1.5px dashed #cbd5e1', borderRadius: 8, padding: '12px 14px', justifyContent: 'center',
+            }}>
+              <input type="file" accept="image/*,application/pdf" multiple style={{ display: 'none' }}
+                onChange={handlePickDocs} disabled={docsBusy} />
+              <span>📎 Clique para anexar documento(s)</span>
+            </label>
+
+            {(existingDocs.length > 0 || pendingDocs.length > 0) && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+                {existingDocs.map(d => (
+                  <div key={d.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+                    border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.82rem',
+                  }}>
+                    <span>{OBRA_DOC_TIPO_META[d.tipo].icon}</span>
+                    <a href={d.url} target="_blank" rel="noreferrer" style={{ flex: 1, color: '#1d4ed8', textDecoration: 'none' }}>
+                      {d.nome}
+                    </a>
+                    <span style={{ color: '#94a3b8', fontSize: '0.74rem' }}>{OBRA_DOC_TIPO_META[d.tipo].label}</span>
+                    <button type="button" onClick={() => removeExistingDoc(d)} disabled={docsBusy}
+                      style={{ border: 'none', background: 'transparent', color: '#dc2626', cursor: 'pointer', fontSize: '1rem' }}>
+                      ×
+                    </button>
+                  </div>
+                ))}
+                {pendingDocs.map((d, i) => (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+                    border: '1px solid #fde68a', background: '#fffbeb', borderRadius: 8, fontSize: '0.82rem',
+                  }}>
+                    <span>📎</span>
+                    <span style={{ flex: 1 }}>{d.nome}</span>
+                    <select value={d.tipo} onChange={e => setPendingTipo(i, e.target.value as ObraDocumentoTipo)}
+                      style={{ fontSize: '0.78rem', padding: '3px 6px', borderRadius: 6, border: '1px solid #e2e8f0' }}>
+                      {OBRA_DOC_TIPOS.map(t => <option key={t} value={t}>{OBRA_DOC_TIPO_META[t].label}</option>)}
+                    </select>
+                    <span style={{ color: '#b45309', fontSize: '0.72rem' }}>pendente</span>
+                    <button type="button" onClick={() => removePendingDoc(i)}
+                      style={{ border: 'none', background: 'transparent', color: '#dc2626', cursor: 'pointer', fontSize: '1rem' }}>
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Actions */}

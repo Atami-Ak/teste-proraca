@@ -28,6 +28,8 @@ Substituir o iframe legado em `/dashboard/dashboard.html` por uma aplicação Re
 
 ## Decisões de Design
 
+
+
 | Decisão | Escolha | Motivo |
 |---------|---------|--------|
 | Navegação | Sub-rotas React Router `/dashboard/*` | URL bookmarkável, lazy loading real por módulo |

@@ -423,6 +423,16 @@ service cloud.firestore {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
+    // OBRAS — Documentação (CIP V2 — contrato, aditivos, ART, seguro, etc.)
+    // ═══════════════════════════════════════════════════════════════════════
+    match /obra_documentos/{docId} {
+      allow read:   if isAnyRole();
+      allow create: if isOperador();
+      allow update: if isOperador();
+      allow delete: if isSupervisor();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
     // SEGURANÇA — DDS (Diálogo Diário de Segurança)
     // ═══════════════════════════════════════════════════════════════════════
     match /safety_dds/{docId} {

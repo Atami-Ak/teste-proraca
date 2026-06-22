@@ -47,23 +47,28 @@ export interface Category {
 export type AssetStatus = 'ativo' | 'manutencao' | 'avariado' | 'inativo'
 
 export interface Asset {
-  id:              string
-  code:            string
-  codePrefix:      string
-  name:            string
-  categoryId:      string
-  location:        string
-  locationDetail?: string | null
-  status:          AssetStatus
-  responsible?:    string | null
-  acquisition?:    string | null   // ISO date string
-  value?:          number | null
-  notes?:          string | null
-  dynamicData:     Record<string, string | number>   // category-specific fields
-  createdBy?:      string
-  updatedBy?:      string
-  createdAt?:      Date
-  updatedAt?:      Date
+  id:               string
+  code:             string
+  codePrefix:       string
+  name:             string
+  categoryId:       string
+  location:         string
+  locationDetail?:  string | null
+  status:           AssetStatus
+  lifecycleStatus?: import('@/types/eam').AssetLifecycleStatus
+  responsible?:     string | null
+  acquisition?:     string | null   // ISO date string
+  value?:           number | null
+  serialNumber?:    string | null
+  manufacturer?:    string | null
+  model?:           string | null
+  warrantyExpiry?:  string | null   // ISO date string
+  notes?:           string | null
+  dynamicData:      Record<string, string | number>
+  createdBy?:       string
+  updatedBy?:       string
+  createdAt?:       Date
+  updatedAt?:       Date
 }
 
 // ── Maintenance additional data ───────────────────────
@@ -95,6 +100,21 @@ export interface ITAdditionalData {
   replacedParts?:      string[]
 }
 
+export interface CLIMAdditionalData {
+  refrigerantType?: string
+  filterState?:     'clean' | 'dirty' | 'replaced'
+  drainState?:      string
+  evaporatorState?: string
+  condenserState?:  string
+  currentPressure?: number
+  lastGasRefill?:   string
+  cleaningDone?:    boolean
+  gasRefillDone?:   boolean
+  gasRefillQty?:    number
+  failureType?:     string
+  requiresPurchase?: boolean
+}
+
 // ── Maintenance Record ────────────────────────────────
 
 export type MaintenanceStatus = 'pendente' | 'andamento' | 'concluida'
@@ -115,8 +135,10 @@ export interface MaintenanceRecord {
   notes?:          string
   serviceOrderId?: string
   purchaseOrderId?: string
-  engineCategory?: 'machinery' | 'it' | 'default'
-  additionalData?: MachineryAdditionalData | ITAdditionalData
+  images?:         string[]
+  engineCategory?: 'machinery' | 'it' | 'clim' | 'default'
+  additionalData?: MachineryAdditionalData | ITAdditionalData | CLIMAdditionalData
+  trigger?:        import('@/types/eam').MaintenanceTrigger
   createdAt?:      FirestoreTimestamp | Date
   updatedAt?:      FirestoreTimestamp | Date
 }
@@ -142,8 +164,17 @@ export interface Supplier {
 
 // ── Service Order ─────────────────────────────────────
 
-export type ServiceOrderStatus = 'open' | 'in_progress' | 'completed' | 'cancelled'
-export type Priority = 'low' | 'normal' | 'high' | 'critical'
+export type ServiceOrderStatus =
+  | 'draft'
+  | 'open'
+  | 'awaiting_approval'
+  | 'in_progress'
+  | 'awaiting_parts'
+  | 'on_hold'
+  | 'completed'
+  | 'cancelled'
+
+export type Priority = 'low' | 'normal' | 'high' | 'critical' | 'bloqueante'
 
 export interface ServiceOrder {
   id:               string
@@ -166,13 +197,26 @@ export interface ServiceOrder {
   notes?:           string
   scheduledDate?:   Date
   completedDate?:   Date
+  slaHours?:        number
+  slaDueAt?:        Date
+  slaStatus?:       'ok' | 'warning' | 'breached'
   createdAt?:       Date
   updatedAt?:       Date
 }
 
 // ── Purchase Order ────────────────────────────────────
 
-export type PurchaseOrderStatus = 'draft' | 'pending' | 'approved' | 'ordered' | 'received' | 'cancelled'
+export type PurchaseOrderStatus =
+  | 'draft'
+  | 'pending'
+  | 'awaiting_approval'
+  | 'approved'
+  | 'rejected'
+  | 'ordered'
+  | 'partial_delivery'
+  | 'received'
+  | 'returned'
+  | 'cancelled'
 
 export interface PurchaseOrderItem {
   description: string
@@ -193,6 +237,9 @@ export interface PurchaseOrder {
   status:            PurchaseOrderStatus
   priority?:         Priority
   requestedBy?:      string
+  approvedBy?:       string
+  rejectedBy?:       string
+  rejectedReason?:   string
   sector?:           string
   purchaseCategory?: string
   deliveryDate?:     Date
@@ -273,14 +320,16 @@ export function isITMaintenance(r: MaintenanceRecord): r is ITMaintenance {
 
 // ── Maintenance engine resolver ───────────────────────
 
-export type MaintenanceEngine = 'machinery' | 'it' | 'standard'
+export type MaintenanceEngine = 'machinery' | 'it' | 'clim' | 'standard'
 
-const MACHINERY_PREFIXES = new Set(['MAQ', 'CLIM'])
-const IT_PREFIXES        = new Set(['TI', 'COM'])
+const CLIM_ENGINE_PREFIXES     = new Set(['CLIM'])
+const MACHINERY_ENGINE_PREFIXES = new Set(['MAQ', 'COZ'])
+const IT_ENGINE_PREFIXES        = new Set(['TI', 'COM'])
 
 export function resolveEngine(category: Pick<Category, 'prefix'>): MaintenanceEngine {
-  if (MACHINERY_PREFIXES.has(category.prefix)) return 'machinery'
-  if (IT_PREFIXES.has(category.prefix))        return 'it'
+  if (CLIM_ENGINE_PREFIXES.has(category.prefix))     return 'clim'
+  if (MACHINERY_ENGINE_PREFIXES.has(category.prefix)) return 'machinery'
+  if (IT_ENGINE_PREFIXES.has(category.prefix))        return 'it'
   return 'standard'
 }
 
@@ -313,6 +362,7 @@ export interface PurchaseDocumentContent {
   status:            PurchaseOrderStatus
   priority?:         Priority
   requestedBy?:      string
+  approvedBy?:       string
   sector?:           string
   purchaseCategory?: string
   deliveryDate?:     string
@@ -334,26 +384,35 @@ export interface OrderDocument {
 // ── Meta maps ─────────────────────────────────────────
 
 export const SERVICE_ORDER_STATUS_META: Record<ServiceOrderStatus, { label: string; color: string }> = {
-  open:        { label: 'Aberta',       color: '#3b82f6' },
-  in_progress: { label: 'Em Andamento', color: '#f59e0b' },
-  completed:   { label: 'Concluída',    color: '#22c55e' },
-  cancelled:   { label: 'Cancelada',    color: '#94a3b8' },
+  draft:              { label: 'Rascunho',         color: '#94a3b8' },
+  open:               { label: 'Aberta',           color: '#3b82f6' },
+  awaiting_approval:  { label: 'Aguard. Aprovação', color: '#8b5cf6' },
+  in_progress:        { label: 'Em Andamento',     color: '#f59e0b' },
+  awaiting_parts:     { label: 'Aguard. Peças',    color: '#f97316' },
+  on_hold:            { label: 'Pausada',          color: '#6b7280' },
+  completed:          { label: 'Concluída',        color: '#22c55e' },
+  cancelled:          { label: 'Cancelada',        color: '#ef4444' },
 }
 
 export const PURCHASE_ORDER_STATUS_META: Record<PurchaseOrderStatus, { label: string; color: string }> = {
-  draft:      { label: 'Rascunho',   color: '#94a3b8' },
-  pending:    { label: 'Pendente',   color: '#3b82f6' },
-  approved:   { label: 'Aprovado',   color: '#22c55e' },
-  ordered:    { label: 'Solicitado', color: '#f59e0b' },
-  received:   { label: 'Recebido',   color: '#10b981' },
-  cancelled:  { label: 'Cancelado',  color: '#ef4444' },
+  draft:              { label: 'Rascunho',       color: '#94a3b8' },
+  pending:            { label: 'Pendente',       color: '#3b82f6' },
+  awaiting_approval:  { label: 'Aguard. Aprov.', color: '#8b5cf6' },
+  approved:           { label: 'Aprovado',       color: '#22c55e' },
+  rejected:           { label: 'Rejeitado',      color: '#dc2626' },
+  ordered:            { label: 'Pedido Emitido', color: '#f59e0b' },
+  partial_delivery:   { label: 'Entr. Parcial',  color: '#f97316' },
+  received:           { label: 'Recebido',       color: '#10b981' },
+  returned:           { label: 'Devolvido',      color: '#ef4444' },
+  cancelled:          { label: 'Cancelado',      color: '#6b7280' },
 }
 
 export const PRIORITY_META: Record<Priority, { label: string; color: string }> = {
-  low:      { label: 'Baixa',   color: '#22c55e' },
-  normal:   { label: 'Normal',  color: '#3b82f6' },
-  high:     { label: 'Alta',    color: '#f59e0b' },
-  critical: { label: 'Crítica', color: '#ef4444' },
+  low:        { label: 'Baixa',      color: '#22c55e' },
+  normal:     { label: 'Normal',     color: '#3b82f6' },
+  high:       { label: 'Alta',       color: '#f59e0b' },
+  critical:   { label: 'Crítica',    color: '#ef4444' },
+  bloqueante: { label: 'Bloqueante', color: '#7c3aed' },
 }
 
 export const SERVICE_TYPE_META: Record<ServiceType, { label: string }> = {

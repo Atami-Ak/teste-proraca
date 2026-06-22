@@ -132,7 +132,7 @@ export default function DDIFormPage() {
       {/* ── Header ── */}
       <div className={s.pageHeader}>
         <button className={s.btnBack} onClick={() => navigate('/seguranca/ddi')}>← Voltar</button>
-        <h1 className={s.pageTitle}>{isEdit ? 'Editar Inspeção DDI' : 'Nova Inspeção DDI'}</h1>
+        <h1 className={s.pageTitle}>{isEdit ? 'Editar Inspeção de Segurança' : 'Nova Inspeção de Segurança'}</h1>
         <div className={s.scoreDisplay} style={{ color: scoreColor }}>
           Score: <strong>{scores.scoreGeral}%</strong>
         </div>

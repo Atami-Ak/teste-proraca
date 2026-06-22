@@ -129,7 +129,7 @@ export default function DDSFormPage() {
   useEffect(() => {
     if (!isEdit) return
     getDDS(id!).then(d => {
-      if (!d) { toast.error('DDS não encontrado.'); navigate('/seguranca/dds'); return }
+      if (!d) { toast.error('DDI não encontrado.'); navigate('/seguranca/dds'); return }
       setForm({
         data:                d.data.toISOString().split('T')[0],
         hora:                d.hora,
@@ -256,7 +256,7 @@ export default function DDSFormPage() {
   async function handleSubmit(status: DDS['status']) {
     if (!form.setor)      { toast.error('Informe o setor.'); return }
     if (!form.supervisor) { toast.error('Informe o supervisor.'); return }
-    if (!form.temaLabel)  { toast.error('Informe o tema do DDS.'); return }
+    if (!form.temaLabel)  { toast.error('Informe o tema do DDI.'); return }
 
     setLoading(true)
     try {
@@ -285,13 +285,13 @@ export default function DDSFormPage() {
 
       if (isEdit) {
         await updateDDS(id!, payload)
-        toast.success('DDS atualizado com sucesso.')
+        toast.success('DDI atualizado com sucesso.')
       } else {
         await createDDS(payload)
-        toast.success('DDS registrado com sucesso.')
+        toast.success('DDI registrado com sucesso.')
       }
       navigate('/seguranca/dds')
-    } catch { toast.error('Erro ao salvar DDS. Tente novamente.') }
+    } catch { toast.error('Erro ao salvar DDI. Tente novamente.') }
     finally { setLoading(false) }
   }
 
@@ -299,7 +299,7 @@ export default function DDSFormPage() {
     return (
       <div className={s.loadingPage}>
         <div className={s.spinner} />
-        <span>Carregando DDS…</span>
+        <span>Carregando DDI…</span>
       </div>
     )
   }
@@ -316,14 +316,14 @@ export default function DDSFormPage() {
       <div className={s.pageHeader}>
         <div className={s.headerLeft}>
           <button className={s.backBtn} onClick={() => navigate('/seguranca/dds')}>
-            <Ic.Back /> DDS
+            <Ic.Back /> DDI
           </button>
           <div className={s.headerDivider} />
           <div className={s.headerMeta}>
             <div className={s.headerIconWrap}><Ic.Shield /></div>
             <div>
               <h1 className={s.pageTitle}>
-                {isViewOnly ? 'Visualizar DDS' : isEdit ? 'Editar DDS' : 'Novo DDS'}
+                {isViewOnly ? 'Visualizar DDI' : isEdit ? 'Editar DDI' : 'Novo DDI'}
               </h1>
               <p className={s.pageSub}>
                 {isViewOnly ? 'Modo leitura — use editar para alterar' : 'Preencha os dados e registre a presença dos colaboradores'}

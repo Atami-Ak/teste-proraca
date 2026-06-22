@@ -49,3 +49,62 @@
 .btnPrimary:hover { background: #0a3d60; }
 .btnSecondary { padding: 9px 20px; border-radius: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; background: #f1f5f9; color: #374151; border: 1.5px solid #e2e8f0; }
 .btnSecondary:hover { background: #e2e8f0; }
+
+/* Photos gallery */
+.photosGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.photoThumb {
+  width: 88px; height: 88px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 2px solid #e2e8f0;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.photoThumb:hover {
+  transform: scale(1.06);
+  border-color: #3b82f6;
+  box-shadow: 0 4px 14px rgba(59,130,246,0.22);
+}
+
+/* Lightbox */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 800;
+  padding: 20px;
+  animation: fadeIn 0.15s ease;
+}
+
+.lightboxImg {
+  max-width: min(900px, 95vw);
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  user-select: none;
+}
+
+.lightboxClose {
+  position: fixed;
+  top: 16px; right: 16px;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: #fff;
+  font-size: 1.3rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.lightboxClose:hover { background: rgba(255,255,255,0.28); }

@@ -17,8 +17,22 @@ export default function ProtectedRoute({ requiredRole }: ProtectedRouteProps) {
   const user      = useStore(s => s.user)
   const authReady = useStore(s => s.authReady)
 
-  // Still resolving auth state — render nothing (AppLayout shows its own spinner)
-  if (!authReady) return null
+  // Still resolving auth state — show spinner while Firebase Auth initializes
+  if (!authReady) return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      height: '100vh', background: '#052e16',
+    }}>
+      <div style={{
+        width: 40, height: 40,
+        border: '3px solid rgba(255,255,255,0.15)',
+        borderTopColor: '#ea580c',
+        borderRadius: '50%',
+        animation: 'spin 0.7s linear infinite',
+      }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  )
 
   // Not authenticated → redirect to login
   if (!user) {

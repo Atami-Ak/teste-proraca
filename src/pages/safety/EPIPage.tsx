@@ -123,7 +123,7 @@ export default function EPIPage() {
             </thead>
             <tbody>
               {filtered.map(d => {
-                const meta = STATUS_FICHA_META[d.statusFicha]
+                const meta = STATUS_FICHA_META[d.statusFicha] ?? { label: d.statusFicha, color: '#64748b', bg: 'rgba(100,116,139,0.1)' }
                 return (
                   <tr key={d.id} className={s.tableRow} onClick={() => navigate(`/seguranca/epi/${d.id}`)}>
                     <td className={s.tdName}>{d.colaboradorNome}</td>

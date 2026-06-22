@@ -221,7 +221,16 @@ export function useAuth() {
     if (_authListenerActive) return
     _authListenerActive = true
 
+    // Safety net: if Firebase Auth never fires (Brave shields, network block, etc.)
+    // force authReady=true after 6s so the app redirects to /login instead of freezing.
+    const fallbackTimer = setTimeout(() => {
+      if (!useStore.getState().authReady) {
+        setAuthReady(true)
+      }
+    }, 6000)
+
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      clearTimeout(fallbackTimer)
       if (firebaseUser) {
         try {
           const snap = await getDoc(doc(db, 'users', firebaseUser.uid))
@@ -254,6 +263,7 @@ export function useAuth() {
     })
 
     return () => {
+      clearTimeout(fallbackTimer)
       _authListenerActive = false
       unsub()
     }

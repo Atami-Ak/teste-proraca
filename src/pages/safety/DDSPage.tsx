@@ -6,10 +6,6 @@ import { STATUS_DDS_META, SETORES_FABRICA } from '@/types/safety'
 import { toast }                from '@/components/ui/Toast'
 import s from './DDSPage.module.css'
 
-function fmt(d: Date | undefined) {
-  if (!d) return '—'
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
 function fmtShort(d: Date | undefined) {
   if (!d) return '—'
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
@@ -43,7 +39,7 @@ function DeleteModal({ item, onConfirm, onCancel, deleting }: {
     <div className={s.overlay} onClick={e => e.target === e.currentTarget && onCancel()}>
       <div className={s.deleteModal}>
         <div className={s.delIconWrap}><Ic.AlertTri /></div>
-        <h3 className={s.delTitle}>Excluir DDS</h3>
+        <h3 className={s.delTitle}>Excluir DDI</h3>
         <p className={s.delDesc}>Você está prestes a excluir permanentemente:</p>
         <div className={s.delTarget}>
           <span className={s.delCode}>{item.numero}</span>
@@ -54,7 +50,7 @@ function DeleteModal({ item, onConfirm, onCancel, deleting }: {
           <button className={s.btnCancel} onClick={onCancel}>Cancelar</button>
           <button className={s.btnConfirmDel} onClick={onConfirm} disabled={deleting}>
             {deleting ? <span className={s.spinnerSm} /> : null}
-            {deleting ? 'Excluindo…' : 'Excluir DDS'}
+            {deleting ? 'Excluindo…' : 'Excluir DDI'}
           </button>
         </div>
       </div>
@@ -79,7 +75,7 @@ export default function DDSPage() {
   async function load() {
     setLoading(true)
     try { setList(await getDDSList()) }
-    catch { toast.error('Erro ao carregar DDS.') }
+    catch { toast.error('Erro ao carregar DDI.') }
     finally { setLoading(false) }
   }
 
@@ -90,7 +86,7 @@ export default function DDSPage() {
     setDeleting(true)
     try {
       await deleteDDS(delTarget.id)
-      toast.success('DDS excluído com sucesso.')
+      toast.success('DDI excluído com sucesso.')
       setList(prev => prev.filter(d => d.id !== delTarget.id))
       setDelTarget(null)
     } catch { toast.error('Erro ao excluir. Tente novamente.') }
@@ -126,12 +122,12 @@ export default function DDSPage() {
           <div className={s.headerDivider} />
           <div className={s.headerIconWrap}><Ic.Chat /></div>
           <div>
-            <h1 className={s.pageTitle}>Diálogo Diário de Segurança</h1>
-            <p className={s.pageSub}>Registro e acompanhamento de todos os DDS realizados</p>
+            <h1 className={s.pageTitle}>DDI — Diálogo Diário de Inspeção</h1>
+            <p className={s.pageSub}>Registro e acompanhamento de todos os DDI realizados</p>
           </div>
         </div>
         <Link to="/seguranca/dds/novo" className={s.btnPrimary}>
-          <Ic.Plus /> Novo DDS
+          <Ic.Plus /> Novo DDI
         </Link>
       </div>
 
@@ -189,21 +185,21 @@ export default function DDSPage() {
       {loading ? (
         <div className={s.loadingWrap}>
           <div className={s.spinner} />
-          <span>Carregando DDS…</span>
+          <span>Carregando DDI…</span>
         </div>
       ) : filtered.length === 0 ? (
         <div className={s.empty}>
           <div className={s.emptyIconWrap}><Ic.Chat /></div>
           <h3 className={s.emptyTitle}>
-            {list.length === 0 ? 'Nenhum DDS registrado ainda' : 'Nenhum DDS encontrado'}
+            {list.length === 0 ? 'Nenhum DDI registrado ainda' : 'Nenhum DDI encontrado'}
           </h3>
           <p className={s.emptyDesc}>
             {list.length === 0
-              ? 'Registre o primeiro DDS clicando em "+ Novo DDS".'
+              ? 'Registre o primeiro DDI clicando em "+ Novo DDI".'
               : 'Tente ajustar os filtros ou a busca.'}
           </p>
           {list.length === 0 && (
-            <Link to="/seguranca/dds/novo" className={s.btnPrimary}><Ic.Plus /> Criar primeiro DDS</Link>
+            <Link to="/seguranca/dds/novo" className={s.btnPrimary}><Ic.Plus /> Criar primeiro DDI</Link>
           )}
           {list.length > 0 && (
             <button className={s.btnGhost} onClick={clearFilters}>Limpar filtros</button>

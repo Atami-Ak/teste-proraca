@@ -6,10 +6,6 @@ import { STATUS_DDI_META, SETORES_FABRICA } from '@/types/safety'
 import { toast }                 from '@/components/ui/Toast'
 import s from './DDIPage.module.css'
 
-function fmt(d: Date | undefined) {
-  if (!d) return '—'
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
 function fmtShort(d: Date | undefined) {
   if (!d) return '—'
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
@@ -60,7 +56,7 @@ function DeleteModal({ item, onConfirm, onCancel, deleting }: {
     <div className={s.overlay} onClick={e => e.target === e.currentTarget && onCancel()}>
       <div className={s.deleteModal}>
         <div className={s.delIconWrap}><Ic.AlertTri /></div>
-        <h3 className={s.delTitle}>Excluir Inspeção DDI</h3>
+        <h3 className={s.delTitle}>Excluir Inspeção de Segurança</h3>
         <p className={s.delDesc}>Você está prestes a excluir permanentemente:</p>
         <div className={s.delTarget}>
           <span className={s.delCode}>{item.numero}</span>
@@ -70,7 +66,7 @@ function DeleteModal({ item, onConfirm, onCancel, deleting }: {
         <div className={s.delActions}>
           <button className={s.btnCancel} onClick={onCancel}>Cancelar</button>
           <button className={s.btnConfirmDel} onClick={onConfirm} disabled={deleting}>
-            {deleting ? 'Excluindo…' : 'Excluir DDI'}
+            {deleting ? 'Excluindo…' : 'Excluir Inspeção'}
           </button>
         </div>
       </div>
@@ -132,11 +128,11 @@ export default function DDIPage() {
           <div className={s.headerDivider} />
           <div className={s.headerIconWrap}><Ic.Inspect /></div>
           <div>
-            <h1 className={s.pageTitle}>Inspeção Diária de Segurança</h1>
-            <p className={s.pageSub}>Checklist DDI — conformidade e não conformidades</p>
+            <h1 className={s.pageTitle}>Inspeções de Segurança</h1>
+            <p className={s.pageSub}>Checklist de conformidade — identificação e controle de riscos</p>
           </div>
         </div>
-        <Link to="/seguranca/ddi/novo" className={s.btnPrimary}><Ic.Plus /> Nova Inspeção</Link>
+        <Link to="/seguranca/ddi/novo" className={s.btnPrimary}><Ic.Plus /> Nova Inspeção de Segurança</Link>
       </div>
 
       {/* Stats */}
@@ -197,10 +193,10 @@ export default function DDIPage() {
             {list.length === 0 ? 'Nenhuma inspeção registrada ainda' : 'Nenhuma inspeção encontrada'}
           </h3>
           <p className={s.emptyDesc}>
-            {list.length === 0 ? 'Realize a primeira inspeção DDI.' : 'Ajuste os filtros ou a busca.'}
+            {list.length === 0 ? 'Realize a primeira inspeção de segurança.' : 'Ajuste os filtros ou a busca.'}
           </p>
           {list.length === 0 && (
-            <Link to="/seguranca/ddi/novo" className={s.btnPrimary}><Ic.Plus /> Nova Inspeção</Link>
+            <Link to="/seguranca/ddi/novo" className={s.btnPrimary}><Ic.Plus /> Nova Inspeção de Segurança</Link>
           )}
         </div>
       ) : (

@@ -1,4 +1,5 @@
 // src/pages/dashboard/DashboardPage.tsx
+// Visão Geral + Command Center (Data Hub integrado)
 
 import { useState, useEffect, useCallback, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
@@ -26,6 +27,11 @@ import {
   type ModuleHealth,
   type HealthStatus,
 } from '@/types/dashboard'
+import { getDataHubSnapshot, invalidateDataHub } from '@/lib/db-data-hub'
+import {
+  HEALTH_META, MODULE_META, REC_PRIORITY_META, TREND_META,
+  type DataHubSnapshot, type ModuleKey,
+} from '@/types/data-hub'
 import s from './DashboardPage.module.css'
 
 // ── KPI definitions ───────────────────────────────────────
@@ -60,7 +66,7 @@ const ALERT_CONFIG: Record<AlertItem['severity'], { color: string; bg: string; l
   attention: { color: '#f59e0b', bg: '#fffbeb', label: 'Atenção'  },
 }
 
-// ── Health status colors ──────────────────────────────────
+// ── Health status colors (legacy dashboard) ───────────────
 
 const HEALTH_COLOR: Record<HealthStatus, string> = {
   ok:       '#16a34a',
@@ -167,7 +173,7 @@ function KpiCard({ def, cache }: KpiCardProps) {
   )
 }
 
-// ── AlertPanel ────────────────────────────────────────────
+// ── AlertPanel (live alerts) ──────────────────────────────
 
 function AlertPanel({ alerts }: { alerts: AlertItem[] }) {
   return (
@@ -265,7 +271,7 @@ function OverviewChart({ data, loading }: OverviewChartProps) {
   )
 }
 
-// ── ModuleHealthGrid ──────────────────────────────────────
+// ── ModuleHealthGrid (legacy) ─────────────────────────────
 
 function ModuleHealthGrid({ health, loading }: { health: ModuleHealth[]; loading: boolean }) {
   return (
@@ -294,6 +300,166 @@ function ModuleHealthGrid({ health, loading }: { health: ModuleHealth[]; loading
   )
 }
 
+// ── HubCommandCenter — Data Hub Score + Module Scores ─────
+
+function HubCommandCenter({
+  snap,
+  loading,
+  onRefresh,
+}: {
+  snap:      DataHubSnapshot | null
+  loading:   boolean
+  onRefresh: () => void
+}) {
+  const global = snap?.healthScores?.global
+  const scores = snap?.healthScores
+
+  return (
+    <div className={s.hubSection}>
+      <div className={s.hubHeader}>
+        <span className={s.hubTitle}>Central de Comando</span>
+        <button
+          className={s.hubRefreshBtn}
+          onClick={onRefresh}
+          disabled={loading}
+          title="Recalcular Data Hub"
+        >
+          {loading ? '…' : '↺ Recalcular'}
+        </button>
+      </div>
+
+      <div className={s.hubBody}>
+
+        {/* Score global */}
+        <div className={s.hubGlobalCard}>
+          {loading || !global ? (
+            <div className={s.hubGlobalSkeleton} />
+          ) : (
+            <>
+              <div className={s.hubGlobalLabel}>Saúde Global</div>
+              <div
+                className={s.hubGlobalScore}
+                style={{ color: HEALTH_META[global.status].color } as CSSProperties}
+              >
+                {global.score}
+              </div>
+              <div className={s.hubGlobalSub}>/100</div>
+              <div
+                className={s.hubGlobalStatus}
+                style={{
+                  color:      HEALTH_META[global.status].color,
+                  background: HEALTH_META[global.status].bg,
+                } as CSSProperties}
+              >
+                {HEALTH_META[global.status].icon} {HEALTH_META[global.status].label}
+              </div>
+              <div className={s.hubGlobalTrend} style={{ color: TREND_META[global.trend].color } as CSSProperties}>
+                {TREND_META[global.trend].icon} {TREND_META[global.trend].label}
+              </div>
+              {snap?.generatedAt && (
+                <div className={s.hubGeneratedAt}>
+                  {Math.round((Date.now() - snap.generatedAt.getTime()) / 60_000)} min atrás
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Módulos */}
+        <div className={s.hubModuleGrid}>
+          {loading || !scores ? (
+            Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className={s.hubModuleCardSkeleton} />
+            ))
+          ) : (
+            (Object.keys(MODULE_META) as ModuleKey[]).map(key => {
+              const ms   = scores[key]
+              const meta = MODULE_META[key]
+              const hm   = HEALTH_META[ms.status]
+              return (
+                <Link key={key} to={meta.dashPath} className={s.hubModuleCard}>
+                  <div className={s.hubModuleIcon}>{meta.icon}</div>
+                  <div className={s.hubModuleInfo}>
+                    <div className={s.hubModuleName}>{meta.label}</div>
+                    <div className={s.hubModuleBar}>
+                      <div
+                        className={s.hubModuleBarFill}
+                        style={{
+                          width:      `${ms.score}%`,
+                          background: hm.color,
+                        } as CSSProperties}
+                      />
+                    </div>
+                  </div>
+                  <div
+                    className={s.hubModuleScore}
+                    style={{ color: hm.color } as CSSProperties}
+                  >
+                    {ms.score}
+                  </div>
+                </Link>
+              )
+            })
+          )}
+        </div>
+
+      </div>
+    </div>
+  )
+}
+
+// ── RecsPreview — top 3 recomendações ────────────────────
+
+function RecsPreview({ snap, loading }: { snap: DataHubSnapshot | null; loading: boolean }) {
+  const top3 = (snap?.recommendations ?? []).slice(0, 3)
+  if (!loading && top3.length === 0) return null
+
+  return (
+    <div className={s.recsPreview}>
+      <div className={s.recsPreviewHeader}>
+        <span className={s.recsPreviewTitle}>💡 Recomendações Prescritivas</span>
+        <Link to="/dashboard/recomendacoes" className={s.recsPreviewLink}>
+          Ver todas ({snap?.recommendations?.length ?? 0}) →
+        </Link>
+      </div>
+
+      <div className={s.recsPreviewGrid}>
+        {loading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className={s.recPreviewCardSkeleton} />
+          ))
+        ) : (
+          top3.map(rec => {
+            const pm   = REC_PRIORITY_META[rec.priority]
+            const modM = MODULE_META[rec.module]
+            return (
+              <div key={rec.id} className={s.recPreviewCard}>
+                <div className={s.recPreviewAccent} style={{ background: pm.color } as CSSProperties} />
+                <div className={s.recPreviewTop}>
+                  <span
+                    className={s.recPreviewPrioBadge}
+                    style={{ color: pm.color, background: pm.bg } as CSSProperties}
+                  >
+                    {pm.label}
+                  </span>
+                  <span className={s.recPreviewMod}>{modM.icon}</span>
+                </div>
+                <div className={s.recPreviewTitle}>{rec.title}</div>
+                <div className={s.recPreviewImpact}>{rec.impact}</div>
+                {rec.actionPath && (
+                  <Link to={rec.actionPath} className={s.recPreviewAction}>
+                    {rec.actionLabel ?? 'Ver →'}
+                  </Link>
+                )}
+              </div>
+            )
+          })
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── DashboardContent (inside PeriodProvider) ──────────────
 
 function DashboardContent() {
@@ -305,6 +471,8 @@ function DashboardContent() {
   const [error,        setError]        = useState<string | null>(null)
   const [chartData,    setChartData]    = useState<OverviewChartPoint[]>([])
   const [chartLoading, setChartLoading] = useState(true)
+  const [hubSnap,      setHubSnap]      = useState<DataHubSnapshot | null>(null)
+  const [hubLoading,   setHubLoading]   = useState(true)
 
   const loadKpis = useCallback(async (force = false) => {
     setLoading(true)
@@ -321,13 +489,23 @@ function DashboardContent() {
     }
   }, [period])
 
-  // Reload KPIs when period changes
+  const loadHub = useCallback(async (force = false) => {
+    setHubLoading(true)
+    if (force) invalidateDataHub()
+    try {
+      setHubSnap(await getDataHubSnapshot(force))
+    } catch (e) {
+      console.error('[hub]', e)
+    } finally {
+      setHubLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     setCache(null)
     void loadKpis(false)
   }, [loadKpis])
 
-  // Reload chart when period changes
   useEffect(() => {
     setChartLoading(true)
     const { current } = getPeriodRanges(period)
@@ -337,11 +515,14 @@ function DashboardContent() {
       .finally(() => setChartLoading(false))
   }, [period])
 
-  // Subscribe to live alerts
   useEffect(() => {
     const unsub = subscribeToAlerts(setAlerts)
     return unsub
   }, [])
+
+  useEffect(() => {
+    void loadHub()
+  }, [loadHub])
 
   const moduleHealth = cache ? computeModuleHealth(cache) : []
 
@@ -382,14 +563,24 @@ function DashboardContent() {
           ))}
         </div>
 
+        {/* ── Data Hub Command Center ── */}
+        <HubCommandCenter
+          snap={hubSnap}
+          loading={hubLoading}
+          onRefresh={() => void loadHub(true)}
+        />
+
         {/* ── Chart + Module Health ── */}
         <div className={s.secondRow}>
           <OverviewChart data={chartData} loading={chartLoading} />
           <ModuleHealthGrid health={moduleHealth} loading={loading} />
         </div>
 
-        {/* ── Alerts ── */}
+        {/* ── Live Alerts ── */}
         <AlertPanel alerts={alerts} />
+
+        {/* ── Recommendations Preview ── */}
+        <RecsPreview snap={hubSnap} loading={hubLoading} />
 
       </div>
     </div>

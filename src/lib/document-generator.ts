@@ -63,6 +63,7 @@ export function generatePurchaseDocument(
     status:           order.status,
     priority:         order.priority,
     requestedBy:      order.requestedBy,
+    approvedBy:       order.approvedBy,
     sector:           order.sector,
     purchaseCategory: order.purchaseCategory,
     deliveryDate:     toISOSafe(order.deliveryDate),

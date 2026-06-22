@@ -1,5 +1,16 @@
 import type { FirestoreTimestamp } from '@/types'
 
+export interface AssetLocationEntry {
+  id:              string
+  assetId:         string
+  location:        string
+  locationDetail?: string
+  notes?:          string
+  photos:          string[]
+  registeredBy?:   string
+  createdAt?:      Date | FirestoreTimestamp
+}
+
 export type AssetEventType =
   | 'created'
   | 'status_changed'
@@ -9,6 +20,10 @@ export type AssetEventType =
   | 'purchase_linked'
   | 'decommissioned'
   | 'edited'
+  | 'lifecycle_changed'
+  | 'cost_recorded'
+  | 'trigger_fired'
+  | 'document_attached'
 
 export interface AssetEvent {
   id:          string
@@ -33,4 +48,8 @@ export const EVENT_META: Record<AssetEventType, { label: string; color: string }
   purchase_linked:       { label: 'Compra Vinculada',      color: '#7C3AED' },
   decommissioned:        { label: 'Ativo Baixado',         color: '#DC2626' },
   edited:                { label: 'Dados Editados',        color: '#64748b' },
+  lifecycle_changed:     { label: 'Ciclo de Vida',         color: '#6366f1' },
+  cost_recorded:         { label: 'Custo Registrado',      color: '#0891b2' },
+  trigger_fired:         { label: 'Gatilho Ativado',       color: '#ea580c' },
+  document_attached:     { label: 'Documento Anexado',     color: '#7c3aed' },
 }

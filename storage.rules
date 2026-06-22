@@ -72,5 +72,87 @@ service firebase.storage {
       allow delete: if request.auth != null;
     }
 
+    // ─── Limpeza — Fotos de Inspeções 5S ────────────────────────────────────
+    // Path: cleaning_photos/{fileName}
+    match /cleaning_photos/{fileName} {
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow update: if request.auth != null
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null;
+    }
+
+    // ─── Manutenção — Fotos de Manutenções ──────────────────────────────────
+    // Path: maintenance/{maintenanceId}/images/{fileName}
+    match /maintenance/{maintenanceId}/images/{fileName} {
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow update: if request.auth != null
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null;
+    }
+
+    // ─── Funcionários — Documentos de RH ────────────────────────────────────
+    // Path: employee-docs/{employeeId}/{fileName}
+    match /employee-docs/{employeeId}/{fileName} {
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.size <= 20 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*')
+          || request.resource.contentType == 'application/pdf');
+      allow update: if request.auth != null
+        && request.resource.size <= 20 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*')
+          || request.resource.contentType == 'application/pdf');
+      allow delete: if request.auth != null;
+    }
+
+    // ─── Frota — Fotos de Inspeções de Veículos ─────────────────────────────
+    // Path: inspecoes_frota/{placa}/{fileName}
+    match /inspecoes_frota/{placa}/{fileName} {
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow update: if request.auth != null
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null;
+    }
+
+    // ─── Ativos — Histórico de Localização ──────────────────────────────────
+    // Path: assets/{assetId}/location-history/{fileName}
+    match /assets/{assetId}/location-history/{fileName} {
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow update: if request.auth != null
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null;
+    }
+
+    // ─── Obras — Documentação (contrato, aditivos, ART, seguro, etc.) ───────
+    // Path: obras/{obraId}/documentos/{fileName}
+    match /obras/{obraId}/documentos/{fileName} {
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.size <= 20 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*')
+          || request.resource.contentType == 'application/pdf');
+      allow update: if request.auth != null
+        && request.resource.size <= 20 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*')
+          || request.resource.contentType == 'application/pdf');
+      allow delete: if request.auth != null;
+    }
+
   }
 }

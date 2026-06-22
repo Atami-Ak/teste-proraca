@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useParams, useNavigate }                 from 'react-router-dom'
 import { CATALOGO_ZONAS, EQUIPE_LIMPEZA }         from '@/data/cleaning-catalog'
 import { calcularPontuacao, effectiveStatus, scoreToColor, scoreToColorLight } from '@/lib/cleaning-scoring'
@@ -6,13 +6,14 @@ import { saveInspection }                         from '@/lib/db-cleaning'
 import ScoreRing                                  from '@/components/cleaning/ScoreRing'
 import { STATUS_META, SCORE_LABELS, ACTION_META } from '@/types/cleaning'
 import type { FormScores, FormIssue, Zone, ChecklistItem, ScoreValue } from '@/types/cleaning'
+import { useStore }                               from '@/store/useStore'
 import s from './InspectionFormPage.module.css'
 
 // ── Score button group ────────────────────────────────
 
 function ScoreButtons({ item, value, onChange }: {
-  item: ChecklistItem
-  value: ScoreValue
+  item:     ChecklistItem
+  value:    ScoreValue
   onChange: (v: ScoreValue) => void
 }) {
   const scores = [0, 1, 2, 3, 4, 5] as const
@@ -80,17 +81,27 @@ function ScoreButtons({ item, value, onChange }: {
 
 // ── Item row ─────────────────────────────────────────
 
-function ItemRow({ item, value, issue, onScore, onIssueChange, onPhoto }: {
+function ItemRow({ item, value, issue, photos, previews, onScore, onIssueChange, onAddPhoto, onRemovePhoto }: {
   item:          ChecklistItem
   value:         ScoreValue
   issue:         FormIssue | null
+  photos:        File[]
+  previews:      string[]
   onScore:       (v: ScoreValue) => void
   onIssueChange: (desc: string) => void
-  onPhoto:       (file: File) => void
+  onAddPhoto:    (file: File) => void
+  onRemovePhoto: (idx: number) => void
 }) {
-  const failed    = value === 0
-  const photoRef  = useRef<HTMLInputElement>(null)
+  const failed     = value === 0
+  const answered   = value !== null
   const actionMeta = ACTION_META[item.actionType]
+  const needsPhoto = failed && item.requiresPhotoOnFail && photos.length === 0
+
+  const photoLabel = previews.length > 0
+    ? '+ Outra foto'
+    : failed
+      ? 'Adicionar foto'
+      : 'Documentar estado'
 
   return (
     <div className={`${s.itemRow} ${failed ? s.itemFailed : ''} ${value === 5 ? s.itemPassed : ''}`}>
@@ -107,6 +118,7 @@ function ItemRow({ item, value, issue, onScore, onIssueChange, onPhoto }: {
 
       <ScoreButtons item={item} value={value} onChange={onScore} />
 
+      {/* Descrição do problema — somente quando não conforme */}
       {failed && (
         <div className={s.issueBox}>
           <textarea
@@ -116,27 +128,44 @@ function ItemRow({ item, value, issue, onScore, onIssueChange, onPhoto }: {
             onChange={e => onIssueChange(e.target.value)}
             rows={2}
           />
-          <div className={s.photoRow}>
-            <button
-              type="button"
-              className={s.photoBtn}
-              onClick={() => photoRef.current?.click()}
-            >
-              📷 {issue?.photo ? 'Trocar foto' : 'Adicionar foto'}
-              {item.requiresPhotoOnFail && !issue?.photo && <span className={s.required}> *</span>}
-            </button>
-            {issue?.photo && (
-              <span className={s.photoName}>{issue.photo.name}</span>
-            )}
-            <input
-              ref={photoRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className={s.hidden}
-              onChange={e => e.target.files?.[0] && onPhoto(e.target.files[0])}
-            />
-          </div>
+        </div>
+      )}
+
+      {/* Seção de fotos — visível para QUALQUER item respondido */}
+      {answered && (
+        <div className={s.photoSection}>
+          {previews.length > 0 && (
+            <div className={s.photoGrid}>
+              {previews.map((url, idx) => (
+                <div key={idx} className={s.photoThumbWrap}>
+                  <img src={url} alt={`Foto ${idx + 1}`} className={s.photoThumb} />
+                  <button
+                    type="button"
+                    className={s.photoRemoveBtn}
+                    onClick={() => onRemovePhoto(idx)}
+                    aria-label="Remover foto"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {previews.length < 5 && (
+            <label className={`${s.photoAddBtn} ${needsPhoto ? s.photoAddBtnRequired : ''}`}>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                style={{ display: 'none' }}
+                onChange={e => {
+                  const file = e.target.files?.[0]
+                  if (file) { onAddPhoto(file); e.target.value = '' }
+                }}
+              />
+              📷 {photoLabel}{needsPhoto ? <span className={s.required}> *</span> : null}
+            </label>
+          )}
         </div>
       )}
     </div>
@@ -168,17 +197,38 @@ function SectionTab({ label, state, active, onClick }: {
 export default function InspectionFormPage() {
   const { zoneId } = useParams<{ zoneId: string }>()
   const nav = useNavigate()
+  const currentUser = useStore(st => st.user)
 
   const zone: Zone | undefined = CATALOGO_ZONAS.find(z => z.id === zoneId)
 
+  // Funcionários disponíveis para esta zona (filtrado por responsaveis)
+  const zoneEmployees = useMemo(() => {
+    if (!zone?.responsaveis.length) return EQUIPE_LIMPEZA
+    const filtered = EQUIPE_LIMPEZA.filter(e => zone.responsaveis.includes(e.id))
+    return filtered.length > 0 ? filtered : EQUIPE_LIMPEZA
+  }, [zone])
+
   const [activeSection, setActiveSection] = useState(0)
-  const [scores,  setScores]  = useState<FormScores>({})
-  const [issues,  setIssues]  = useState<Record<string, FormIssue>>({})
-  const [inspector, setInspector] = useState('')
-  const [employeeId, setEmployeeId] = useState('')
-  const [notes, setNotes] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [errors, setErrors] = useState<string[]>([])
+  const [scores,        setScores]        = useState<FormScores>({})
+  const [issues,        setIssues]        = useState<Record<string, FormIssue>>({})
+  const [itemPhotos,    setItemPhotos]    = useState<Record<string, File[]>>({})
+  const [itemPreviews,  setItemPreviews]  = useState<Record<string, string[]>>({})
+  const [inspector,     setInspector]     = useState(currentUser?.nome ?? '')
+  const [employeeId,    setEmployeeId]    = useState('')
+  const [notes,         setNotes]         = useState('')
+  const [submitting,    setSubmitting]    = useState(false)
+  const [errors,        setErrors]        = useState<string[]>([])
+
+  // Ref para cleanup de URLs de preview no desmonte
+  const itemPreviewsRef = useRef(itemPreviews)
+  useEffect(() => { itemPreviewsRef.current = itemPreviews })
+  useEffect(() => {
+    return () => {
+      for (const urls of Object.values(itemPreviewsRef.current)) {
+        urls.forEach(u => URL.revokeObjectURL(u))
+      }
+    }
+  }, [])
 
   const scoring = useMemo(() => {
     if (!zone) return null
@@ -202,6 +252,7 @@ export default function InspectionFormPage() {
 
   const setScore = useCallback((itemId: string, val: ScoreValue) => {
     setScores(prev => ({ ...prev, [itemId]: val }))
+    // Remove a issue quando o item deixa de ser não-conforme
     if (val !== 0) {
       setIssues(prev => {
         const next = { ...prev }
@@ -209,39 +260,47 @@ export default function InspectionFormPage() {
         return next
       })
     }
+    // Fotos (itemPhotos) são preservadas independentemente do score
   }, [])
 
   const setIssueDesc = useCallback((itemId: string, desc: string, item: ChecklistItem) => {
     setIssues(prev => ({
       ...prev,
       [itemId]: {
-        itemId,
+        ...(prev[itemId] ?? {
+          itemId,
+          category:   item.actionType,
+          actionType: item.actionType,
+          severity:   item.critical ? 'critical' : 'low',
+          linkedWOId: null,
+          photoUrl:   null,
+        }),
         description: desc,
-        category:    item.actionType,
-        actionType:  item.actionType,
-        severity:    item.critical ? 'critical' : 'low',
-        linkedWOId:  null,
-        photo:       prev[itemId]?.photo ?? null,
-        photoUrl:    null,
       },
     }))
   }, [])
 
-  const setIssuePhoto = useCallback((itemId: string, photo: File, item: ChecklistItem) => {
-    setIssues(prev => ({
+  const addItemPhoto = useCallback((itemId: string, file: File) => {
+    setItemPhotos(prev => ({
       ...prev,
-      [itemId]: {
-        ...(prev[itemId] ?? {
-          itemId,
-          description: '',
-          category:    item.actionType,
-          actionType:  item.actionType,
-          severity:    item.critical ? 'critical' : 'low',
-          linkedWOId:  null,
-          photoUrl:    null,
-        }),
-        photo,
-      },
+      [itemId]: [...(prev[itemId] ?? []), file].slice(0, 5),
+    }))
+    const preview = URL.createObjectURL(file)
+    setItemPreviews(prev => ({
+      ...prev,
+      [itemId]: [...(prev[itemId] ?? []), preview].slice(0, 5),
+    }))
+  }, [])
+
+  const removeItemPhoto = useCallback((itemId: string, idx: number) => {
+    setItemPreviews(prev => {
+      const urls = prev[itemId] ?? []
+      URL.revokeObjectURL(urls[idx])
+      return { ...prev, [itemId]: urls.filter((_, i) => i !== idx) }
+    })
+    setItemPhotos(prev => ({
+      ...prev,
+      [itemId]: (prev[itemId] ?? []).filter((_, i) => i !== idx),
     }))
   }, [])
 
@@ -253,9 +312,11 @@ export default function InspectionFormPage() {
 
     for (const sec of zone.sections) {
       for (const item of sec.items) {
-        if (scores[item.id] === undefined) errs.push(`Seção "${sec.nome}": item "${item.texto.slice(0, 40)}…" não respondido.`)
-        if (scores[item.id] === 0 && item.requiresPhotoOnFail && !issues[item.id]?.photo) {
-          errs.push(`Item "${item.texto.slice(0, 40)}…" requer foto obrigatória.`)
+        if (scores[item.id] === undefined) {
+          errs.push(`Seção "${sec.nome}": item "${item.texto.slice(0, 40)}…" não respondido.`)
+        }
+        if (scores[item.id] === 0 && item.requiresPhotoOnFail && !(itemPhotos[item.id]?.length > 0)) {
+          errs.push(`Item "${item.texto.slice(0, 40)}…" requer pelo menos uma foto.`)
         }
       }
     }
@@ -271,21 +332,22 @@ export default function InspectionFormPage() {
     setErrors([])
 
     try {
-      const employee = EQUIPE_LIMPEZA.find(e => e.id === employeeId)
+      const employee   = EQUIPE_LIMPEZA.find(e => e.id === employeeId)
       const issuesList = Object.values(issues)
 
       await saveInspection({
         zoneId:           zone.id,
         zoneName:         zone.nome,
-        inspectorName:    inspector,
+        inspectorName:    inspector.trim(),
         employeeId,
         employeeName:     employee?.nome ?? employeeId,
         score:            scoring.finalScore,
         status:           finalStatus,
         sections:         scoring.sections,
         issues:           issuesList,
-        notes,
+        notes:            notes.trim(),
         hasCriticalIssue: issuesList.some(i => i.severity === 'critical'),
+        itemPhotos,
       })
 
       nav('/limpeza')
@@ -297,10 +359,9 @@ export default function InspectionFormPage() {
     }
   }
 
-  // Progress: count answered items
-  const totalItems     = zone?.sections.reduce((s, sec) => s + sec.items.length, 0) ?? 0
-  const answeredItems  = Object.values(scores).filter(v => v !== undefined).length
-  const progressPct    = totalItems > 0 ? Math.round((answeredItems / totalItems) * 100) : 0
+  const totalItems    = zone?.sections.reduce((acc, sec) => acc + sec.items.length, 0) ?? 0
+  const answeredItems = Object.values(scores).filter(v => v !== undefined).length
+  const progressPct   = totalItems > 0 ? Math.round((answeredItems / totalItems) * 100) : 0
 
   if (!zone) {
     return (
@@ -327,7 +388,6 @@ export default function InspectionFormPage() {
           <p className={s.subtitle}>Inspeção 5S · {zone.setor}</p>
         </div>
 
-        {/* Live score */}
         {scoring && (
           <div className={s.liveScore}>
             <ScoreRing score={scoring.finalScore} size={64} stroke={6} />
@@ -354,10 +414,15 @@ export default function InspectionFormPage() {
         <span className={s.progressPct}>{answeredItems}/{totalItems}</span>
       </div>
 
-      {/* Inspector fields */}
+      {/* Inspector + employee fields */}
       <div className={s.metaFields}>
         <div className={s.field}>
-          <label className={s.fieldLabel}>Inspetor *</label>
+          <label className={s.fieldLabel}>
+            Inspetor *
+            {currentUser?.nome && (
+              <span className={s.fieldHint}>preenchido do seu perfil</span>
+            )}
+          </label>
           <input
             className={s.input}
             placeholder="Nome do inspetor"
@@ -366,21 +431,23 @@ export default function InspectionFormPage() {
           />
         </div>
         <div className={s.field}>
-          <label className={s.fieldLabel}>Funcionário avaliado *</label>
+          <label className={s.fieldLabel}>
+            Funcionário avaliado *
+            {zone?.responsaveis.length ? (
+              <span className={s.fieldHint}>{zoneEmployees.length} responsável{zoneEmployees.length !== 1 ? 'is' : ''} pela área</span>
+            ) : null}
+          </label>
           <select
             className={s.input}
             value={employeeId}
             onChange={e => setEmployeeId(e.target.value)}
           >
             <option value="">Selecione…</option>
-            {EQUIPE_LIMPEZA
-              .filter(emp => zone.responsaveis.includes(emp.id) || true)
-              .map(emp => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.nome} — {emp.cargo}
-                </option>
-              ))
-            }
+            {zoneEmployees.map(emp => (
+              <option key={emp.id} value={emp.id}>
+                {emp.nome} — {emp.cargo}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -407,7 +474,9 @@ export default function InspectionFormPage() {
             <span style={{ color: scoreToColor(sScore), fontWeight: 600 }}>
               {currentSection.nome} — {sScore}%
             </span>
-            {sScore < 60 && <span style={{ color: '#ea580c', fontSize: '0.8rem' }}>⚠ Abaixo do mínimo (60%)</span>}
+            {sScore < 60 && (
+              <span style={{ color: '#ea580c', fontSize: '0.8rem' }}>⚠ Abaixo do mínimo (60%)</span>
+            )}
           </div>
         ) : null
       })()}
@@ -421,14 +490,17 @@ export default function InspectionFormPage() {
             item={item}
             value={scores[item.id] ?? null}
             issue={issues[item.id] ?? null}
+            photos={itemPhotos[item.id] ?? []}
+            previews={itemPreviews[item.id] ?? []}
             onScore={v => setScore(item.id, v)}
             onIssueChange={desc => setIssueDesc(item.id, desc, item)}
-            onPhoto={file => setIssuePhoto(item.id, file, item)}
+            onAddPhoto={file => addItemPhoto(item.id, file)}
+            onRemovePhoto={idx => removeItemPhoto(item.id, idx)}
           />
         ))}
       </div>
 
-      {/* Navigation between sections */}
+      {/* Section navigation */}
       <div className={s.sectionNav}>
         {activeSection > 0 && (
           <button className={s.btnSecondary} onClick={() => setActiveSection(p => p - 1)}>

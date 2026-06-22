@@ -418,6 +418,123 @@ function MachineDrillDown({
   )
 }
 
+// ── EAM Fleet Health Banner ───────────────────────────────────
+
+function FleetHealthBanner({ machines, loading }: { machines: MachineMetrics[]; loading: boolean }) {
+  if (loading) {
+    return (
+      <div className={s.fleetHealth}>
+        {[1, 2, 3].map(i => (
+          <div key={i} className={s.fleetGaugeCard} style={{ minHeight: 88 }}>
+            <div className={s.skeletonCell} style={{ height: 12, width: '60%', marginBottom: 10 }} />
+            <div className={s.skeletonCell} style={{ height: 40, width: '100%' }} />
+          </div>
+        ))}
+      </div>
+    )
+  }
+  if (machines.length === 0) return null
+
+  const fleetScore = Math.round(
+    machines.reduce((sum, m) => sum + (100 - m.riskScore), 0) / machines.length,
+  )
+  const scoreColor =
+    fleetScore >= 75 ? '#16a34a' :
+    fleetScore >= 50 ? '#f59e0b' : '#dc2626'
+  const scoreLabel =
+    fleetScore >= 75 ? 'Frota Saudável' :
+    fleetScore >= 50 ? 'Atenção Necessária' : 'Frota em Risco'
+
+  const riskCounts = {
+    low:      machines.filter(m => m.riskLevel === 'low').length,
+    medium:   machines.filter(m => m.riskLevel === 'medium').length,
+    high:     machines.filter(m => m.riskLevel === 'high').length,
+    critical: machines.filter(m => m.riskLevel === 'critical').length,
+  }
+
+  const top3 = [...machines].sort((a, b) => b.riskScore - a.riskScore).slice(0, 3)
+
+  const totalMaint = machines.reduce((s, m) => s + m.maintTotal, 0) || 1
+  const totalPrev  = machines.reduce((s, m) => s + m.prevCount, 0)
+  const prevRatio  = Math.round((totalPrev / totalMaint) * 100)
+
+  const CIRC = 2 * Math.PI * 30
+
+  return (
+    <div className={s.fleetHealth}>
+
+      {/* Gauge */}
+      <div className={s.fleetGaugeCard}>
+        <div className={s.fleetGaugeTitle}>Saúde da Frota EAM</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 10 }}>
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <svg width="72" height="72" viewBox="0 0 72 72">
+              <circle cx="36" cy="36" r="30" fill="none" stroke="#e2e8f0" strokeWidth="6" />
+              <circle cx="36" cy="36" r="30" fill="none" stroke={scoreColor} strokeWidth="6"
+                strokeDasharray={`${(fleetScore / 100) * CIRC} ${CIRC}`}
+                strokeLinecap="round" transform="rotate(-90 36 36)"
+                style={{ transition: 'stroke-dasharray 0.6s ease' }} />
+            </svg>
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: '1.05rem', fontWeight: 900, color: scoreColor, lineHeight: 1 }}>{fleetScore}</span>
+              <span style={{ fontSize: '0.52rem', fontWeight: 700, color: '#94a3b8' }}>/100</span>
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: scoreColor }}>{scoreLabel}</div>
+            <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: 3 }}>{machines.length} ativos monitorados</div>
+            <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: 1 }}>
+              Índice prev.: <strong style={{ color: prevRatio >= 60 ? '#16a34a' : '#ea580c' }}>{prevRatio}%</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Risk distribution */}
+      <div className={s.fleetGaugeCard}>
+        <div className={s.fleetGaugeTitle}>Distribuição de Risco</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 10 }}>
+          {([
+            { key: 'low',      label: 'Baixo',   count: riskCounts.low,      color: '#16a34a' },
+            { key: 'medium',   label: 'Médio',   count: riskCounts.medium,   color: '#f59e0b' },
+            { key: 'high',     label: 'Alto',    count: riskCounts.high,     color: '#ea580c' },
+            { key: 'critical', label: 'Crítico', count: riskCounts.critical, color: '#dc2626' },
+          ] as const).map(row => (
+            <div key={row.key} className={s.fleetRiskRow}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: row.color, minWidth: 40 }}>{row.label}</span>
+              <div className={s.fleetRiskBarWrap}>
+                <div className={s.fleetRiskBarFill}
+                  style={{ width: `${(row.count / machines.length) * 100}%`, background: row.color }} />
+              </div>
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#1B2430', minWidth: 16, textAlign: 'right' }}>{row.count}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Top critical */}
+      <div className={s.fleetGaugeCard} style={{ flex: 2 }}>
+        <div className={s.fleetGaugeTitle}>Ativos Mais Críticos</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 10 }}>
+          {top3.map((m, i) => (
+            <div key={m.assetId} className={s.fleetCriticalItem}>
+              <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', minWidth: 18 }}>#{i + 1}</span>
+              <span style={{ flex: 1, fontSize: '0.73rem', fontWeight: 700, color: '#1B2430', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
+              <span className={s.fleetRiskBadge} style={{ background: RISK_COLORS[m.riskLevel] + '18', color: RISK_COLORS[m.riskLevel] }}>
+                {RISK_LABELS[m.riskLevel]} · {m.riskScore}
+              </span>
+            </div>
+          ))}
+          {top3.length === 0 && (
+            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Nenhum ativo crítico.</span>
+          )}
+        </div>
+      </div>
+
+    </div>
+  )
+}
+
 // ── Alert panel ───────────────────────────────────────────────
 
 function AlertsPanel({ alerts }: { alerts: MachineryAnalyticsData['alerts'] }) {
@@ -568,6 +685,9 @@ export default function MachineryAnalyticsPage() {
             sub="dias entre falhas"
           />
         </div>
+
+        {/* ── EAM Fleet Health Banner ── */}
+        <FleetHealthBanner machines={data?.machines ?? []} loading={loading} />
 
         {/* ── Main row: ranking + cost chart ── */}
         <div className={s.mainRow}>

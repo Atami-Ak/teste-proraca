@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, type CSSProperties } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { getEmployees } from '@/lib/db-employees'
 import type { Employee, StatusEmployee, StatusPerformance, TipoVinculo } from '@/types/employee'
 import {
@@ -185,8 +185,6 @@ function QuickAction({ icon, title, sub, to, color, badge }: {
 // EmployeeDashboardPage — Unified View
 // ══════════════════════════════════════════════════════
 export default function EmployeeDashboardPage() {
-  const navigate = useNavigate()
-
   const [list,    setList]    = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -196,6 +194,7 @@ export default function EmployeeDashboardPage() {
   const [filterPerf,    setFilterPerf]    = useState<StatusPerformance | ''>('')
   const [filterVinculo, setFilterVinculo] = useState<TipoVinculo | ''>('')
   const [filterSetor,   setFilterSetor]   = useState('')
+  const [filterCertAlert, setFilterCertAlert] = useState(false)
 
   useEffect(() => {
     getEmployees()
@@ -215,6 +214,8 @@ export default function EmployeeDashboardPage() {
       ? Math.round(list.reduce((s, e) => s + e.scorePerformance, 0) / list.length)
       : 0,
     totalAvisos: list.reduce((s, e) => s + e.totalAvisos, 0),
+    certAlertas: list.reduce((s, e) => s + e.totalCertificacoesVencidas + e.totalCertificacoesAVencer, 0),
+    totalSaldoBancoHoras: list.reduce((s, e) => s + (e.saldoBancoHoras ?? 0), 0),
   }), [list])
 
   // Dynamic setor list for filter
@@ -231,6 +232,7 @@ export default function EmployeeDashboardPage() {
       if (filterPerf    && e.statusPerformance !== filterPerf)    return false
       if (filterVinculo && e.tipoVinculo       !== filterVinculo) return false
       if (filterSetor   && e.setor             !== filterSetor)   return false
+      if (filterCertAlert && (e.totalCertificacoesVencidas + e.totalCertificacoesAVencer) === 0) return false
       if (!q) return true
       const vincLabel = TIPO_VINCULO_META[e.tipoVinculo]?.label ?? ''
       const statLabel = STATUS_EMPLOYEE_META[e.status]?.label ?? ''
@@ -249,12 +251,13 @@ export default function EmployeeDashboardPage() {
         statLabel.toLowerCase().includes(q)
       )
     })
-  }, [list, search, filterStatus, filterPerf, filterVinculo, filterSetor])
+  }, [list, search, filterStatus, filterPerf, filterVinculo, filterSetor, filterCertAlert])
 
-  const hasFilters = !!(search || filterStatus || filterPerf || filterVinculo || filterSetor)
+  const hasFilters = !!(search || filterStatus || filterPerf || filterVinculo || filterSetor || filterCertAlert)
 
   const clearFilters = () => {
     setSearch(''); setFilterStatus(''); setFilterPerf(''); setFilterVinculo(''); setFilterSetor('')
+    setFilterCertAlert(false)
   }
 
   // Click stat to toggle filter
@@ -270,6 +273,8 @@ export default function EmployeeDashboardPage() {
     { label: 'Score Médio', value: `${stats.avgScore}%`, color: '#6366f1', onClick: undefined },
     { label: 'Destaques',   value: stats.excelentes, color: '#16a34a', onClick: () => toggleFilter('perf', 'excelente'),  active: filterPerf === 'excelente' },
     { label: 'Críticos',    value: stats.criticos,   color: '#dc2626', onClick: () => toggleFilter('perf', 'critico'),    active: filterPerf === 'critico' },
+    { label: 'Certificações', value: stats.certAlertas, color: '#d97706', onClick: () => setFilterCertAlert(p => !p), active: filterCertAlert },
+    { label: 'Saldo BH (h)', value: `${stats.totalSaldoBancoHoras > 0 ? '+' : ''}${stats.totalSaldoBancoHoras}`, color: stats.totalSaldoBancoHoras >= 0 ? '#166534' : '#dc2626', onClick: undefined },
   ]
 
   return (

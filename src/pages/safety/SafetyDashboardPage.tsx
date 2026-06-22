@@ -103,17 +103,17 @@ export default function SafetyDashboardPage() {
   const hasTodayDDS = todayDDS.length > 0
 
   const KPI_CARDS = [
-    { label: 'DDS no mês',       value: k.totalDDSMes,        color: '#166534', icon: <Ic.Chat />,     to: '/seguranca/dds' },
-    { label: 'Inspeções no mês', value: k.totalDDIMes,        color: '#2563eb', icon: <Ic.Inspect />,  to: '/seguranca/ddi' },
-    { label: 'Score médio DDI',  value: `${k.scoreMediaDDI}%`,color: '#d97706', icon: <Ic.Chart />,   to: '/seguranca/ddi' },
+    { label: 'DDI no mês',            value: k.totalDDSMes,        color: '#166534', icon: <Ic.Chat />,     to: '/seguranca/dds' },
+    { label: 'Inspeções no mês',      value: k.totalDDIMes,        color: '#2563eb', icon: <Ic.Inspect />,  to: '/seguranca/ddi' },
+    { label: 'Score médio Inspeções', value: `${k.scoreMediaDDI}%`,color: '#d97706', icon: <Ic.Chart />,   to: '/seguranca/ddi' },
     { label: 'EPIs vencidos',    value: k.episVencidos,       color: k.episVencidos > 0 ? '#dc2626' : '#16a34a', icon: <Ic.EpiWarn />, to: '/seguranca/epi' },
     { label: 'Ocorrências abertas', value: k.ocorrenciasAbertas, color: k.ocorrenciasAbertas > 0 ? '#7c3aed' : '#16a34a', icon: <Ic.AlertTri />, to: '/seguranca/ocorrencias' },
     { label: 'Permissões ativas',value: k.permissoesAtivas,   color: '#ea580c', icon: <Ic.Lock />,    to: '/seguranca/permissoes' },
   ]
 
   const MODULES = [
-    { icon: <Ic.Chat />,      label: 'DDS',           sub: 'Diálogo Diário de Segurança',     path: '/seguranca/dds',         color: '#166534', newPath: '/seguranca/dds/novo' },
-    { icon: <Ic.Inspect />,   label: 'DDI',           sub: 'Inspeção Diária de Segurança',    path: '/seguranca/ddi',         color: '#2563eb', newPath: '/seguranca/ddi/novo' },
+    { icon: <Ic.Chat />,      label: 'DDI',                   sub: 'Diálogo Diário de Inspeção',       path: '/seguranca/dds',         color: '#166534', newPath: '/seguranca/dds/novo' },
+    { icon: <Ic.Inspect />,   label: 'Inspeções de Segurança', sub: 'Checklist de conformidade e riscos', path: '/seguranca/ddi',         color: '#2563eb', newPath: '/seguranca/ddi/novo' },
     { icon: <Ic.HardHat />,   label: 'EPI',           sub: 'Fichas e controle de EPIs',       path: '/seguranca/epi',         color: '#d97706', newPath: '/seguranca/epi/novo' },
     { icon: <Ic.AlertTri />,  label: 'Ocorrências',   sub: 'Acidentes, quase-acidentes, RNC', path: '/seguranca/ocorrencias', color: '#dc2626', newPath: '/seguranca/ocorrencias/novo' },
     { icon: <Ic.Clipboard />, label: 'Permissões PT', sub: 'Trabalhos de risco especial',     path: '/seguranca/permissoes',  color: '#ea580c', newPath: '/seguranca/permissoes' },
@@ -153,10 +153,10 @@ export default function SafetyDashboardPage() {
             <Ic.Refresh /> Atualizar
           </button>
           <Link to="/seguranca/dds/novo" className={s.btnAction} style={{ '--btn-color': '#166534' } as CSSProperties}>
-            <Ic.Plus /> Novo DDS
+            <Ic.Plus /> Novo DDI
           </Link>
           <Link to="/seguranca/ddi/novo" className={s.btnAction} style={{ '--btn-color': '#2563eb' } as CSSProperties}>
-            <Ic.Plus /> Inspeção
+            <Ic.Plus /> Nova Inspeção
           </Link>
           <Link to="/seguranca/ocorrencias/novo" className={s.btnDanger}>
             <Ic.AlertTri /> Ocorrência
@@ -197,11 +197,11 @@ export default function SafetyDashboardPage() {
         <div className={s.todayLeft}>
           <div className={s.todayDot} style={{ background: hasTodayDDS ? '#16a34a' : '#f59e0b' }} />
           <div>
-            <div className={s.todayLabel}>DDS de hoje</div>
+            <div className={s.todayLabel}>DDI de hoje</div>
             <div className={s.todayStatus} style={{ color: hasTodayDDS ? '#15803d' : '#b45309' }}>
               {hasTodayDDS
-                ? `${todayDDS.length} DDS realizado${todayDDS.length > 1 ? 's' : ''} · ${todayTotal} participante${todayTotal !== 1 ? 's' : ''}`
-                : 'Nenhum DDS registrado hoje ainda'}
+                ? `${todayDDS.length} DDI realizado${todayDDS.length > 1 ? 's' : ''} · ${todayTotal} participante${todayTotal !== 1 ? 's' : ''}`
+                : 'Nenhum DDI registrado hoje ainda'}
             </div>
           </div>
         </div>
@@ -270,12 +270,12 @@ export default function SafetyDashboardPage() {
       {/* ── Recent Lists ─────────────────────────────────── */}
       <div className={s.listsRow}>
 
-        {/* Recent DDS */}
+        {/* Recent DDI */}
         <div className={s.listCard}>
           <div className={s.listHeader}>
             <div className={s.listTitleWrap}>
               <div className={s.listDot} style={{ background: '#166534' }} />
-              <span className={s.listTitle}>Últimos DDS</span>
+              <span className={s.listTitle}>Últimos DDI</span>
               <span className={s.listCount}>{recentDDS.length}</span>
             </div>
             <Link to="/seguranca/dds" className={s.listMore}>
@@ -286,9 +286,9 @@ export default function SafetyDashboardPage() {
           {recentDDS.length === 0 ? (
             <div className={s.listEmpty}>
               <div className={s.emptyIcon} style={{ color: '#166534' }}><Ic.Chat /></div>
-              <p>Nenhum DDS registrado ainda</p>
+              <p>Nenhum DDI registrado ainda</p>
               <Link to="/seguranca/dds/novo" className={s.emptyBtn} style={{ color: '#166534' }}>
-                <Ic.Plus /> Criar primeiro DDS
+                <Ic.Plus /> Criar primeiro DDI
               </Link>
             </div>
           ) : (
@@ -322,12 +322,12 @@ export default function SafetyDashboardPage() {
           )}
         </div>
 
-        {/* Recent DDI */}
+        {/* Recent Inspeções de Segurança */}
         <div className={s.listCard}>
           <div className={s.listHeader}>
             <div className={s.listTitleWrap}>
               <div className={s.listDot} style={{ background: '#2563eb' }} />
-              <span className={s.listTitle}>Últimas Inspeções DDI</span>
+              <span className={s.listTitle}>Últimas Inspeções de Segurança</span>
               <span className={s.listCount}>{recentDDI.length}</span>
             </div>
             <Link to="/seguranca/ddi" className={s.listMore}>
@@ -338,9 +338,9 @@ export default function SafetyDashboardPage() {
           {recentDDI.length === 0 ? (
             <div className={s.listEmpty}>
               <div className={s.emptyIcon} style={{ color: '#2563eb' }}><Ic.Inspect /></div>
-              <p>Nenhuma inspeção registrada ainda</p>
+              <p>Nenhuma inspeção de segurança registrada ainda</p>
               <Link to="/seguranca/ddi/novo" className={s.emptyBtn} style={{ color: '#2563eb' }}>
-                <Ic.Plus /> Nova inspeção
+                <Ic.Plus /> Nova Inspeção de Segurança
               </Link>
             </div>
           ) : (

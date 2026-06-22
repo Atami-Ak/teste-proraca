@@ -1,9 +1,9 @@
 import { useState, useMemo, type CSSProperties } from 'react'
-import { useNavigate, Link }            from 'react-router-dom'
+import { Link }                         from 'react-router-dom'
 import { useCleaningHistory, CATALOGO_ZONAS, EQUIPE_LIMPEZA } from '@/hooks/useCleaningData'
 import {
   computeEmployeeRanking, computeZoneRanking,
-  scoreToColor, scoreToColorLight,
+  scoreToColor,
   type RankedEmployee, type RankedZone,
 } from '@/lib/cleaning-scoring'
 import s from './RankingPage.module.css'
@@ -22,7 +22,6 @@ type Period = 'weekly' | 'monthly'
 // ── Podium ─────────────────────────────────────────────
 function Podium({ top3 }: { top3: RankedEmployee[] }) {
   const ORDER   = [1, 0, 2]
-  const HEIGHTS = [120, 90, 76] // platform heights by visual position (2nd,1st,3rd)
   const RANK_HEIGHTS = [70, 90, 60]  // original rank 0→90, 1→70, 2→60
   const LABELS  = ['2º', '1º', '3º']
   const MEDALS  = ['🥈', '🥇', '🥉']
@@ -174,7 +173,6 @@ function ZoneCard({ zone, rank }: { zone: RankedZone; rank: number }) {
 // RankingPage
 // ══════════════════════════════════════════════════════
 export default function RankingPage() {
-  const nav = useNavigate()
   const { inspections, loading } = useCleaningHistory()
   const [period, setPeriod] = useState<Period>('weekly')
 

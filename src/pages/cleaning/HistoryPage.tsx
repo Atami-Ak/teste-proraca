@@ -1,11 +1,11 @@
 import { useState, useMemo, type CSSProperties } from 'react'
-import { useSearchParams, useNavigate, Link } from 'react-router-dom'
+import { useSearchParams, Link } from 'react-router-dom'
 import { useCleaningHistory }           from '@/hooks/useCleaningData'
 import { CATALOGO_ZONAS, EQUIPE_LIMPEZA } from '@/data/cleaning-catalog'
 import ScoreRing                        from '@/components/cleaning/ScoreRing'
-import { STATUS_META, ACTION_META }     from '@/types/cleaning'
-import { formatDateTime, scoreToColor } from '@/lib/cleaning-scoring'
-import type { CleaningInspection }      from '@/types/cleaning'
+import { STATUS_META, ACTION_META, SCORE_LABELS } from '@/types/cleaning'
+import { formatDateTime, scoreToColor }           from '@/lib/cleaning-scoring'
+import type { CleaningInspection }                from '@/types/cleaning'
 import s from './HistoryPage.module.css'
 
 // ── SVG icons ──────────────────────────────────────────
@@ -27,12 +27,27 @@ const Ic = {
   Expand:    () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15,3 21,3 21,9"/><polyline points="9,21 3,21 3,15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>,
 }
 
+// ── Item status helper ─────────────────────────────────
+const SCORE_COLORS: Record<number, string> = {
+  0: '#dc2626', 1: '#ea580c', 2: '#f59e0b', 3: '#eab308', 4: '#84cc16', 5: '#16a34a',
+}
+
+function itemChipStyle(score: number, tipo: string): { label: string; color: string; bg: string } {
+  if (score === 0)                           return { label: '❌ Não Conforme', color: '#dc2626', bg: 'rgba(220,38,38,0.1)' }
+  if (tipo === 'passfail' && score === 5)    return { label: '✅ Conforme',     color: '#16a34a', bg: 'rgba(22,163,74,0.1)'  }
+  const c = SCORE_COLORS[score] ?? '#64748b'
+  return { label: `${score}/5 · ${SCORE_LABELS[score] ?? ''}`, color: c, bg: c + '18' }
+}
+
 // ── Detail Modal ───────────────────────────────────────
 function DetailModal({ insp, onClose }: { insp: CleaningInspection; onClose: () => void }) {
-  const meta = STATUS_META[insp.status]
+  const meta    = STATUS_META[insp.status]
   const [photo, setPhoto] = useState<string | null>(null)
   const initial = insp.employeeName?.[0]?.toUpperCase() ?? '?'
   const color   = scoreToColor(insp.score)
+
+  // Total de itens com fotos (conformes e não conformes)
+  const totalItemPhotos = Object.values(insp.itemPhotos ?? {}).reduce((s, a) => s + a.length, 0)
 
   return (
     <div className={s.modalBackdrop} onClick={onClose}>
@@ -90,7 +105,7 @@ function DetailModal({ insp, onClose }: { insp: CleaningInspection; onClose: () 
               <div className={s.modalSectionTitle}>Pontuação por Senso (5S)</div>
               <div className={s.sensoGrid}>
                 {insp.sections.map(sec => {
-                  const sc = sec.score
+                  const sc       = sec.score
                   const sc_color = scoreToColor(sc)
                   return (
                     <div key={sec.id} className={s.sensoCard}>
@@ -99,12 +114,9 @@ function DetailModal({ insp, onClose }: { insp: CleaningInspection; onClose: () 
                         <span className={s.sensoScore} style={{ color: sc_color }}>{sc}%</span>
                       </div>
                       <div className={s.sensoBar}>
-                        <div className={s.sensoBarFill}
-                          style={{ width: `${sc}%`, background: sc_color }} />
+                        <div className={s.sensoBarFill} style={{ width: `${sc}%`, background: sc_color }} />
                       </div>
-                      {sc < 60 && (
-                        <span className={s.sensoWarn}>Abaixo do mínimo (60%)</span>
-                      )}
+                      {sc < 60 && <span className={s.sensoWarn}>Abaixo do mínimo (60%)</span>}
                     </div>
                   )
                 })}
@@ -112,42 +124,101 @@ function DetailModal({ insp, onClose }: { insp: CleaningInspection; onClose: () 
             </div>
           )}
 
-          {/* Ocorrências */}
-          {insp.issues.length > 0 && (
+          {/* Itens por seção — conformes e não conformes com fotos */}
+          {insp.sections.length > 0 && (
             <div className={s.modalSection}>
               <div className={s.modalSectionTitle}>
-                Ocorrências
-                <span className={s.modalSectionCount}>{insp.issues.length}</span>
+                Itens Avaliados
+                {totalItemPhotos > 0 && (
+                  <span className={s.modalSectionCount}>
+                    📷 {totalItemPhotos} foto{totalItemPhotos !== 1 ? 's' : ''}
+                  </span>
+                )}
+                {insp.issues.length > 0 && (
+                  <span className={s.modalSectionCount} style={{ color: '#dc2626', borderColor: 'rgba(220,38,38,0.2)' }}>
+                    {insp.issues.length} ocorrência{insp.issues.length !== 1 ? 's' : ''}
+                  </span>
+                )}
               </div>
-              <div className={s.issueList}>
-                {insp.issues.map((issue, i) => {
-                  const am = ACTION_META[issue.actionType]
-                  return (
-                    <div key={i} className={s.issueCard}>
-                      <div className={s.issueHead}>
-                        <span className={s.issueBadge} style={{ color: am.color, background: am.color + '14', borderColor: am.color + '33' }}>
-                          {am.label}
-                        </span>
-                        {issue.severity === 'critical' && (
-                          <span className={s.criticalTag}>CRÍTICO</span>
-                        )}
-                        {issue.linkedWOId && (
-                          <span className={s.linkedTag}>O.S. vinculada</span>
-                        )}
-                      </div>
-                      <p className={s.issueDesc}>{issue.description || '(sem descrição)'}</p>
-                      {issue.photoUrl && (
-                        <img
-                          src={issue.photoUrl}
-                          alt="Foto da ocorrência"
-                          className={s.issuePhoto}
-                          onClick={() => setPhoto(issue.photoUrl)}
-                        />
-                      )}
+
+              {insp.sections.map(sec => {
+                if (!sec.items.length) return null
+                return (
+                  <div key={sec.id} className={s.sectionBlock}>
+                    <div className={s.sectionBlockTitle}>
+                      {sec.nome.split('·')[0].trim()}
+                      <span style={{ color: scoreToColor(sec.score), fontWeight: 700 }}> {sec.score}%</span>
                     </div>
-                  )
-                })}
-              </div>
+
+                    <div className={s.itemLines}>
+                      {sec.items.map(item => {
+                        const score   = item.scoreGiven ?? 0
+                        const chip    = itemChipStyle(score, item.tipo)
+                        const photos  = insp.itemPhotos?.[item.id] ?? []
+                        const issue   = insp.issues.find(i => i.itemId === item.id)
+                        const isFail  = score === 0
+
+                        return (
+                          <div
+                            key={item.id}
+                            className={`${s.itemLine} ${isFail ? s.itemLineFail : score >= 4 ? s.itemLinePass : ''}`}
+                          >
+                            <div className={s.itemLineHead}>
+                              <span
+                                className={s.itemChip}
+                                style={{ color: chip.color, background: chip.bg }}
+                              >
+                                {chip.label}
+                              </span>
+                              <span className={s.itemLineText}>{item.texto}</span>
+                            </div>
+
+                            {/* Tags de ação e criticidade */}
+                            {isFail && (
+                              <div className={s.itemLineTags}>
+                                {item.critical && <span className={s.criticalTag}>CRÍTICO</span>}
+                                {issue?.linkedWOId && <span className={s.linkedTag}>O.S. vinculada</span>}
+                                {ACTION_META[item.actionType] && (
+                                  <span
+                                    className={s.issueBadge}
+                                    style={{
+                                      color:       ACTION_META[item.actionType].color,
+                                      background:  ACTION_META[item.actionType].color + '14',
+                                      borderColor: ACTION_META[item.actionType].color + '33',
+                                    }}
+                                  >
+                                    {ACTION_META[item.actionType].label}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Descrição do problema (não conformes) */}
+                            {issue?.description && (
+                              <p className={s.itemLineIssue}>{issue.description}</p>
+                            )}
+
+                            {/* Fotos — conformes e não conformes */}
+                            {photos.length > 0 && (
+                              <div className={s.itemLinePhotos}>
+                                {photos.map((url, pi) => (
+                                  <img
+                                    key={pi}
+                                    src={url}
+                                    alt={`Foto ${pi + 1}`}
+                                    className={s.itemLinePhoto}
+                                    onClick={() => setPhoto(url)}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )}
 
@@ -236,7 +307,6 @@ function InspCard({ insp, onClick }: { insp: CleaningInspection; onClick: () => 
 // HistoryPage
 // ══════════════════════════════════════════════════════
 export default function HistoryPage() {
-  const nav         = useNavigate()
   const [params]    = useSearchParams()
   const initialZone = params.get('zona') ?? ''
 
@@ -272,6 +342,15 @@ export default function HistoryPage() {
   }), [inspections])
 
   const hasFilters = !!(search || filterZone || filterStatus || filterEmployee)
+
+  // Funcionários filtrados pela zona selecionada
+  const filteredEmployees = useMemo(() => {
+    if (!filterZone) return EQUIPE_LIMPEZA
+    const zone = CATALOGO_ZONAS.find(z => z.id === filterZone)
+    if (!zone?.responsaveis.length) return EQUIPE_LIMPEZA
+    const zonal = EQUIPE_LIMPEZA.filter(e => zone.responsaveis.includes(e.id))
+    return zonal.length > 0 ? zonal : EQUIPE_LIMPEZA
+  }, [filterZone])
 
   const STATS = [
     { label: 'Total',       value: stats.total,      color: '#166534', icon: <Ic.Clipboard /> },
@@ -327,7 +406,7 @@ export default function HistoryPage() {
         </div>
 
         <select className={s.filterSelect} value={filterZone}
-          onChange={e => setFilterZone(e.target.value)}>
+          onChange={e => { setFilterZone(e.target.value); setFilterEmployee('') }}>
           <option value="">Todas as zonas</option>
           {CATALOGO_ZONAS.map(z => <option key={z.id} value={z.id}>{z.nome}</option>)}
         </select>
@@ -343,8 +422,10 @@ export default function HistoryPage() {
 
         <select className={s.filterSelect} value={filterEmployee}
           onChange={e => setFilterEmployee(e.target.value)}>
-          <option value="">Todos os funcionários</option>
-          {EQUIPE_LIMPEZA.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+          <option value="">
+            {filterZone ? 'Responsáveis da área' : 'Todos os funcionários'}
+          </option>
+          {filteredEmployees.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
         </select>
 
         <div className={s.filterDivider} />

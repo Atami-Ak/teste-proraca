@@ -86,6 +86,164 @@
 /* ── Score pill ── */
 .scorePill { font-size: 0.78rem; font-weight: 700; padding: 2px 10px; border-radius: 20px; }
 
+/* ── Roadmap 360°: Visão Geral ── */
+.roadmapOverview {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+  padding: 18px 20px; margin-bottom: 16px;
+}
+.roadmapOverviewHeader {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 10px; gap: 12px; flex-wrap: wrap;
+}
+.roadmapOverviewTitle { font-size: 0.9rem; font-weight: 700; color: #374151; }
+.roadmapOverviewPct { font-size: 1.6rem; font-weight: 800; color: #166534; line-height: 1; }
+.roadmapProgressTrack {
+  height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; margin-bottom: 12px;
+}
+.roadmapProgressFill { height: 100%; background: #166534; border-radius: 4px; transition: width 0.4s ease; }
+.roadmapOverviewStats { display: flex; gap: 18px; flex-wrap: wrap; font-size: 0.8rem; color: #64748b; }
+.roadmapOverviewStats strong { color: #0f172a; }
+
+/* ── Roadmap 360°: Stepper ── */
+.roadmapStepper {
+  display: flex; align-items: flex-start; gap: 0;
+  overflow-x: auto; padding: 8px 0 20px; margin-bottom: 4px;
+}
+.roadmapNodeWrap { display: flex; align-items: center; flex: 1; min-width: 100px; }
+.roadmapNode {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: none; border: none; cursor: pointer; padding: 4px;
+  flex-shrink: 0; width: 110px; border-radius: 10px; transition: background 0.12s;
+}
+.roadmapNode:hover { background: #f8fafc; }
+.roadmapCircle {
+  width: 44px; height: 44px; border-radius: 50%; border: 2px solid;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; transition: transform 0.15s;
+}
+.roadmapNode:hover .roadmapCircle { transform: scale(1.06); }
+.roadmapNodeActive .roadmapCircle { box-shadow: 0 0 0 4px rgba(22,101,52,0.15); }
+.roadmapCirclePulse { animation: roadmapPulse 1.8s ease-in-out infinite; }
+@keyframes roadmapPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217,119,6,0.35); }
+  50%      { box-shadow: 0 0 0 6px rgba(217,119,6,0.12); }
+}
+.roadmapLabel { font-size: 0.76rem; font-weight: 700; color: #0f172a; text-align: center; }
+.roadmapStatusBadge { font-size: 0.65rem; font-weight: 600; padding: 1px 8px; border-radius: 20px; }
+.roadmapNodeDates { font-size: 0.66rem; color: #94a3b8; margin-top: -2px; min-height: 12px; }
+.roadmapLine { height: 2px; flex: 1; margin-top: 25px; min-width: 12px; }
+
+/* ── Roadmap 360°: Detalhe ── */
+.roadmapDetail { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 20px; }
+.roadmapDetailHeader { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.roadmapDetailTitle { font-size: 1.05rem; font-weight: 800; color: #0f172a; margin: 0 0 4px; }
+.roadmapDetailDesc { font-size: 0.84rem; color: #64748b; margin: 0; }
+.roadmapDurationChip {
+  font-size: 0.74rem; font-weight: 600; color: #166534; background: rgba(22,101,52,0.1);
+  padding: 4px 12px; border-radius: 20px; white-space: nowrap;
+}
+.roadmapDetailGrid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; align-items: start; }
+.roadmapDetailMain { display: flex; flex-direction: column; gap: 14px; }
+.roadmapFormRow { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; }
+.roadmapSectionTitle { font-size: 0.8rem; font-weight: 700; color: #374151; margin: 0 0 10px; }
+.roadmapDetailSide {
+  background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 10px; padding: 14px;
+}
+.roadmapNoDocs { font-size: 0.82rem; color: #94a3b8; }
+.roadmapEvidList { display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; }
+.roadmapEvidItem { display: flex; align-items: center; gap: 8px; font-size: 0.84rem; color: #374151; cursor: pointer; }
+
+/* ── Jornada v2 — novos elementos ── */
+.rdmTemplBadge {
+  display: inline-block; font-size: 0.72rem; font-weight: 600;
+  color: #3b82f6; background: rgba(59,130,246,0.1);
+  padding: 2px 10px; border-radius: 20px; margin-left: 8px;
+}
+.rdmSlaChip {
+  font-size: 0.65rem; font-weight: 700; padding: 1px 7px; border-radius: 20px; margin-top: 2px;
+}
+
+/* Checklist */
+.rdmChecklist {
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+  padding: 12px 14px;
+}
+.rdmChecklistHeader {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px;
+}
+.rdmCheckProgress {
+  flex: 1; height: 4px; background: #e2e8f0; border-radius: 2px; overflow: hidden;
+}
+.rdmCheckFill { height: 100%; background: #166534; border-radius: 2px; transition: width 0.3s; }
+.rdmCheckItem {
+  display: flex; align-items: center; gap: 8px; font-size: 0.84rem;
+  padding: 5px 0; cursor: pointer; border-bottom: 1px solid #f1f5f9;
+}
+.rdmCheckItem:last-child { border-bottom: none; }
+
+/* Auditoria */
+.rdmAuditSection { margin-top: 24px; }
+.rdmAuditToggle {
+  font-size: 0.8rem; font-weight: 600; color: #64748b;
+  background: none; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 8px 16px; cursor: pointer; transition: all 0.15s;
+}
+.rdmAuditToggle:hover { background: #f8fafc; color: #374151; }
+.rdmAuditList { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.rdmAuditEntry {
+  background: #fff; border: 1px solid #f1f5f9; border-radius: 8px;
+  padding: 10px 14px;
+}
+.rdmAuditHeader {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 4px; flex-wrap: wrap; gap: 4px;
+}
+.rdmAuditStage { font-weight: 700; font-size: 0.8rem; color: #374151; }
+.rdmAuditDate  { font-size: 0.7rem; color: #94a3b8; }
+.rdmAuditChange {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 0.8rem;
+}
+.rdmAuditField { font-weight: 600; color: #64748b; text-transform: uppercase; font-size: 0.68rem; letter-spacing: 0.04em; }
+.rdmAuditOld   { color: #dc2626; background: rgba(220,38,38,0.08); padding: 1px 6px; border-radius: 4px; }
+.rdmAuditNew   { color: #166534; background: rgba(22,101,52,0.08); padding: 1px 6px; border-radius: 4px; }
+
+/* ── Botões de Ação Rápida (Quick Actions) ── */
+.rdmActionBar {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px;
+  padding: 12px 14px; background: #f8fafc;
+  border: 1px solid #e2e8f0; border-radius: 10px;
+}
+.rdmActionBtn {
+  padding: 9px 18px; border-radius: 8px; font-size: 0.84rem;
+  font-weight: 700; cursor: pointer; border: none;
+  transition: opacity 0.15s, transform 0.1s; color: #fff;
+  letter-spacing: 0.01em;
+}
+.rdmActionBtn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+.rdmActionBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.rdmBtnIniciar  { background: #d97706; }
+.rdmBtnConcluir { background: #166534; }
+.rdmBtnPausar   { background: #64748b; }
+.rdmBtnReabrir  { background: #ea580c; }
+.rdmBtnNa       {
+  background: none; color: #94a3b8;
+  border: 1px solid #e2e8f0 !important; font-weight: 600;
+  padding: 8px 16px;
+}
+.rdmBtnNa:hover:not(:disabled) { background: #f1f5f9; color: #64748b; }
+
+/* ── Flash de confirmação no stepper ── */
+@keyframes rdmFlash {
+  0%   { box-shadow: 0 0 0 0 rgba(22,101,52,0.7); background: rgba(22,101,52,0.12); }
+  50%  { box-shadow: 0 0 0 6px rgba(22,101,52,0.25); background: rgba(22,101,52,0.18); }
+  100% { box-shadow: 0 0 0 0 rgba(22,101,52,0); background: transparent; }
+}
+.roadmapNodeFlash { animation: rdmFlash 2.2s ease-out; }
+
+@media (max-width: 860px) {
+  .roadmapDetailGrid { grid-template-columns: 1fr; }
+}
+
 /* ── Timeline ── */
 .timeline { display: flex; flex-direction: column; gap: 0; }
 .timelineItem {
@@ -123,6 +281,80 @@
 .subSection { display: flex; flex-direction: column; gap: 10px; }
 .subTitle { font-size: 0.9rem; font-weight: 700; color: #374151; margin: 0 0 8px; }
 .empty { padding: 20px; text-align: center; color: #94a3b8; font-size: 0.84rem; }
+
+.tbSaldoCard {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+  padding: 20px; text-align: center; margin-bottom: 16px;
+}
+.tbSaldoLbl { font-size: 0.78rem; color: #64748b; font-weight: 600; margin-bottom: 4px; }
+.tbSaldoVal { font-size: 2rem; font-weight: 800; line-height: 1; }
+
+/* ── Banco de Horas v2 ── */
+.bhKpiBar {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;
+}
+@media (max-width: 640px) { .bhKpiBar { grid-template-columns: repeat(2, 1fr); } }
+
+.bhKpiCard {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+  padding: 14px 16px; text-align: center;
+}
+.bhKpiVal { font-size: 1.45rem; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+.bhKpiLbl { font-size: 0.68rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+
+.bhSubTabs {
+  display: flex; gap: 4px; background: #f8fafc; border: 1px solid #e2e8f0;
+  border-radius: 10px; padding: 4px; margin-bottom: 16px;
+}
+.bhSubTabBtn {
+  flex: 1; padding: 8px 12px; border: none; border-radius: 7px; background: transparent;
+  font-size: 0.82rem; font-weight: 600; color: #64748b; cursor: pointer; transition: all 0.15s;
+}
+.bhSubTabBtn:hover { background: #fff; color: #374151; }
+.bhSubTabActive {
+  flex: 1; padding: 8px 12px; border: none; border-radius: 7px;
+  background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  font-size: 0.82rem; font-weight: 700; color: #166534; cursor: pointer;
+}
+
+.bhTimeGrid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px;
+}
+@media (max-width: 580px) { .bhTimeGrid { grid-template-columns: repeat(2, 1fr); } }
+
+.bhCalcPreview {
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+  padding: 14px 20px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.bhCalcItem { text-align: center; }
+.bhCalcVal  { font-size: 1.15rem; font-weight: 800; color: #0f172a; line-height: 1; margin-bottom: 2px; }
+.bhCalcLbl  { font-size: 0.65rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; }
+
+.bhTable    { overflow-x: auto; border-radius: 10px; border: 1px solid #e2e8f0; }
+.bhTableEl  { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.bhTableEl th {
+  background: #f8fafc; padding: 10px 12px; text-align: left;
+  font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase;
+  border-bottom: 1px solid #e2e8f0; white-space: nowrap;
+}
+.bhTableEl td {
+  padding: 10px 12px; color: #374151; border-bottom: 1px solid #f1f5f9; vertical-align: middle;
+}
+.bhTableEl tr:last-child td { border-bottom: none; }
+.bhTableEl tbody tr:hover td { background: #f8fafc; }
+
+.bhSaldoPos { font-weight: 700; color: #166534; }
+.bhSaldoNeg { font-weight: 700; color: #dc2626; }
+
+.bhActBtn {
+  font-size: 0.74rem; font-weight: 700; padding: 5px 10px; border-radius: 6px;
+  border: none; cursor: pointer; transition: opacity 0.15s; white-space: nowrap;
+}
+.bhApproveBtn { background: rgba(22,101,52,0.12); color: #166534; }
+.bhApproveBtn:hover { opacity: 0.75; }
+.bhRejectBtn  { background: rgba(220,38,38,0.10);  color: #dc2626; }
+.bhRejectBtn:hover  { opacity: 0.75; }
 
 .disciplCard, .reconhCard {
   background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px;
@@ -180,3 +412,169 @@
 .safetyLink { font-size: 0.78rem; color: #166534; font-weight: 600; text-decoration: none; }
 .safetyLink:hover { text-decoration: underline; }
 .safetyInfo { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; font-size: 0.82rem; color: #64748b; }
+
+/* ── Documentos tab ── */
+.docHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px; flex-wrap: wrap; gap: 8px;
+}
+.docHeaderLeft { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.docCount { font-size: 0.78rem; font-weight: 600; color: #64748b; }
+
+.certAlertRow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.certAlertBadge {
+  font-size: 0.7rem; font-weight: 700; padding: 3px 9px;
+  border-radius: 7px; white-space: nowrap;
+}
+
+.btnDocUpload {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 9px; border: none;
+  background: #166534; color: #fff;
+  font-size: 0.82rem; font-weight: 700; cursor: pointer;
+  transition: background 0.14s, transform 0.12s;
+}
+.btnDocUpload:hover { background: #14532d; transform: translateY(-1px); }
+
+.docList { display: flex; flex-direction: column; gap: 8px; }
+
+.docCard {
+  display: flex; align-items: center; gap: 12px;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+  padding: 12px 14px; transition: box-shadow 0.14s;
+}
+.docCard:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.07); }
+
+.docCardIcon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; flex-shrink: 0;
+}
+
+.docCardBody { flex: 1; min-width: 0; }
+.docCardName {
+  font-size: 0.875rem; font-weight: 700; color: #0f172a;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.docCardMeta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 3px; }
+
+.docTypeBadge {
+  font-size: 0.62rem; font-weight: 700; padding: 2px 7px;
+  border-radius: 6px; white-space: nowrap;
+}
+.docFilename { font-size: 0.7rem; color: #64748b; font-family: monospace; }
+.docSize     { font-size: 0.7rem; color: #94a3b8; }
+.docDate     { font-size: 0.7rem; color: #94a3b8; }
+
+.docValidadeInfo { font-size: 0.7rem; color: #64748b; }
+.certBadge {
+  font-size: 0.66rem; font-weight: 700; padding: 2px 8px;
+  border-radius: 6px; white-space: nowrap;
+}
+
+.docCardActions { display: flex; gap: 4px; flex-shrink: 0; }
+.docActionBtn {
+  width: 32px; height: 32px; border-radius: 8px; border: none;
+  background: #f1f5f9; cursor: pointer; font-size: 0.85rem;
+  display: flex; align-items: center; justify-content: center;
+  text-decoration: none; transition: background 0.12s;
+}
+.docActionBtn:hover    { background: #e2e8f0; }
+.docActionDelete:hover { background: #fee2e2; }
+
+/* ── Upload modal ── */
+.docOverlay {
+  position: fixed; inset: 0; background: rgba(5,46,22,0.5);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 600; backdrop-filter: blur(4px); padding: 20px;
+}
+.docModal {
+  background: #fff; border-radius: 18px;
+  width: min(480px, 100%); max-height: 90vh;
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  animation: docModalIn 0.2s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes docModalIn {
+  from { opacity: 0; transform: scale(0.93) translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+.docModalHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px 12px; border-bottom: 1px solid #e2e8f0;
+}
+.docModalTitle { font-size: 1rem; font-weight: 800; color: #0f172a; margin: 0; }
+.docModalClose {
+  background: none; border: none; font-size: 1.4rem;
+  cursor: pointer; color: #94a3b8; padding: 2px 8px; border-radius: 6px;
+}
+.docModalClose:hover { background: #fee2e2; color: #dc2626; }
+.docModalBody {
+  flex: 1; overflow-y: auto; padding: 16px 20px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.docModalFooter {
+  display: flex; gap: 10px; justify-content: flex-end;
+  padding: 12px 20px; border-top: 1px solid #e2e8f0; background: #f8fafc;
+}
+.docFormGroup { display: flex; flex-direction: column; gap: 5px; }
+.docFormRow { display: flex; gap: 12px; }
+.docFormRow > .docFormGroup { flex: 1; }
+.docLabel { font-size: 0.75rem; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.04em; }
+.docInput {
+  border: 1.5px solid #e2e8f0; border-radius: 9px; padding: 9px 12px;
+  font-size: 0.875rem; font-family: inherit; outline: none; background: #f8fafc;
+  transition: border-color 0.14s;
+}
+.docInput:focus { border-color: #166534; background: #fff; }
+
+.docUploadZone {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 22px; border: 2px dashed #e2e8f0; border-radius: 10px;
+  cursor: pointer; color: #64748b; font-size: 0.82rem; text-align: center;
+  transition: border-color 0.14s, background 0.14s;
+}
+.docUploadZone:hover { border-color: #166534; background: rgba(22,101,52,0.04); color: #166534; }
+
+.docFileSelected {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-size: 0.82rem; font-weight: 600; color: #0f172a;
+}
+
+.docPreviewImg {
+  max-height: 160px; border-radius: 8px; object-fit: contain;
+  border: 1px solid #e2e8f0; margin-top: 4px;
+}
+
+.docBtnCancel {
+  padding: 9px 18px; border-radius: 8px; font-weight: 600; font-size: 0.875rem;
+  cursor: pointer; background: #f1f5f9; color: #374151; border: 1.5px solid #e2e8f0;
+}
+.docBtnCancel:hover { background: #e2e8f0; }
+
+.docBtnSave {
+  padding: 9px 20px; border-radius: 8px; font-weight: 700; font-size: 0.875rem;
+  cursor: pointer; border: none; background: #166534; color: #fff;
+  transition: background 0.14s;
+}
+.docBtnSave:hover:not(:disabled) { background: #14532d; }
+.docBtnSave:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Lightbox ── */
+.docLightbox {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.88);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 700; padding: 20px; cursor: zoom-out;
+}
+.docLightboxImg {
+  max-width: min(900px, 95vw); max-height: 90vh;
+  object-fit: contain; border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.docLightboxClose {
+  position: fixed; top: 16px; right: 16px;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255,255,255,0.15); border: none; color: #fff;
+  font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.docLightboxClose:hover { background: rgba(255,255,255,0.25); }

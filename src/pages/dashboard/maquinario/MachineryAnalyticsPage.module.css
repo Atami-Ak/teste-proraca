@@ -539,3 +539,70 @@
   .page, .drillDown { animation: none; }
   .skeletonCell { animation: none; }
 }
+
+/* ── EAM Fleet Health Banner ── */
+
+.fleetHealth {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.fleetGaugeCard {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 18px;
+  flex: 1;
+  min-width: 0;
+}
+
+.fleetGaugeTitle {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #8898AA;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fleetRiskRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fleetRiskBarWrap {
+  flex: 1;
+  height: 5px;
+  background: #f1f5f9;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.fleetRiskBarFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+  min-width: 2px;
+}
+
+.fleetCriticalItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid #f8fafc;
+}
+
+.fleetRiskBadge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 5px;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 900px) {
+  .fleetHealth { flex-direction: column; }
+}

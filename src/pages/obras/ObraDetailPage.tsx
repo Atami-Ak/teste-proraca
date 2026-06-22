@@ -6,11 +6,14 @@ import {
 } from '@/lib/db-obras'
 import { computeObraHealthScore } from '@/lib/db-obras-health'
 import { getObraTimeline } from '@/lib/db-obras-timeline'
+import { getObraDocumentos } from '@/lib/db-obras-documentos'
 import { toast } from '@/components/ui/Toast'
 import { useStore } from '@/store/useStore'
 import type { Obra, Empreiteira, InspecaoObra, AvaliacaoEmpreiteira } from '@/types/obras'
 import type { ObraTimelineEvent } from '@/types/obras-timeline'
 import { OBRA_TIMELINE_META } from '@/types/obras-timeline'
+import type { ObraDocumento } from '@/types/obras-documentos'
+import { OBRA_DOC_TIPO_META } from '@/types/obras-documentos'
 import {
   OBRA_STATUS_META, EMPREITEIRA_STATUS_META, AVALIACAO_CRITERIOS, AVALIACAO_PESOS,
   calcAvaliacaoScore, calcRecomendacao, RECOMENDACAO_META,
@@ -74,6 +77,7 @@ export default function ObraDetailPage() {
   const [inspecoes,   setInspecoes]   = useState<InspecaoObra[]>([])
   const [avaliacao,   setAvaliacao]   = useState<AvaliacaoEmpreiteira | null>(null)
   const [timeline,    setTimeline]    = useState<ObraTimelineEvent[]>([])
+  const [docs,        setDocs]        = useState<ObraDocumento[]>([])
   const [loading,     setLoading]     = useState(true)
   const [tab,         setTab]         = useState<Tab>('visao')
   const [avForm,      setAvForm]      = useState<AvaliacaoForm>(EMPTY_AVALIACAO)
@@ -83,10 +87,13 @@ export default function ObraDetailPage() {
 
   useEffect(() => {
     if (!obraId) return
-    Promise.all([getObra(obraId), getInspecoesObra(obraId), getAvaliacaoByObra(obraId), getObraTimeline(obraId)])
-      .then(async ([o, ins, av, tl]) => {
+    Promise.all([
+      getObra(obraId), getInspecoesObra(obraId), getAvaliacaoByObra(obraId),
+      getObraTimeline(obraId), getObraDocumentos(obraId),
+    ])
+      .then(async ([o, ins, av, tl, dc]) => {
         if (!o) { toast.error('Obra não encontrada'); navigate('/obras'); return }
-        setObra(o); setInspecoes(ins); setAvaliacao(av); setTimeline(tl)
+        setObra(o); setInspecoes(ins); setAvaliacao(av); setTimeline(tl); setDocs(dc)
         if (o.empreiteiraId) {
           const emp = await getEmpreiteira(o.empreiteiraId)
           setEmpreiteira(emp)
@@ -397,6 +404,32 @@ export default function ObraDetailPage() {
                   </strong>
                 </div>
               </div>
+            </div>
+
+            <div className={s.infoCard}>
+              <div className={s.infoCardTitle}>📎 Documentos ({docs.length})</div>
+              {docs.length === 0 ? (
+                <div className={s.noData}>
+                  Nenhum documento anexado.
+                  <button className={s.linkBtn} onClick={() => navigate(`/obras/${obraId}/editar`)}>
+                    Anexar contrato e outros documentos →
+                  </button>
+                </div>
+              ) : (
+                <div className={s.detailRows}>
+                  {docs.map(d => (
+                    <div key={d.id} className={s.detailRow}>
+                      <span>{OBRA_DOC_TIPO_META[d.tipo].icon} {OBRA_DOC_TIPO_META[d.tipo].label}</span>
+                      <a href={d.url} target="_blank" rel="noreferrer" style={{ color: '#1d4ed8', textDecoration: 'none', fontWeight: 600 }}>
+                        {d.nome}
+                      </a>
+                    </div>
+                  ))}
+                  <button className={s.linkBtn} onClick={() => navigate(`/obras/${obraId}/editar`)}>
+                    Gerenciar documentos →
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 

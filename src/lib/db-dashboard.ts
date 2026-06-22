@@ -135,10 +135,11 @@ export async function computeAndWriteKpiCache(period: Period): Promise<KpiCacheD
   // ── Incidentes segurança ──────────────────────────────
   const incidentesSeguranca = kv(safetyOccCurrSnap.size, safetyOccPrevSnap.size)
 
-  // ── Alertas colaboradores (crítico/atenção) ───────────
+  // ── Alertas colaboradores (crítico/atenção/certificação vencida) ──
   const criticalEmps = employeesSnap.docs.filter(d => {
-    const sp = d.data().statusPerformance as string
-    return sp === 'critico' || sp === 'atencao'
+    const data = d.data()
+    const sp = data.statusPerformance as string
+    return sp === 'critico' || sp === 'atencao' || (data.totalCertificacoesVencidas as number ?? 0) > 0
   }).length
   const alertasColaboradores = kv(criticalEmps, 0)
 
