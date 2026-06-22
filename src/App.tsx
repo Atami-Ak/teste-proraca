@@ -45,6 +45,8 @@ const EmployeeListPage          = lazy(() => import('@/pages/employees/EmployeeL
 const EmployeeFormPage          = lazy(() => import('@/pages/employees/EmployeeFormPage'))
 const EmployeeProfilePage       = lazy(() => import('@/pages/employees/EmployeeProfilePage'))
 const EmployeeEvaluationFormPage = lazy(() => import('@/pages/employees/EmployeeEvaluationFormPage'))
+const KPIEvaluationFormPage      = lazy(() => import('@/pages/employees/KPIEvaluationFormPage'))
+const KPIEvaluationDetailPage    = lazy(() => import('@/pages/employees/KPIEvaluationDetailPage'))
 
 // ── Obras & Empreiteiras module ────────────────────────
 const ObrasPage             = lazy(() => import('@/pages/obras/ObrasPage'))
@@ -71,6 +73,9 @@ const DocumentCenterPage         = lazy(() => import('@/pages/dashboard/document
 const SafetyAnalyticsPage        = lazy(() => import('@/pages/dashboard/seguranca/SafetyAnalyticsPage'))
 const EmployeesAnalyticsPage     = lazy(() => import('@/pages/dashboard/colaboradores/EmployeesAnalyticsPage'))
 const ObrasAnalyticsPage         = lazy(() => import('@/pages/dashboard/obras/ObrasAnalyticsPage'))
+const RecommendationsPage        = lazy(() => import('@/pages/dashboard/recomendacoes/RecommendationsPage'))
+const IntelligencePage           = lazy(() => import('@/pages/dashboard/inteligencia/IntelligencePage'))
+const NOCPage                    = lazy(() => import('@/pages/dashboard/noc/NOCPage'))
 
 // ── Shared loading fallback ────────────────────────────
 function PageLoader() {
@@ -152,7 +157,9 @@ export default function App() {
         <Route path="colaboradores/ranking"                element={<Lazy page={<EmployeeRankingPage />} />} />
         <Route path="colaboradores/:id"                    element={<Lazy page={<EmployeeProfilePage />} />} />
         <Route path="colaboradores/:id/editar"             element={<Lazy page={<EmployeeFormPage />} />} />
-        <Route path="colaboradores/:id/avaliacao"          element={<Lazy page={<EmployeeEvaluationFormPage />} />} />
+        <Route path="colaboradores/:id/avaliacao"           element={<Lazy page={<EmployeeEvaluationFormPage />} />} />
+        <Route path="colaboradores/:id/avaliacao-kpi"     element={<Lazy page={<KPIEvaluationFormPage />} />} />
+        <Route path="colaboradores/:id/avaliacao-kpi/:evalId" element={<Lazy page={<KPIEvaluationDetailPage />} />} />
 
         {/* ── Obras & Empreiteiras module ── */}
         <Route path="obras"                                      element={<Lazy page={<ObrasPage />} />} />
@@ -172,6 +179,7 @@ export default function App() {
           <Route path="dashboard" element={<Lazy page={<DashboardLayout />} />}>
             <Route index element={<Navigate to="overview" replace />} />
             <Route path="overview"      element={<Lazy page={<DashboardPage />} />} />
+            <Route path="noc"           element={<Lazy page={<NOCPage />} />} />
             <Route path="maquinario"    element={<Lazy page={<MachineryAnalyticsPage />} />} />
             {/* Fleet analytics isolated — route removed */}
             <Route path="limpeza"       element={<Lazy page={<CleaningAnalyticsPage />} />} />
@@ -181,6 +189,8 @@ export default function App() {
             <Route path="compras"       element={<Lazy page={<PurchasingAnalyticsPage />} />} />
             <Route path="aprovacoes"    element={<Lazy page={<ApprovalCenterPage />} />} />
             <Route path="documentos"    element={<Lazy page={<DocumentCenterPage />} />} />
+            <Route path="inteligencia"  element={<Lazy page={<IntelligencePage />} />} />
+            <Route path="recomendacoes" element={<Lazy page={<RecommendationsPage />} />} />
             <Route path="acesso"        element={<Lazy page={<AccessControlPage />} />} />
           </Route>
         </Route>

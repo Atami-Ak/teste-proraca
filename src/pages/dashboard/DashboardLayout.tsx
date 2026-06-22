@@ -15,8 +15,9 @@ interface TabDef {
 
 const TABS: TabDef[] = [
   { path: 'overview',       label: 'Visão Geral',   icon: '📊'              },
+  { path: 'noc',            label: 'Centro de Operações', icon: '🛰️', star: true },
   { path: 'maquinario',     label: 'Maquinário',    icon: '⚙️', star: true  },
-  { path: 'frota',          label: 'Frota',         icon: '🚛'              },
+  // Frota desativada — módulo isolado, rota removida (sem dados de frota ativa)
   { path: 'limpeza',        label: 'Limpeza 5S',    icon: '🧹'              },
   { path: 'seguranca',      label: 'Segurança',     icon: '🛡️'             },
   { path: 'colaboradores',  label: 'Colaboradores', icon: '👥'              },
@@ -24,6 +25,8 @@ const TABS: TabDef[] = [
   { path: 'compras',        label: 'Compras',       icon: '🛒'              },
   { path: 'aprovacoes',     label: 'Aprovações',    icon: '✅', badge: true  },
   { path: 'documentos',     label: 'Documentos',    icon: '📄'              },
+  { path: 'inteligencia',   label: 'Inteligência',  icon: '🧠'              },
+  { path: 'recomendacoes',  label: 'Recomendações', icon: '💡'              },
   { path: 'acesso',         label: 'Acesso',        icon: '🔐'              },
 ]
 
